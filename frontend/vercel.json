@@ -1,0 +1,13 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/static/(.*)",
+      "destination": "/$1"
+    },
+    {
+      "source": "/payment-success",
+      "destination": "/payment-status.html"
+    }
+  ]
+}
