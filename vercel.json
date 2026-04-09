@@ -10,6 +10,14 @@
       "destination": "/protected_frontend/admin.html"
     },
     {
+      "source": "/payment-success",
+      "destination": "/frontend/payment-status.html"
+    },
+    {
+      "source": "/static/(.*)",
+      "destination": "/frontend/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/frontend/$1"
     }
