@@ -10,26 +10,26 @@
       href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Sora:wght@100..800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/static/style.css?v=20260402h" />
+    <link rel="stylesheet" href="./style.css?v=20260402h" />
   </head>
   <body data-page="dashboard">
     <header class="site-header">
       <div class="container nav-shell">
-        <a class="brand" href="/">
+        <a class="brand" href="./index.html">
           <span class="brand-badge">T</span>
           <span>Trimly</span>
         </a>
         <button class="nav-toggle" data-nav-toggle aria-label="Toggle menu">Menu</button>
         <nav class="nav-main" data-nav-menu>
           <div class="nav-links">
-            <a href="/">Home</a>
-            <a href="/static/barbers.html">Barbers</a>
-            <a class="active" href="/static/dashboard.html">Dashboard</a>
+            <a href="./index.html">Home</a>
+            <a href="./barbers.html">Barbers</a>
+            <a class="active" href="./dashboard.html">Dashboard</a>
           </div>
           <div class="auth-actions" data-auth-actions>
-            <a class="btn btn-ghost" href="/static/login.html">Login</a>
-            <a class="btn btn-primary" href="/static/register.html">Register</a>
-            <a class="auth-admin-link" href="/static/admin-login.html">Admin Login</a>
+            <a class="btn btn-ghost" href="./login.html">Login</a>
+            <a class="btn btn-primary" href="./register.html">Register</a>
+            <a class="auth-admin-link" href="./admin-login.html">Admin Login</a>
           </div>
         </nav>
       </div>
@@ -108,7 +108,7 @@
           <article class="panel">
             <div class="panel-head-row">
               <h3>Trending Barbers Near You</h3>
-              <a href="/static/barbers.html" class="muted">See all</a>
+              <a href="./barbers.html" class="muted">See all</a>
             </div>
             <div id="customerTrending" class="grid grid-4"></div>
           </article>
@@ -128,11 +128,11 @@
           <article class="panel">
             <h3>Quick Actions</h3>
             <div class="quick-actions-grid">
-              <a class="quick-action-card" href="/static/barbers.html">
+              <a class="quick-action-card" href="./barbers.html">
                 <strong>Find Barbers</strong>
                 <span class="muted">Browse by location and rating</span>
               </a>
-              <a class="quick-action-card" id="quickBookAgain" href="/static/barbers.html">
+              <a class="quick-action-card" id="quickBookAgain" href="./barbers.html">
                 <strong>Book Again</strong>
                 <span class="muted">Repeat your last service</span>
               </a>
@@ -140,7 +140,7 @@
                 <strong>View Booking History</strong>
                 <span class="muted">Check all your appointment activity</span>
               </a>
-              <a class="quick-action-card" href="/static/favourite.html">
+              <a class="quick-action-card" href="./favourite.html">
                 <strong>Saved Barbers</strong>
                 <span class="muted">Jump into your favorites list</span>
               </a>
@@ -406,7 +406,7 @@
         <section class="panel" id="sharedDisputesPanel">
           <div class="panel-head-row">
             <h3>My Disputes</h3>
-            <a class="muted" href="/static/dashboard.html">Refresh</a>
+            <a class="muted" href="./dashboard.html">Refresh</a>
           </div>
           <div id="sharedDisputesList" class="booking-list"></div>
         </section>
@@ -457,9 +457,10 @@
     </section>
 
     <div id="toast" class="toast"></div>
-    <script type="module" src="/static/main.js?v=20260403c"></script>
+    <script type="module" src="./main.js?v=20260403c"></script>
   </body>
 </html>
+
 
 
 
