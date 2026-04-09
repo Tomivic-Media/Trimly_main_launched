@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy import text
 
@@ -39,6 +40,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BASE_DIR / "frontend"
 PROJECT_STATIC_DIR = BASE_DIR / "STATIC"
 PROTECTED_FRONTEND_DIR = BASE_DIR / "protected_frontend"
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://trimly.com.ng",
+        "https://www.trimly.com.ng",
+        "https://app.trimly.com.ng",
+        "https://api.trimly.com.ng",
+    ],
+    allow_origin_regex=r"https://.*\.vercel\.app",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class HtmlNoCacheMiddleware(BaseHTTPMiddleware):

@@ -85,11 +85,13 @@
     </footer>
 
     <div id="toast" class="toast"></div>
-    <script>
-      (function () {
-        if (!window.trimlyTogglePasswordInline) {
-          window.trimlyTogglePasswordInline = function (targetId, button) {
-            const input = targetId ? document.getElementById(targetId) : null;
+      <script>
+        (function () {
+          const API_BASE_URL = "https://api.trimly.com.ng";
+
+          if (!window.trimlyTogglePasswordInline) {
+            window.trimlyTogglePasswordInline = function (targetId, button) {
+              const input = targetId ? document.getElementById(targetId) : null;
             if (!input || !button) return false;
             const nextType = input.type === "password" ? "text" : "password";
             input.type = nextType;
@@ -140,12 +142,12 @@
             body.append("username", email);
             body.append("password", password);
 
-            const loginResponse = await fetch("/admin/session-login", {
-              method: "POST",
-              headers: { "Content-Type": "application/x-www-form-urlencoded" },
-              body,
-              credentials: "same-origin",
-            });
+            const loginResponse = await fetch(`${API_BASE_URL}/admin/session-login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body,
+                credentials: "include",
+              });
 
             const loginPayload = await loginResponse.json().catch(() => ({}));
             if (!loginResponse.ok) {
@@ -154,9 +156,10 @@
 
             localStorage.setItem("trimly_token", loginPayload.access_token || "");
 
-            const meResponse = await fetch("/me", {
-              headers: { Authorization: "Bearer " + (loginPayload.access_token || "") },
-            });
+            const meResponse = await fetch(`${API_BASE_URL}/me`, {
+                headers: { Authorization: "Bearer " + (loginPayload.access_token || "") },
+                credentials: "include",
+              });
             const mePayload = await meResponse.json().catch(() => ({}));
             if (!meResponse.ok) {
               throw new Error(mePayload.detail || mePayload.message || "Unable to load admin account");
@@ -183,9 +186,10 @@
         scrubCredentialParams();
       })();
     </script>
-    <script type="module" src="./main.js?v=20260403c"></script>
+    <script type="module" src="./main.js?v=20260409a"></script>
   </body>
 </html>
+
 
 
 

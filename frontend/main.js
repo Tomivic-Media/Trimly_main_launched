@@ -1,4 +1,4 @@
-﻿import {
+import {
   adminSessionLogin,
   adminSessionLogout,
   adminRefundBooking,
@@ -63,7 +63,7 @@
   updateBarberStatus,
   updateBookingStatus,
   verifyPayment,
-} from "./api.js?v=20260403c";
+} from "./api.js?v=20260409a";
 
 const DAY_ORDER = [
   "monday",
@@ -492,7 +492,7 @@ function barberCardTemplate(barber, ctaLabel = "View Profile") {
 
 function renderStars(rating) {
   const rounded = Math.max(0, Math.min(5, Math.round(Number(rating || 0))));
-  return Array.from({ length: 5 }, (_, index) => (index < rounded ? "★" : "☆")).join("");
+  return Array.from({ length: 5 }, (_, index) => (index < rounded ? "?" : "?")).join("");
 }
 
 function renderReviewCards(reviews = [], emptyText = "No customer reviews yet.") {
@@ -5793,6 +5793,7 @@ async function refreshChatMessages(bookingId, list) {
   list.innerHTML = messages.map(renderChatBubble).join("");
   list.scrollTop = list.scrollHeight;
 }
+
 
 
 

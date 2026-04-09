@@ -1,7 +1,6 @@
 const API_BASE_URL =
-  typeof window !== "undefined" && window.location?.origin
-    ? window.location.origin
-    : "http://127.0.0.1:8000";
+  (typeof window !== "undefined" && window.__TRIMLY_API_BASE_URL) ||
+  "https://api.trimly.com.ng";
 
 function getToken() {
   return localStorage.getItem("trimly_token") || "";
@@ -23,6 +22,7 @@ async function apiFetch(path, options = {}, needsAuth = false) {
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
+    credentials: options.credentials || "include",
     headers,
   });
 
@@ -124,14 +124,14 @@ async function adminSessionLogin(email, password) {
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body,
-    credentials: "same-origin",
+    credentials: "include",
   });
 }
 
 async function adminSessionLogout() {
   return apiFetch("/admin/session-logout", {
     method: "POST",
-    credentials: "same-origin",
+    credentials: "include",
   });
 }
 
