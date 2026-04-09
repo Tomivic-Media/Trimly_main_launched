@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trimly | Book a Barber Near You</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Sora:wght@100..800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/style.css?v=20260402h" />
+  </head>
+  <body data-page="landing">
+    <header class="site-header">
+      <div class="container nav-shell">
+        <a class="brand" href="/">
+          <span class="brand-badge">T</span>
+          <span>Trimly</span>
+        </a>
+        <button class="nav-toggle" data-nav-toggle aria-label="Toggle menu">Menu</button>
+        <nav class="nav-main" data-nav-menu>
+          <div class="nav-links">
+            <a class="active" href="/">Home</a>
+            <a href="/static/barbers.html">Barbers</a>
+            <a href="/static/dashboard.html">Dashboard</a>
+          </div>
+          <div class="auth-actions" data-auth-actions>
+            <a class="btn btn-ghost" href="/static/login.html">Login</a>
+            <a class="btn btn-primary" href="/static/register.html">Register</a>
+            <a class="auth-admin-link" href="/static/admin-login.html">Admin Login</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="container hero-grid">
+          <div>
+            <h1>Book a Barber Near You</h1>
+            <p>
+              Discover trusted barbers in your area, compare prices and ratings,
+              and lock in your next appointment in minutes.
+            </p>
+            <form id="heroSearchForm" class="search-row">
+              <input
+                id="heroSearchInput"
+                class="input"
+                type="text"
+                placeholder="Search by barber name or location"
+              />
+              <button class="btn btn-primary" type="submit">Find Barbers</button>
+            </form>
+          </div>
+          <aside class="hero-panel">
+            <h3>Why Trimly?</h3>
+            <p class="muted">
+              Built for fast, reliable bookings with live barber availability and
+              secure online scheduling.
+            </p>
+            <div class="hero-stats">
+              <div class="stat-card">
+                <small class="muted">Avg Booking Time</small>
+                <strong>45 sec</strong>
+              </div>
+              <div class="stat-card">
+                <small class="muted">Cities</small>
+                <strong>20+</strong>
+              </div>
+              <div class="stat-card">
+                <small class="muted">Verified Shops</small>
+                <strong>1,200+</strong>
+              </div>
+              <div class="stat-card">
+                <small class="muted">Happy Clients</small>
+                <strong>50k+</strong>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2 class="section-title">Featured Barbers</h2>
+          <p class="section-subtitle">Top-rated pros currently available on Trimly.</p>
+          <div id="featuredBarbers" class="grid grid-3"></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2 class="section-title">How It Works</h2>
+          <p class="section-subtitle">Simple steps from discovery to fresh cut.</p>
+          <div class="steps">
+            <article class="step">
+              <div class="step-badge">1</div>
+              <h3>Search</h3>
+              <p class="muted">Browse barbers by location, rating, and price range.</p>
+            </article>
+            <article class="step">
+              <div class="step-badge">2</div>
+              <h3>Choose Time</h3>
+              <p class="muted">View available slots and pick what works for your schedule.</p>
+            </article>
+            <article class="step">
+              <div class="step-badge">3</div>
+              <h3>Book Instantly</h3>
+              <p class="muted">Confirm in one click and manage appointments from dashboard.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-row">
+        <span>&copy; <span data-current-year></span> Trimly</span>
+        <div class="footer-links-inline"><a href="/static/acceptable-use.html">Acceptable Use</a><a href="/static/refund-cancellation-policy.html">Refund & Cancellation</a></div>
+      </div>
+    </footer>
+
+    <div id="toast" class="toast"></div>
+    <script type="module" src="/static/main.js?v=20260403c"></script>
+  </body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

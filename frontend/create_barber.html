@@ -1,0 +1,66 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create Barbing Account</title>
+    <link rel="icon" type="image/png" href="/STATIC/Images/icons/trimly logo.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="/STATIC/CSS/create_barber.css" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="login-container">
+      <div class="form-side">
+        <h2 id="login-text">Create Your Barbing Account</h2>
+        <p id="text-1">Create an account to get started</p>
+        <p id="text-2">Enter your credentials</p>
+
+        <form action="" id="main-form">
+          <input type="hidden" name="role" id="role-input" />
+
+          <div class="form-control barber-id">
+            <label for="barber_id">Email</label>
+            <div class="input-container">
+              <input type="email" placeholder="Your Email" required name="barber_id" />
+            </div>
+          </div>
+
+          <div class="form-control password-input">
+            <label for="password">Create Password</label>
+            <div class="input-container">
+              <input type="password" placeholder="Create a password" name="password" required />
+            </div>
+          </div>
+
+          <button id="login-btn" type="submit">Create account</button>
+        </form>
+
+        <p id="reset-pass-link">
+          Already have an account?
+          <a href="./login_barber.html">Login</a>
+        </p>
+      </div>
+    </div>
+
+    <script src="/frontend/api-client.js"></script>
+    <script src="/frontend/auth-pages.js"></script>
+  </body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trimly | Admin Console</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Sora:wght@100..800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/style.css?v=20260402h" />
+  </head>
+  <body data-page="admin-dashboard">
+    <header class="site-header">
+      <div class="container nav-shell">
+        <a class="brand" href="/">
+          <span class="brand-badge">T</span>
+          <span>Trimly Admin</span>
+        </a>
+        <button class="nav-toggle" data-nav-toggle aria-label="Toggle menu">Menu</button>
+        <nav class="nav-main" data-nav-menu>
+          <div class="nav-links">
+            <a href="/">Marketplace</a>
+            <a class="active" href="/admin">Admin Console</a>
+          </div>
+          <div class="auth-actions" data-auth-actions>
+            <a class="btn btn-ghost" href="/static/login.html">Login</a>
+            <a class="btn btn-primary" href="/static/register.html">Register</a>
+            <a class="auth-admin-link" href="/static/admin-login.html">Admin Login</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main class="section">
+      <div class="container dashboard-container">
+        <h1 class="section-title" id="adminDashboardTitle">Welcome back. Manage Trimly safely.</h1>
+        <p class="section-subtitle">
+          Signed in as <strong id="adminDashboardEmail">...</strong>
+          <span class="pill" id="adminDashboardRole">Admin</span>
+        </p>
+
+        <section id="adminDashboard" class="admin-hub">
+          <section class="stats-grid admin-stats-grid">
+            <article class="stat-card">
+              <small class="muted">Total Barbers</small>
+              <strong id="adminStatTotalBarbers">0</strong>
+            </article>
+            <article class="stat-card">
+              <small class="muted">Verified</small>
+              <strong id="adminStatVerifiedBarbers">0</strong>
+            </article>
+            <article class="stat-card">
+              <small class="muted">Pending Review</small>
+              <strong id="adminStatPendingBarbers">0</strong>
+            </article>
+            <article class="stat-card">
+              <small class="muted">Suspended / Rejected</small>
+              <strong id="adminStatFlaggedBarbers">0</strong>
+            </article>
+            <article class="stat-card">
+              <small class="muted">Open Disputes</small>
+              <strong id="adminStatOpenDisputes">0</strong>
+            </article>
+            <article class="stat-card">
+              <small class="muted">Payout Review</small>
+              <strong id="adminStatEscrowPending">0</strong>
+            </article>
+          </section>
+
+          <article class="panel" id="adminNotificationsPanel">
+            <div class="panel-head-row">
+              <h3>Admin Notifications</h3>
+              <div class="action-row">
+                <span class="pill" id="adminNotificationCount">0 unread</span>
+                <button class="btn btn-ghost" type="button" id="adminReadAllNotifications">Mark all read</button>
+              </div>
+            </div>
+            <div id="adminNotificationsList" class="booking-list"></div>
+          </article>
+
+          <article class="panel" id="adminActivityPanel">
+            <div class="panel-head-row">
+              <h3>Recent Admin Activity</h3>
+              <span class="pill" id="adminActivityCount">0 events</span>
+            </div>
+            <div id="adminActivityList" class="admin-activity-feed"></div>
+          </article>
+
+          <article class="panel" id="adminBarberFilterPanel">
+            <div class="panel-head-row">
+              <h3>Barber Search & Filters</h3>
+              <span class="pill">Live queue controls</span>
+            </div>
+            <form id="adminBarberFilterForm" class="form-grid admin-filter-grid">
+              <div>
+                <label for="adminBarberSearch">Search barber or shop</label>
+                <input id="adminBarberSearch" class="input" type="text" placeholder="Search by barber, shop, or location" />
+              </div>
+              <div>
+                <label for="adminBarberStatusFilter">Status</label>
+                <select id="adminBarberStatusFilter" class="input">
+                  <option value="all">All statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="verified">Verified</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="suspended">Suspended</option>
+                </select>
+              </div>
+              <div>
+                <label for="adminBarberCityFilter">Location</label>
+                <input id="adminBarberCityFilter" class="input" type="text" placeholder="Filter by city or area" />
+              </div>
+              <div class="admin-filter-actions">
+                <button class="btn btn-ghost" type="button" id="adminBarberFilterReset">Reset Filters</button>
+              </div>
+            </form>
+          </article>
+
+          <div class="admin-grid">
+            <article class="panel">
+              <div class="panel-head-row">
+                <h3>Barber Verification Queue</h3>
+                <span class="pill" id="adminBarberCount">0 pending</span>
+              </div>
+              <div id="adminBarberQueue" class="booking-list"></div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-head-row">
+                <h3>Open Disputes</h3>
+                <span class="pill" id="adminDisputeCount">0 open</span>
+              </div>
+              <div id="adminDisputesList" class="booking-list"></div>
+            </article>
+          </div>
+
+          <article class="panel" id="adminApprovedBarbersPanel">
+            <div class="panel-head-row">
+              <h3>Approved Barbers</h3>
+              <span class="pill" id="adminApprovedBarberCount">0 approved</span>
+            </div>
+            <div id="adminApprovedBarbers" class="booking-list"></div>
+          </article>
+
+          <article class="panel" id="adminFlaggedBarbersPanel">
+            <div class="panel-head-row">
+              <h3>Suspended / Rejected Barbers</h3>
+              <span class="pill" id="adminFlaggedBarberCount">0 flagged</span>
+            </div>
+            <div id="adminFlaggedBarbers" class="booking-list"></div>
+          </article>
+
+          <article class="panel" id="adminEscrowPanel">
+            <div class="panel-head-row">
+              <h3>Payout Completion Queue</h3>
+              <span class="pill" id="adminEscrowCount">0 awaiting completion</span>
+            </div>
+            <div id="adminEscrowList" class="booking-list"></div>
+          </article>
+
+          <article class="panel" id="adminRefundPanel">
+            <div class="panel-head-row">
+              <h3>Refund Requests</h3>
+              <span class="pill" id="adminRefundCount">0 requested</span>
+            </div>
+            <div id="adminRefundList" class="booking-list"></div>
+          </article>
+
+          <article class="panel" id="adminReviewModerationPanel">
+            <div class="panel-head-row">
+              <h3>Review Moderation</h3>
+              <span class="pill" id="adminReviewCount">0 reviews</span>
+            </div>
+            <div id="adminReviewList" class="booking-list"></div>
+          </article>
+
+          <section id="superAdminManagement" class="hidden">
+            <article class="panel">
+              <div class="panel-head-row">
+                <h3>Admin Access Management</h3>
+                <span class="pill">Super Admin Only</span>
+              </div>
+              <form id="createAdminUserForm" class="form-grid">
+                <div class="admin-grid">
+                  <div>
+                    <label for="admin_user_full_name">Full Name</label>
+                    <input id="admin_user_full_name" name="full_name" class="input" type="text" required />
+                  </div>
+                  <div>
+                    <label for="admin_user_email">Email</label>
+                    <input id="admin_user_email" name="email" class="input" type="email" required />
+                  </div>
+                  <div>
+                    <label for="admin_user_phone">Phone</label>
+                    <input id="admin_user_phone" name="phone" class="input" type="tel" />
+                  </div>
+                  <div>
+                    <label for="admin_user_role">Role</label>
+                    <select id="admin_user_role" name="role" class="input" required>
+                      <option value="admin">Admin</option>
+                      <option value="super_admin">Super Admin</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="admin_user_password">Temporary Password</label>
+                    <div class="input-with-action">
+                      <input id="admin_user_password" name="password" class="input" type="password" required />
+                      <button
+                        class="password-toggle"
+                        type="button"
+                        data-password-toggle="admin_user_password"
+                        aria-label="Show password"
+                      >
+                        Show
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <button class="btn btn-primary" type="submit">Create Admin Account</button>
+              </form>
+              <p id="createAdminUserNotice" class="notice"></p>
+            </article>
+
+            <article class="panel">
+              <div class="panel-head-row">
+                <h3>Approve Admin & Super Admin Accounts</h3>
+                <span class="pill" id="adminUserCount">0 accounts</span>
+              </div>
+              <div id="adminUsersList" class="booking-list"></div>
+            </article>
+          </section>
+        </section>
+      </div>
+    </main>
+
+    <div class="drawer-backdrop hidden" id="adminBarberDrawerBackdrop"></div>
+    <aside class="side-drawer hidden" id="adminBarberDrawer" aria-hidden="true">
+      <div class="side-drawer-head">
+        <div>
+          <p class="muted">Barber Profile Review</p>
+          <h3 id="adminBarberDrawerTitle">Barber details</h3>
+        </div>
+        <button class="btn btn-ghost btn-sm" type="button" id="adminBarberDrawerClose">Close</button>
+      </div>
+      <div class="side-drawer-body" id="adminBarberDrawerBody"></div>
+    </aside>
+
+    <footer class="site-footer">
+      <div class="container footer-row">
+        <span>&copy; <span data-current-year></span> Trimly</span>
+        <span>Restricted administration for trust, compliance, and payouts</span>
+      </div>
+    </footer>
+
+    <div id="toast" class="toast"></div>
+    <script type="module" src="/static/main.js?v=20260403c"></script>
+  </body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

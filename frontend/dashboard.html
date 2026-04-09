@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trimly | Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Sora:wght@100..800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/style.css?v=20260402h" />
+  </head>
+  <body data-page="dashboard">
+    <header class="site-header">
+      <div class="container nav-shell">
+        <a class="brand" href="/">
+          <span class="brand-badge">T</span>
+          <span>Trimly</span>
+        </a>
+        <button class="nav-toggle" data-nav-toggle aria-label="Toggle menu">Menu</button>
+        <nav class="nav-main" data-nav-menu>
+          <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/static/barbers.html">Barbers</a>
+            <a class="active" href="/static/dashboard.html">Dashboard</a>
+          </div>
+          <div class="auth-actions" data-auth-actions>
+            <a class="btn btn-ghost" href="/static/login.html">Login</a>
+            <a class="btn btn-primary" href="/static/register.html">Register</a>
+            <a class="auth-admin-link" href="/static/admin-login.html">Admin Login</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main class="section">
+      <div class="container dashboard-container">
+        <h1 class="section-title" id="customerGreeting">Welcome back. Ready for your next cut?</h1>
+        <p class="section-subtitle">
+          Signed in as <strong id="dashboardEmail">...</strong>
+          <span class="pill" id="dashboardRole">...</span>
+        </p>
+
+        <section id="customerDashboard" class="customer-marketplace hidden">
+          <article class="panel customer-hero-section">
+            <div class="customer-hero-top">
+              <div>
+                <h2>Book Your Next Cut</h2>
+                <p class="muted">
+                  Search barbers near you and lock in your next appointment fast.
+                </p>
+              </div>
+            </div>
+
+            <form id="customerSearchForm" class="search-row">
+              <input
+                id="customerBarberSearch"
+                class="input"
+                type="text"
+                placeholder="Search barbers, location, or style"
+              />
+              <button class="btn btn-primary" type="submit">Search Barbers</button>
+            </form>
+
+            <div class="style-chip-row">
+              <button class="style-chip" type="button" data-style="Skin Fade">Skin Fade</button>
+              <button class="style-chip" type="button" data-style="Buzz Cut">Buzz Cut</button>
+              <button class="style-chip" type="button" data-style="Beard Trim">Beard Trim</button>
+              <button class="style-chip" type="button" data-style="Afro Shape Up">Afro Shape Up</button>
+              <button class="style-chip" type="button" data-style="Braids">Braids</button>
+            </div>
+
+            <div id="customerUpcomingCard" class="upcoming-appointment-card"></div>
+          </article>
+
+          <section class="stats-summary-grid">
+            <article class="stat-summary-card">
+              <small>Total Appointments</small>
+              <strong id="statTotalAppointments">0</strong>
+            </article>
+            <article class="stat-summary-card">
+              <small>Favorite Barbers</small>
+              <strong id="statFavoriteBarbers">0</strong>
+            </article>
+            <article class="stat-summary-card">
+              <small>Completed Haircuts</small>
+              <strong id="statCompletedHaircuts">0</strong>
+            </article>
+            <article class="stat-summary-card">
+              <small>Loyalty Points</small>
+              <strong id="statLoyaltyPoints">0</strong>
+            </article>
+          </section>
+
+          <article class="panel">
+            <div class="panel-head-row">
+              <h3>Notifications</h3>
+              <div class="action-row">
+                <span class="pill" id="customerNotificationCount">0 unread</span>
+                <button class="btn btn-ghost" type="button" id="customerReadAllNotifications">Mark all read</button>
+              </div>
+            </div>
+            <div id="customerNotificationsList" class="booking-list"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head-row">
+              <h3>Trending Barbers Near You</h3>
+              <a href="/static/barbers.html" class="muted">See all</a>
+            </div>
+            <div id="customerTrending" class="grid grid-4"></div>
+          </article>
+
+          <div class="customer-bottom-grid">
+            <article class="panel">
+              <h3>Nearby Barbers</h3>
+              <div id="customerNearby" class="nearby-grid"></div>
+            </article>
+
+            <article class="panel">
+              <h3>Book Again</h3>
+              <div id="customerBookAgain" class="book-again-wrap"></div>
+            </article>
+          </div>
+
+          <article class="panel">
+            <h3>Quick Actions</h3>
+            <div class="quick-actions-grid">
+              <a class="quick-action-card" href="/static/barbers.html">
+                <strong>Find Barbers</strong>
+                <span class="muted">Browse by location and rating</span>
+              </a>
+              <a class="quick-action-card" id="quickBookAgain" href="/static/barbers.html">
+                <strong>Book Again</strong>
+                <span class="muted">Repeat your last service</span>
+              </a>
+              <a class="quick-action-card" href="#customerRecentActivitySection">
+                <strong>View Booking History</strong>
+                <span class="muted">Check all your appointment activity</span>
+              </a>
+              <a class="quick-action-card" href="/static/favourite.html">
+                <strong>Saved Barbers</strong>
+                <span class="muted">Jump into your favorites list</span>
+              </a>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head-row">
+              <h3>Disputes & Refunds</h3>
+              <span class="pill" id="customerDisputeCount">0 open</span>
+            </div>
+            <div id="customerDisputesList" class="booking-list"></div>
+          </article>
+
+          <article class="panel" id="customerRecentActivitySection">
+            <h3>Recent Activity</h3>
+            <div id="customerRecentActivity" class="booking-list"></div>
+          </article>
+        </section>
+
+        <section id="barberDashboard" class="barber-hub hidden">
+          <div class="barber-top-grid">
+            <article class="panel status-panel">
+              <h3>Status</h3>
+              <p class="muted">Control whether customers can find and book you.</p>
+              <label class="status-toggle" for="barberStatusToggle">
+                <input id="barberStatusToggle" type="checkbox" />
+                <span class="status-switch"></span>
+                <span id="barberStatusLabel">Offline</span>
+              </label>
+              <p id="barberStatusNotice" class="notice"></p>
+            </article>
+
+            <article class="panel">
+              <div class="panel-head-row">
+                <h3>Launch Checklist</h3>
+                <span class="pill" id="barberChecklistProgress">0 / 5 done</span>
+              </div>
+              <div id="barberOnboardingChecklist" class="checklist-grid"></div>
+            </article>
+          </div>
+
+          <div class="barber-top-grid">
+            <article class="panel">
+              <h3>Today's Appointments</h3>
+              <div id="barberTodayList" class="booking-list"></div>
+            </article>
+            <article class="panel">
+              <div class="panel-head-row">
+                <h3>Profile Performance</h3>
+                <span class="pill" id="barberProfileHealth">Needs work</span>
+              </div>
+              <div class="kpi-grid kpi-grid-2">
+                <div class="kpi">
+                  <small class="muted">Public Rating</small>
+                  <strong id="barberProfileRating">New</strong>
+                </div>
+                <div class="kpi">
+                  <small class="muted">Review Count</small>
+                  <strong id="barberProfileReviewCount">0</strong>
+                </div>
+                <div class="kpi">
+                  <small class="muted">Portfolio Photos</small>
+                  <strong id="barberProfilePortfolioCount">0</strong>
+                </div>
+                <div class="kpi">
+                  <small class="muted">Public Profile</small>
+                  <strong id="barberProfileShareReadiness">Draft</strong>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <article class="panel">
+            <div class="panel-head-row">
+              <h3>Notifications</h3>
+              <div class="action-row">
+                <span class="pill" id="barberNotificationCount">0 unread</span>
+                <button class="btn btn-ghost" type="button" id="barberReadAllNotifications">Mark all read</button>
+              </div>
+            </div>
+            <div class="barber-notification-preferences" id="barberNotificationPreferences">
+              <label class="status-toggle" for="barberNotificationSoundToggle">
+                <input id="barberNotificationSoundToggle" type="checkbox" />
+                <span class="status-switch"></span>
+                <span>Play sound for urgent requests</span>
+              </label>
+              <label class="status-toggle" for="barberNotificationHighlightToggle">
+                <input id="barberNotificationHighlightToggle" type="checkbox" />
+                <span class="status-switch"></span>
+                <span>Highlight urgent booking requests</span>
+              </label>
+            </div>
+            <div id="barberNotificationsList" class="booking-list"></div>
+          </article>
+
+          <div class="barber-mid-grid">
+            <article class="panel">
+              <h3>New Booking Requests</h3>
+              <div id="barberPending" class="booking-list"></div>
+            </article>
+
+            <article class="panel">
+              <h3>Earnings Summary</h3>
+              <div class="kpi-grid kpi-grid-2">
+                <div class="kpi">
+                  <small class="muted">Today's Earnings</small>
+                  <strong id="earningsTodayValue">NGN 0</strong>
+                </div>
+                <div class="kpi">
+                  <small class="muted">Weekly Earnings</small>
+                  <strong id="earningsWeekValue">NGN 0</strong>
+                </div>
+                <div class="kpi">
+                  <small class="muted">Awaiting Payout Review</small>
+                  <strong id="earningsPendingEscrowValue">NGN 0</strong>
+                </div>
+                <div class="kpi">
+                  <small class="muted">Total Jobs Completed</small>
+                  <strong id="jobsValue">0</strong>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <div class="barber-mid-grid">
+            <article class="panel">
+              <h3>Availability Settings</h3>
+              <form id="availabilityForm" class="form-grid availability-form">
+                <fieldset class="day-checkboxes" id="availabilityDays">
+                  <legend>Available Days</legend>
+                  <label><input type="checkbox" value="monday" /> Monday</label>
+                  <label><input type="checkbox" value="tuesday" /> Tuesday</label>
+                  <label><input type="checkbox" value="wednesday" /> Wednesday</label>
+                  <label><input type="checkbox" value="thursday" /> Thursday</label>
+                  <label><input type="checkbox" value="friday" /> Friday</label>
+                  <label><input type="checkbox" value="saturday" /> Saturday</label>
+                  <label><input type="checkbox" value="sunday" /> Sunday</label>
+                </fieldset>
+
+                <div class="time-row">
+                  <div>
+                    <label for="start">Start Time</label>
+                    <input id="start" name="start" class="input" type="time" required />
+                  </div>
+                  <div>
+                    <label for="end">End Time</label>
+                    <input id="end" name="end" class="input" type="time" required />
+                  </div>
+                </div>
+
+                <button class="btn btn-primary" type="submit">Save Availability</button>
+              </form>
+              <p id="availabilityNotice" class="notice"></p>
+            </article>
+
+            <article class="panel" id="barberKycPanel">
+              <div class="panel-head-row">
+                <h3>KYC & Compliance</h3>
+                <span id="barberKycBadge" class="status-badge status-pending">Pending</span>
+              </div>
+              <div id="barberKycSummary" class="compliance-summary"></div>
+              <form id="barberKycDashboardForm" class="form-grid hidden">
+                <div>
+                  <label for="dashboard_kyc_phone_number">Phone Number</label>
+                  <input id="dashboard_kyc_phone_number" name="phone_number" class="input" type="tel" required />
+                </div>
+                <div>
+                  <label for="dashboard_kyc_shop_address">Shop Address</label>
+                  <input id="dashboard_kyc_shop_address" name="shop_address" class="input" type="text" required />
+                </div>
+                <div>
+                  <label for="dashboard_kyc_shop_photo_url">Shop Photo URL</label>
+                  <input id="dashboard_kyc_shop_photo_url" name="shop_photo_url" class="input" type="url" required />
+                </div>
+                <div>
+                  <label for="dashboard_kyc_account_name">Account Name</label>
+                  <input id="dashboard_kyc_account_name" name="account_name" class="input" type="text" required />
+                </div>
+                <div>
+                  <label for="dashboard_kyc_bank_name">Bank Name</label>
+                  <input id="dashboard_kyc_bank_name" name="bank_name" class="input" type="text" required />
+                </div>
+                <div>
+                  <label for="dashboard_kyc_bank_account_number">Bank Account Number</label>
+                  <input id="dashboard_kyc_bank_account_number" name="bank_account_number" class="input" type="text" inputmode="numeric" required />
+                </div>
+                <button class="btn btn-primary" type="submit">Submit KYC</button>
+              </form>
+              <p id="barberKycNotice" class="notice"></p>
+            </article>
+          </div>
+
+          <div class="barber-mid-grid">
+            <article class="panel">
+              <h3>Recent Clients</h3>
+              <div id="barberRecentClients" class="booking-list"></div>
+            </article>
+
+            <article class="panel">
+              <h3>Disputes & Refunds</h3>
+              <div id="barberDisputesList" class="booking-list"></div>
+            </article>
+          </div>
+
+          <article class="panel">
+            <div class="panel-head-row">
+              <h3>Calendar View</h3>
+              <div class="calendar-toolbar">
+                <div class="calendar-switch">
+                  <button type="button" class="btn btn-ghost active" data-calendar-view="day">Day</button>
+                  <button type="button" class="btn btn-ghost" data-calendar-view="week">Week</button>
+                </div>
+                <input id="calendarDate" class="input calendar-date" type="date" />
+              </div>
+            </div>
+            <div id="barberCalendarGrid" class="calendar-grid"></div>
+            <div id="calendarAppointmentDetails" class="appointment-details"></div>
+          </article>
+        </section>
+
+        <section id="adminDashboard" class="admin-hub hidden">
+          <div class="admin-grid">
+            <article class="panel">
+              <div class="panel-head-row">
+                <h3>Barber Verification Queue</h3>
+                <span class="pill" id="adminBarberCount">0 pending</span>
+              </div>
+              <div id="adminBarberQueue" class="booking-list"></div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-head-row">
+                <h3>Open Disputes</h3>
+                <span class="pill" id="adminDisputeCount">0 open</span>
+              </div>
+              <div id="adminDisputesList" class="booking-list"></div>
+            </article>
+          </div>
+
+          <article class="panel">
+            <div class="panel-head-row">
+              <h3>Payout Completion Queue</h3>
+              <span class="pill" id="adminEscrowCount">0 awaiting completion</span>
+            </div>
+            <div id="adminEscrowList" class="booking-list"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head-row">
+              <h3>Refund Requests</h3>
+              <span class="pill" id="adminRefundCount">0 requested</span>
+            </div>
+            <div id="adminRefundList" class="booking-list"></div>
+          </article>
+        </section>
+
+        <section id="allBookingsPanel" class="panel">
+          <h3>All Bookings</h3>
+          <div id="barberAll" class="booking-list"></div>
+        </section>
+
+        <section class="panel" id="sharedDisputesPanel">
+          <div class="panel-head-row">
+            <h3>My Disputes</h3>
+            <a class="muted" href="/static/dashboard.html">Refresh</a>
+          </div>
+          <div id="sharedDisputesList" class="booking-list"></div>
+        </section>
+
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-row">
+        <span>&copy; <span data-current-year></span> Trimly</span>
+        <span>Manage appointments, trust, and payouts from one place</span>
+      </div>
+    </footer>
+
+    <div class="modal-backdrop hidden" id="reviewModalBackdrop"></div>
+    <section class="modal-shell hidden" id="reviewModal" aria-hidden="true">
+      <article class="modal-card">
+        <div class="panel-head-row">
+          <div>
+            <h3>Rate your haircut</h3>
+            <p class="muted" id="reviewModalSubtitle">Share a quick review after your completed booking.</p>
+          </div>
+          <button class="btn btn-ghost btn-sm" type="button" id="reviewModalClose">Close</button>
+        </div>
+        <form id="reviewForm" class="form-grid">
+          <input id="reviewBookingId" type="hidden" />
+          <div>
+            <label>Star Rating</label>
+            <div class="review-rating-picker" id="reviewRatingPicker">
+              <button class="btn btn-ghost" type="button" data-review-rating="1">1</button>
+              <button class="btn btn-ghost" type="button" data-review-rating="2">2</button>
+              <button class="btn btn-ghost" type="button" data-review-rating="3">3</button>
+              <button class="btn btn-ghost" type="button" data-review-rating="4">4</button>
+              <button class="btn btn-ghost" type="button" data-review-rating="5">5</button>
+            </div>
+          </div>
+          <div>
+            <label for="reviewText">Review</label>
+            <textarea id="reviewText" class="input textarea" rows="4" placeholder="Tell other customers how the experience went."></textarea>
+          </div>
+          <div class="settings-action-row">
+            <button class="btn btn-primary" type="submit">Submit Review</button>
+            <button class="btn btn-ghost" type="button" id="reviewModalCancel">Cancel</button>
+          </div>
+        </form>
+        <p id="reviewNotice" class="notice"></p>
+      </article>
+    </section>
+
+    <div id="toast" class="toast"></div>
+    <script type="module" src="/static/main.js?v=20260403c"></script>
+  </body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

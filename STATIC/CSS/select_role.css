@@ -1,0 +1,186 @@
+/* Base styles */
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+}
+
+body {
+  background-color: #f2f4f7;
+}
+
+/* Login container */
+.login-container {
+  height: 550px;
+  width: 50%;
+  display: flex;
+  flex-wrap: wrap;
+  margin: auto;
+  transform: translateY(110px);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  background-color: #fff;
+  border-radius: 10px;
+}
+
+.selector-side {
+  width: 100%;
+  padding: 30px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+#S-U-T {
+  color: #171717;
+  font-size: 32px;
+  margin-bottom: 10px;
+}
+
+#text-1 {
+  font-size: 16px;
+  color: #807e7e;
+  margin-bottom: 30px;
+}
+
+/* Selectors */
+.selectors {
+  display: flex;
+  justify-content: space-around;
+  gap: 20px;
+  width: 100%;
+}
+
+.barber-container,
+.customer-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* Circle styling */
+.Barber,
+.Customer {
+  border: 2px solid #000;
+  width: 120px;
+  height: 120px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Text below the circles */
+#barber-text,
+#customer-text {
+  margin-top: 10px; /* Space between circle and text */
+  font-size: 16px;
+  color: #000;
+  /* font-weight: bold; */
+}
+
+/* Hover effect */
+.barber:hover,
+.customer:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive styles */
+@media (max-width: 1024px) {
+  body {
+    height: 100vh;
+    background-image: url("../images/Doctors.png");
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+
+    .login-container {
+      position: relative;
+      width: 100%;
+      max-width: 450px;
+      background: transparent;
+      z-index: 2;
+      border: none;
+      outline: none;
+      overflow: hidden;
+      transform: translateY(-10px);
+    }
+
+    #S-U-T,
+    #text-1 {
+      color: #fff;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .Barber,
+    .Customer {
+      background-color: #fff;
+      border: 3px sold #000;
+    }
+
+    #barber-text,
+    #customer-text {
+      color: #fff;
+    }
+
+    .selector-side {
+      width: 100%;
+    }
+
+    .selectors {
+      display: flex;
+      flex-direction: row;
+      gap: 20px;
+    }
+
+    .staff,
+    .Administrator {
+      width: 100px;
+      height: 100px;
+    }
+
+    #S-U-T {
+      font-size: 24px;
+    }
+
+    #text-1 {
+      font-size: 14px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .Barber,
+    .Customer {
+      width: 80px;
+      height: 80px;
+    }
+
+    #S-U-T {
+      font-size: 20px;
+    }
+
+    #text-1 {
+      font-size: 12px;
+    }
+  }
+
+  body::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1;
+  }
+}

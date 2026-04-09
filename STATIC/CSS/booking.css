@@ -1,0 +1,849 @@
+/* USER AGENT STYLESHEET RESET & COLOR VARIABLES */
+:root {
+  --font-family: "Geist", -apple-system, BlinkMacSystemFont, sans-serif;
+  --color-bg-sidebar: #f9fafb;
+  --color-bg-main: #ffffff;
+  --color-text-primary: #000000;
+  --color-text-secondary: #6b7280;
+  --color-accent: rgba(218, 228, 243, 1);
+  --color-border: #e5e7eb;
+  --color-hover: rgba(240, 240, 240, 1);
+  --sidebar-width-expanded: 15%;
+  --sidebar-width-collapsed: 5%;
+  --header-height: 80px;
+  --transition-speed: 0.3s;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: "Geist", sans-serif;
+  font-optical-sizing: auto;
+}
+
+body {
+  font-family: var(--font-family);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-main);
+  height: 100%;
+  overflow: hidden; /* prevent double scroll */
+  margin: 0;
+  font-family: "Geist", sans-serif;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+input {
+  font-family: inherit;
+}
+
+/* --- 2. LAYOUT STRUCTURE --- */
+.app-container {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* --- 3. SIDEBAR STYLES --- */
+.sidebar {
+  width: var(--sidebar-width-expanded);
+  min-width: 200px;
+  background-color: var(--color-bg-sidebar);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  transition: all var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+  overflow-x: hidden;
+  position: relative;
+  white-space: nowrap;
+  z-index: 50;
+}
+
+/* Collapsed State for Sidebar */
+.sidebar.collapsed {
+  width: 80px;
+  min-width: 0;
+}
+
+.sidebar.collapsed .logo-text,
+.sidebar.collapsed .nav-label,
+.sidebar.collapsed .social-icons {
+  opacity: 0;
+  pointer-events: none;
+  display: none;
+}
+
+.sidebar.collapsed .logo-icon {
+  margin-right: 0;
+}
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+.sidebar.collapsed .sidebar-header {
+  padding: 0;
+  justify-content: center;
+}
+
+/* Mobile Overlay */
+#mobile-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 40;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* Sidebar Internal Elements */
+.sidebar-header {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+}
+
+.logo-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.logo-text {
+  font-size: 20px;
+  font-weight: 700;
+  transition: opacity 0.2s;
+}
+.nav-list {
+  flex: 1;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 8px;
+  color: var(--color-text-secondary);
+  transition: all 0.2s;
+  gap: 12px;
+}
+
+.nav-item:hover {
+  background-color: var(--color-hover);
+  color: var(--color-text-primary);
+}
+.nav-item.active {
+  background-color: var(--color-accent);
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+.nav-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.nav-icon img {
+  width: 18px;
+  height: 18px;
+}
+
+.social-icons {
+  padding: 24px;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  transition: opacity 0.2s;
+}
+.social-icons i {
+  font-size: 20px;
+  color: var(--color-text-primary);
+  transition: color 0.2s;
+}
+.social-icons i:hover {
+  color: var(--color-accent);
+}
+
+/* --- 4. MAIN CONTENT STYLES --- */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: var(--color-bg-main);
+  transition: margin-left var(--transition-speed);
+  height: 100vh;
+}
+
+.top-bar {
+  height: var(--header-height);
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  background: rgba(255, 255, 255, 0.95);
+  z-index: 10;
+  border-bottom: 1px solid transparent;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.search-container {
+  background-color: #f3f4f6;
+  border-radius: 999px;
+  padding: 12px 20px;
+  width: 80%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  font-size: 15px;
+  color: var(--color-text-primary);
+}
+
+.search-container img {
+  width: 18px;
+  height: 18px;
+}
+
+.notificationwithprofile {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px;
+}
+
+.content-scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 32px 40px;
+  height: calc(100vh - var(--header-height));
+}
+
+/* --- MOBILE RESPONSIVENESS --- */
+@media (max-width: 1024px) {
+  /* 1. Sidebar: Off-canvas Drawer */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 100px !important;
+    background-color: #ffffff;
+    z-index: 1000;
+
+    /* Animation Logic */
+    transform: translateX(-100%); /*still doesn't work */
+    transition: transform 0.3s ease-in-out;
+    box-shadow: none;
+  }
+
+  /* 2. The "Open" State */
+  .sidebar.mobile-open {
+    transform: translateX(0); /* Slide back to position 0*/
+    box-shadow: 5px 0 15px rgba(0, 0, 0, 0.1);
+  }
+
+  /* 3. Adjust Grid for Mobile */
+  .barber-grid {
+    grid-template-columns: 1fr; /* 1 card per row */
+  }
+
+  /* 4. Layout Adjustments */
+
+  /* Top bar adjustments */
+  .top-bar {
+    padding: 12px;
+  }
+  .search-container {
+    width: 100%;
+  }
+
+  .content-scroll-area {
+    padding: 16px;
+  }
+
+  .filters-row {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 5px;
+  }
+
+  /* Hide scrollbar for filters but allow scroll */
+  .filters-row::-webkit-scrollbar {
+    height: 4px;
+  }
+  .filters-row::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+  .filters-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+}
+
+/* Hamburger button (hidden on desktop) */
+.hamburger-btn {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: 30px;
+  margin-left: 10px;
+}
+
+/* When active (animate into X) */
+.hamburger-btn.active span:nth-child(1) {
+  transform: translateY(10px) rotate(45deg);
+}
+.hamburger-btn.active span:nth-child(2) {
+  opacity: 0;
+}
+.hamburger-btn.active span:nth-child(3) {
+  transform: translateY(-10px) rotate(-45deg);
+}
+
+/* Show hamburger only on mobile */
+@media (max-width: 1024px) {
+  .hamburger-btn {
+    display: flex;
+  }
+}
+
+/* Sidebar mobile slide-in */
+.sidebar {
+  transition: transform 0.3s ease;
+}
+
+@media (max-width: 1024px) {
+  .sidebar {
+    transform: translateX(-100%);
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100%;
+    z-index: 12;
+  }
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  #mobile-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    display: none;
+    transition: opacity 0.3s;
+    z-index: 10;
+  }
+}
+
+/* BOOKINGS LIST */
+.booking-list {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-left: 30px;
+  margin-right: 30px;
+  scroll-behavior: smooth;
+  overflow-x: hidden; /* Hide horizontal scroll */
+  padding: 5px;
+}
+
+/* SINGLE BOOKING ROW */
+.booking-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-radius: 14px;
+  padding: 14px 18px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+}
+
+/* IMAGE */
+.booking-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+/* TEXT AREA */
+.booking-details {
+  flex: 1;
+  margin-left: 14px;
+}
+
+.booking-details h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111;
+}
+
+.booking-details p {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* STATUS */
+.booking-status {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+/* STATUS COLORS */
+.booking-status.completed {
+  background: #e6f7ee;
+  color: #067647;
+}
+
+.booking-status.pending {
+  background: #fff4e5;
+  color: #b45309;
+}
+
+/* EMPTY STATE */
+.empty {
+  text-align: center;
+  color: #9ca3af;
+  margin-top: 40px;
+}
+
+.tabs {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  margin-left: 30px;
+}
+
+.tabs button {
+  background: #f3f4f6;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #374151;
+}
+
+.tabs button.active {
+  background: #111827;
+  color: #fff;
+}
+
+/* RIGHT SIDE */
+.booking-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+/* STATUS COLORS */
+.booking-status.completed {
+  background: #e6f7ee;
+  color: #067647;
+}
+
+.booking-status.pending {
+  background: #fff4e5;
+  color: #b45309;
+}
+
+/* CANCEL BUTTON */
+.cancel-btn {
+  background: transparent;
+  border: none;
+  color: #dc2626;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* MODAL */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal.show {
+  display: flex;
+}
+
+.modal-card {
+  background: #fff;
+  padding: 22px;
+  width: 90%;
+  max-width: 360px;
+  border-radius: 16px;
+}
+
+.modal-card h3 {
+  margin-bottom: 14px;
+}
+
+.modal-card button {
+  margin-top: 16px;
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  background: #111827;
+  color: white;
+}
+
+.details-grid div,
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.details-grid span,
+.receipt-row span {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.details-grid strong,
+.receipt-row strong {
+  font-weight: 600;
+}
+
+.receipt-box {
+  background: #f9fafb;
+  padding: 14px;
+  border-radius: 12px;
+}
+
+.receipt-row.ref strong {
+  color: #2563eb;
+}
+
+/* Buttons */
+.primary-btn {
+  background: #111827;
+  color: white;
+  padding: 12px;
+  border-radius: 10px;
+  width: 100%;
+  border: none;
+  margin-top: 12px;
+}
+
+.secondary-btn {
+  background: #2563eb;
+  color: white;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  margin-top: 12px;
+}
+
+.ghost-btn {
+  background: transparent;
+  border: none;
+  color: #374151;
+  margin-top: 10px;
+}
+
+.receipt-card {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Logo */
+.receipt-logo {
+  width: 30px;
+  margin: 0 auto 10px;
+  display: block;
+}
+
+/* Watermark */
+.receipt-watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-25deg);
+  font-size: 64px;
+  font-weight: 800;
+  color: rgba(0, 0, 0, 0.04);
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #111;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 20px;
+}
+
+@media (max-width: 1024px) {
+  .main-content {
+    height: 100dvh;
+  }
+
+  .content-scroll-area {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+.booking-status.cancelled {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.cancelled-label {
+  color: #721c24;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 4px 12px;
+  background: #f8d7da;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.cancel-btn {
+  position: relative;
+  z-index: 100; /* Ensure button is above other elements */
+  pointer-events: auto !important;
+}
+
+.booking-details {
+  /* Make sure it doesn't cover the button */
+  flex: 1;
+  min-width: 0; /* Prevent overflow */
+}
+
+.booking-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.empty-state img {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  color: #666;
+  font-size: 16px;
+}
+
+.cancelled-text {
+  color: #ff6b6b;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.cancel-btn {
+  background: #ff4757;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.cancel-btn:hover {
+  background: #ff3742;
+}
+
+.booking-row {
+  transition: opacity 0.3s ease;
+}
+
+.booking-row.removing {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Notification Badge Styling */
+.notification-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: #ff4444;
+  color: white;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+/* Update the notification container */
+.notifications {
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+}
+
+.notifications img {
+  width: 24px;
+  height: 24px;
+}
+
+/* Hide badge when count is 0 */
+.notification-badge:empty,
+.notification-badge[data-count="0"],
+.notification-badge[data-count="0"] {
+  display: none !important;
+}
+
+/* Notification Dropdown Scrollbar Styling */
+.notification-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notification-dropdown::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.notification-dropdown::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
+
+.notification-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Notification Item Hover Animation */
+.notification-item {
+  transition: all 0.2s ease;
+}
+
+.notification-item:hover {
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* View All Button Animation */
+#viewAllNotificationsBtn,
+#viewLessBtn {
+  transition: all 0.3s ease;
+}
+
+#viewAllNotificationsBtn:hover,
+#viewLessBtn:hover {
+  background: #f5f5f5 !important;
+  border-color: #ccc !important;
+  transform: translateY(-1px);
+}
+
+#viewAllNotificationsBtn:active,
+#viewLessBtn:active {
+  transform: translateY(0);
+}
+
+/* Badge Styles (Ensure these are in your CSS) */
+.notification-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: #ff4444;
+  color: white;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+.notification-badge[data-count="0"] {
+  display: none !important;
+}

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trimly | Setup Barber Profile</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Sora:wght@100..800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/style.css?v=20260402h" />
+  </head>
+  <body data-page="setup-barber">
+    <header class="site-header">
+      <div class="container nav-shell">
+        <a class="brand" href="/">
+          <span class="brand-badge">T</span>
+          <span>Trimly</span>
+        </a>
+        <button class="nav-toggle" data-nav-toggle aria-label="Toggle menu">Menu</button>
+        <nav class="nav-main" data-nav-menu>
+          <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/static/dashboard.html">Dashboard</a>
+          </div>
+          <div class="auth-actions" data-auth-actions>
+            <a class="btn btn-ghost" href="/static/login.html">Login</a>
+            <a class="btn btn-primary" href="/static/register.html">Register</a>
+            <a class="auth-admin-link" href="/static/admin-login.html">Admin Login</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main class="section">
+      <div class="container form-shell setup-shell">
+        <div class="form-card setup-card">
+          <h1 class="section-title">Setup Barber Profile</h1>
+          <p class="section-subtitle">
+            Complete your profile so customers can discover and book your services.
+          </p>
+
+          <form id="setupBarberForm" class="form-grid setup-form-grid">
+            <section class="setup-block">
+              <h3>Basic Information</h3>
+              <div>
+                <label for="barber_name">Barber Name</label>
+                <input id="barber_name" name="barber_name" class="input" type="text" required />
+              </div>
+              <div>
+                <label for="shop_name">Shop Name</label>
+                <input id="shop_name" name="shop_name" class="input" type="text" required />
+              </div>
+              <div>
+                <label for="bio">Bio / Description</label>
+                <textarea id="bio" name="bio" rows="4" placeholder="Tell customers about your style and expertise" required></textarea>
+              </div>
+              <div>
+                <label for="profile_image">Profile Image Upload</label>
+                <input id="profile_image" name="profile_image" class="input" type="file" accept="image/*" />
+              </div>
+            </section>
+
+            <section class="setup-block">
+              <h3>Location</h3>
+              <div>
+                <label for="city">City</label>
+                <input id="city" name="city" class="input" type="text" required />
+              </div>
+              <div>
+                <label for="area">Area</label>
+                <input id="area" name="area" class="input" type="text" required />
+              </div>
+              <div>
+                <label for="address">Address</label>
+                <input id="address" name="address" class="input" type="text" required />
+              </div>
+            </section>
+
+            <section class="setup-block">
+              <h3>Services and Pricing</h3>
+              <div>
+                <label for="haircut_price">Haircut Price (NGN)</label>
+                <input id="haircut_price" name="haircut_price" class="input" type="number" min="0" required />
+              </div>
+              <div>
+                <label for="beard_price">Beard Trim Price (NGN)</label>
+                <input id="beard_price" name="beard_price" class="input" type="number" min="0" />
+              </div>
+              <div>
+                <label for="other_services">Other Services (optional)</label>
+                <textarea id="other_services" name="other_services" rows="3" placeholder="Hair coloring, braids, home service, etc."></textarea>
+              </div>
+            </section>
+
+            <section class="setup-block">
+              <h3>Availability</h3>
+              <fieldset class="day-checkboxes" id="setupAvailableDays">
+                <legend>Available Days</legend>
+                <label><input type="checkbox" name="available_days" value="monday" checked /> Monday</label>
+                <label><input type="checkbox" name="available_days" value="tuesday" checked /> Tuesday</label>
+                <label><input type="checkbox" name="available_days" value="wednesday" checked /> Wednesday</label>
+                <label><input type="checkbox" name="available_days" value="thursday" checked /> Thursday</label>
+                <label><input type="checkbox" name="available_days" value="friday" checked /> Friday</label>
+                <label><input type="checkbox" name="available_days" value="saturday" /> Saturday</label>
+                <label><input type="checkbox" name="available_days" value="sunday" /> Sunday</label>
+              </fieldset>
+              <div class="time-row">
+                <div>
+                  <label for="start_time">Start Time</label>
+                  <input id="start_time" name="start_time" class="input" type="time" value="09:00" required />
+                </div>
+                <div>
+                  <label for="end_time">End Time</label>
+                  <input id="end_time" name="end_time" class="input" type="time" value="18:00" required />
+                </div>
+              </div>
+            </section>
+
+            <section class="setup-block">
+              <h3>Portfolio</h3>
+              <div>
+                <label for="portfolio_images">Upload Haircut Photos</label>
+                <input
+                  id="portfolio_images"
+                  name="portfolio_images"
+                  class="input"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                />
+              </div>
+              <p class="muted">You can upload multiple photos to showcase your work.</p>
+            </section>
+
+            <button class="btn btn-primary" type="submit">Create Barber Profile</button>
+          </form>
+
+          <p id="setupBarberNotice" class="notice"></p>
+
+          <section class="setup-block hidden" id="barberKycBlock">
+            <div class="panel-head-row">
+              <div>
+                <h3>Complete KYC Verification</h3>
+                <p class="muted">
+                  Submit your business and payout details so Trimly can verify your account.
+                </p>
+              </div>
+              <span class="pill" id="setupKycStatus">Pending</span>
+            </div>
+
+            <form id="barberKycForm" class="form-grid">
+              <div>
+                <label for="kyc_phone_number">Phone Number</label>
+                <input id="kyc_phone_number" name="phone_number" class="input" type="tel" required />
+              </div>
+              <div>
+                <label for="kyc_shop_address">Shop Address</label>
+                <input id="kyc_shop_address" name="shop_address" class="input" type="text" required />
+              </div>
+              <div>
+                <label for="kyc_shop_photo_url">Shop Photo URL</label>
+                <input id="kyc_shop_photo_url" name="shop_photo_url" class="input" type="url" required />
+              </div>
+              <div>
+                <label for="kyc_account_name">Account Name</label>
+                <input id="kyc_account_name" name="account_name" class="input" type="text" required />
+              </div>
+              <div>
+                <label for="kyc_bank_name">Bank Name</label>
+                <input id="kyc_bank_name" name="bank_name" class="input" type="text" required />
+              </div>
+              <div>
+                <label for="kyc_bank_account_number">Bank Account Number</label>
+                <input
+                  id="kyc_bank_account_number"
+                  name="bank_account_number"
+                  class="input"
+                  type="text"
+                  inputmode="numeric"
+                  required
+                />
+              </div>
+              <button class="btn btn-primary" type="submit">Submit KYC</button>
+            </form>
+
+            <p id="barberKycNotice" class="notice"></p>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-row">
+        <span>&copy; <span data-current-year></span> Trimly</span>
+        <span>Build trust with a complete barber profile</span>
+      </div>
+    </footer>
+
+    <div id="toast" class="toast"></div>
+    <script type="module" src="/static/main.js?v=20260403c"></script>
+  </body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

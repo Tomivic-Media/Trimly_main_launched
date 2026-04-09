@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trimly | Settings</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Sora:wght@100..800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/style.css?v=20260402h" />
+  </head>
+  <body data-page="settings">
+    <header class="site-header">
+      <div class="container nav-shell">
+        <a class="brand" href="/">
+          <span class="brand-badge">T</span>
+          <span>Trimly</span>
+        </a>
+        <button class="nav-toggle" data-nav-toggle aria-label="Toggle menu">Menu</button>
+        <nav class="nav-main" data-nav-menu>
+          <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/static/barbers.html">Barbers</a>
+            <a href="/static/dashboard.html">Dashboard</a>
+            <a class="active" href="/static/settings.html">Settings</a>
+          </div>
+          <div class="auth-actions" data-auth-actions>
+            <a class="btn btn-ghost" href="/static/login.html">Login</a>
+            <a class="btn btn-primary" href="/static/register.html">Register</a>
+            <a class="auth-admin-link" href="/static/admin-login.html">Admin Login</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main class="section">
+      <div class="container settings-page-shell">
+        <section class="settings-hero">
+          <div>
+            <span class="pill pill-chat">Settings</span>
+            <h1 class="section-title" id="settingsTitle">Control your Trimly account, alerts, and preferences.</h1>
+            <p class="section-subtitle" id="settingsSubtitle">
+              Everything personal lives here so your dashboard can stay focused on bookings and activity.
+            </p>
+          </div>
+          <div class="settings-hero-card">
+            <span class="muted">Signed in as</span>
+            <strong id="settingsEmail">...</strong>
+            <span class="pill" id="settingsRole">Customer</span>
+          </div>
+        </section>
+
+        <section class="settings-grid">
+          <article class="settings-card">
+            <h4>Profile</h4>
+            <form id="settingsProfileForm" class="form-grid">
+              <div>
+                <label for="settings_full_name">Full Name</label>
+                <input id="settings_full_name" name="full_name" class="input" type="text" required />
+              </div>
+              <div>
+                <label for="settings_email">Email</label>
+                <input id="settings_email" name="email" class="input" type="email" readonly />
+              </div>
+              <div>
+                <label for="settings_phone">Phone</label>
+                <input id="settings_phone" name="phone" class="input" type="tel" />
+              </div>
+              <button class="btn btn-primary" type="submit">Save Profile</button>
+            </form>
+            <p id="settingsProfileNotice" class="notice"></p>
+          </article>
+
+          <article class="settings-card">
+            <h4>Preferences</h4>
+            <form id="settingsPreferencesForm" class="form-grid">
+              <div>
+                <label for="settings_language">Language</label>
+                <select id="settings_language" name="language" class="input">
+                  <option value="en">English</option>
+                  <option value="pcm">Nigerian Pidgin</option>
+                  <option value="yo">Yoruba</option>
+                </select>
+              </div>
+              <div>
+                <label for="settings_date_format">Time Format</label>
+                <select id="settings_date_format" name="time_format" class="input">
+                  <option value="12h">12-hour clock</option>
+                  <option value="24h">24-hour clock</option>
+                </select>
+              </div>
+              <button class="btn btn-ghost" type="submit">Save Preferences</button>
+            </form>
+            <p id="settingsPreferencesNotice" class="notice"></p>
+          </article>
+
+          <article class="settings-card">
+            <h4>Security</h4>
+            <form id="settingsPasswordForm" class="form-grid">
+              <div>
+                <label for="settings_current_password">Current Password</label>
+                <div class="input-with-action">
+                  <input id="settings_current_password" name="current_password" class="input" type="password" required />
+                  <button class="password-toggle" type="button" data-password-toggle="settings_current_password">Show</button>
+                </div>
+              </div>
+              <div>
+                <label for="settings_new_password">New Password</label>
+                <div class="input-with-action">
+                  <input id="settings_new_password" name="new_password" class="input" type="password" required />
+                  <button class="password-toggle" type="button" data-password-toggle="settings_new_password">Show</button>
+                </div>
+              </div>
+              <div>
+                <label for="settings_confirm_password">Confirm New Password</label>
+                <div class="input-with-action">
+                  <input id="settings_confirm_password" name="confirm_password" class="input" type="password" required />
+                  <button class="password-toggle" type="button" data-password-toggle="settings_confirm_password">Show</button>
+                </div>
+              </div>
+              <button class="btn btn-primary" type="submit">Change Password</button>
+            </form>
+            <p id="settingsPasswordNotice" class="notice"></p>
+          </article>
+
+          <article class="settings-card">
+            <div class="panel-head-row">
+              <h4>Loyalty & Referrals</h4>
+              <span class="pill" id="settingsLoyaltyPointsPill">0 pts</span>
+            </div>
+            <div class="settings-link-list">
+              <div class="settings-inline-stat">
+                <span class="muted">Referral Code</span>
+                <strong id="settingsReferralCode">Not ready</strong>
+              </div>
+              <div class="settings-inline-stat">
+                <span class="muted">Joined with your code</span>
+                <strong id="settingsReferralJoined">0</strong>
+              </div>
+              <div class="settings-inline-stat">
+                <span class="muted">Rewards Unlocked</span>
+                <strong id="settingsReferralRewarded">0</strong>
+              </div>
+              <div class="share-link-row">
+                <label for="settingsReferralShareLink">Referral Link</label>
+                <div class="share-link-copy-row">
+                  <input id="settingsReferralShareLink" class="input" type="text" readonly />
+                  <button class="btn btn-ghost" type="button" data-copy-link="" id="copyReferralLinkBtn">Copy</button>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="settings-card">
+            <div class="panel-head-row">
+              <h4>Device & Session Management</h4>
+              <button class="btn btn-ghost btn-sm" type="button" id="revokeOtherSessionsBtn">Log out other devices</button>
+            </div>
+            <div id="settingsSessionsList" class="booking-list"></div>
+            <p id="settingsSessionsNotice" class="notice"></p>
+          </article>
+
+          <article class="settings-card">
+            <h4>Account Insights</h4>
+            <div class="kpi-grid kpi-grid-2">
+              <div class="kpi">
+                <small class="muted">Appointments</small>
+                <strong id="settingsInsightAppointments">0</strong>
+              </div>
+              <div class="kpi">
+                <small class="muted">Completed</small>
+                <strong id="settingsInsightCompleted">0</strong>
+              </div>
+              <div class="kpi">
+                <small class="muted">Favorites</small>
+                <strong id="settingsInsightFavorites">0</strong>
+              </div>
+              <div class="kpi">
+                <small class="muted">Loyalty Points</small>
+                <strong id="settingsInsightLoyalty">0</strong>
+              </div>
+            </div>
+          </article>
+
+          <article class="settings-card hidden" id="settingsBarberBusinessCard">
+            <h4>Barber Business Snapshot</h4>
+            <div class="settings-link-list">
+              <div class="settings-inline-stat">
+                <span class="muted">Status</span>
+                <strong id="settingsBarberStatus">Offline</strong>
+              </div>
+              <div class="settings-inline-stat">
+                <span class="muted">Availability</span>
+                <strong id="settingsBarberAvailability">Not set yet</strong>
+              </div>
+              <div class="settings-inline-stat">
+                <span class="muted">KYC</span>
+                <span id="settingsBarberKyc" class="status-badge status-pending">Pending</span>
+              </div>
+              <div class="share-link-panel" id="settingsBarberShareShell">
+                <strong>Share Your Trimly Link</strong>
+                <p class="muted">Send these links to customers so they can view your profile or book you directly.</p>
+                <div class="share-link-list">
+                  <div class="share-link-row">
+                    <label for="settingsBarberShareProfile">Public Profile Link</label>
+                    <div class="share-link-copy-row">
+                      <input id="settingsBarberShareProfile" class="input" type="text" readonly />
+                      <button class="btn btn-ghost" type="button" data-copy-link="">Copy</button>
+                    </div>
+                  </div>
+                  <div class="share-link-row">
+                    <label for="settingsBarberShareBooking">Direct Booking Link</label>
+                    <div class="share-link-copy-row">
+                      <input id="settingsBarberShareBooking" class="input" type="text" readonly />
+                      <button class="btn btn-ghost" type="button" data-copy-link="">Copy</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="settings-card hidden" id="settingsBarberServicesCard">
+            <div class="panel-head-row">
+              <div>
+                <h4>Services & Pricing</h4>
+                <p class="muted">Manage the services customers can combine in one booking. Maximum 15 active services.</p>
+              </div>
+              <span class="pill" id="settingsBarberServiceCount">0 active</span>
+            </div>
+
+            <form id="barberServiceCreateForm" class="form-grid">
+              <div class="form-grid form-grid-2">
+                <div>
+                  <label for="barber_service_name">Service Name</label>
+                  <input id="barber_service_name" name="name" class="input" type="text" maxlength="80" placeholder="Kids Cut, Dye, Home Service..." required />
+                </div>
+                <div>
+                  <label for="barber_service_price">Price (NGN)</label>
+                  <input id="barber_service_price" name="price" class="input" type="number" min="0" step="100" required />
+                </div>
+              </div>
+              <label class="checkbox-row">
+                <input id="barber_service_home" name="is_home_service" type="checkbox" />
+                <span>Mark as home service</span>
+              </label>
+              <button class="btn btn-primary" type="submit">Add Service</button>
+            </form>
+            <p id="barberServiceNotice" class="notice"></p>
+
+            <div id="barberServicesList" class="service-editor-list"></div>
+          </article>
+
+          <article class="settings-card hidden" id="settingsBarberAnalyticsCard">
+            <h4>Barber Analytics</h4>
+            <div class="kpi-grid kpi-grid-2">
+              <div class="kpi">
+                <small class="muted">Total Bookings</small>
+                <strong id="settingsBarberTotalBookings">0</strong>
+              </div>
+              <div class="kpi">
+                <small class="muted">Completed Jobs</small>
+                <strong id="settingsBarberCompletedJobs">0</strong>
+              </div>
+              <div class="kpi">
+                <small class="muted">Pending Requests</small>
+                <strong id="settingsBarberPendingRequests">0</strong>
+              </div>
+              <div class="kpi">
+                <small class="muted">Average Rating</small>
+                <strong id="settingsBarberAverageRating">0.0</strong>
+              </div>
+            </div>
+          </article>
+
+          <article class="settings-card hidden" id="settingsPayoutReportCard">
+            <div class="panel-head-row">
+              <h4>Payout Report</h4>
+              <span class="pill" id="settingsPayoutSummary">NGN 0</span>
+            </div>
+            <div id="settingsPayoutList" class="booking-list"></div>
+          </article>
+
+          <article class="settings-card settings-card-span-2 hidden" id="barberProfileStudioPanel">
+            <div class="panel-head-row">
+              <div>
+                <h4>Profile Studio</h4>
+                <p class="muted">Update the public profile customers see, upload your best haircut work, and keep your booking page ready to share.</p>
+              </div>
+              <span class="pill pill-chat">Barber Only</span>
+            </div>
+
+            <form id="barberProfileForm" class="form-grid settings-profile-form">
+              <div class="form-grid form-grid-2">
+                <div>
+                  <label for="barber_profile_name">Barber Name</label>
+                  <input id="barber_profile_name" name="barber_name" class="input" type="text" placeholder="How customers should know you" />
+                </div>
+                <div>
+                  <label for="barber_shop_name">Shop Name</label>
+                  <input id="barber_shop_name" name="shop_name" class="input" type="text" placeholder="Your shop or brand name" required />
+                </div>
+              </div>
+
+              <div class="form-grid form-grid-2">
+                <div>
+                  <label for="barber_profile_location">Location</label>
+                  <input id="barber_profile_location" name="location" class="input" type="text" placeholder="Area, city, landmark" required />
+                </div>
+                <div>
+                  <label for="barber_profile_image_url">Profile Image URL</label>
+                  <input id="barber_profile_image_url" name="profile_image_url" class="input" type="url" placeholder="Uploaded image URL appears here automatically" />
+                </div>
+              </div>
+
+              <div>
+                <label for="barber_cover_image_url">Cover Image URL</label>
+                <input id="barber_cover_image_url" name="cover_image_url" class="input" type="url" placeholder="Use a strong shop or haircut image as your page cover" />
+              </div>
+
+              <div class="settings-upload-grid">
+                <div class="portfolio-manager">
+                  <strong>Profile Image</strong>
+                  <p class="muted">Upload the photo customers should see on your public profile and booking cards.</p>
+                  <input id="barber_profile_image_file" class="input" type="file" accept="image/*" />
+                  <div id="barberProfileImagePreview" class="profile-image-preview-card"></div>
+                </div>
+
+                <div class="portfolio-manager">
+                  <strong>Cover Image</strong>
+                  <p class="muted">This becomes the big visual header when someone opens your public Trimly page.</p>
+                  <input id="barber_cover_image_file" class="input" type="file" accept="image/*" />
+                  <div id="barberCoverImagePreview" class="profile-image-preview-card"></div>
+                </div>
+
+                <div class="portfolio-manager">
+                  <strong>Pricing</strong>
+                  <div class="form-grid form-grid-2">
+                    <div>
+                      <label for="barber_haircut_price">Haircut Price (NGN)</label>
+                      <input id="barber_haircut_price" name="haircut_price" class="input" type="number" min="0" step="100" required />
+                    </div>
+                    <div>
+                      <label for="barber_beard_trim_price">Beard Trim Price (NGN)</label>
+                      <input id="barber_beard_trim_price" name="beard_trim_price" class="input" type="number" min="0" step="100" />
+                    </div>
+                  </div>
+                  <div>
+                    <label for="barber_other_services">Other Services</label>
+                    <input id="barber_other_services" name="other_services" class="input" type="text" placeholder="Home service, braids, kids cuts..." />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label for="barber_profile_bio">Bio</label>
+                <textarea id="barber_profile_bio" name="bio" class="input textarea" rows="4" placeholder="Tell customers about your style, strengths, and experience."></textarea>
+              </div>
+
+              <div class="portfolio-manager">
+                <strong>Haircut Portfolio</strong>
+                <p class="muted">These are the haircut pictures customers and anyone viewing your profile will see.</p>
+                <div class="portfolio-add-row">
+                  <input id="barberPortfolioFileInput" class="input" type="file" accept="image/*" multiple />
+                  <button class="btn btn-ghost" id="uploadBarberPortfolioFiles" type="button">Upload selected photos</button>
+                </div>
+                <div class="portfolio-add-row">
+                  <input id="barberPortfolioUrlInput" class="input" type="url" placeholder="Or paste a public image URL" />
+                  <button class="btn btn-ghost" id="addBarberPortfolioUrl" type="button">Add URL</button>
+                </div>
+                <div id="barberPortfolioList" class="portfolio-chip-list"></div>
+              </div>
+
+              <div class="settings-action-row">
+                <button class="btn btn-primary" type="submit">Save Profile Changes</button>
+                <a class="btn btn-ghost" href="/static/barber-profile.html" id="settingsProfilePreviewLink">Preview Public Profile</a>
+              </div>
+            </form>
+
+            <p id="barberProfileNotice" class="notice"></p>
+          </article>
+
+          <article class="settings-card">
+            <h4>Policies & Support</h4>
+            <div class="settings-link-list">
+              <a class="quick-action-card" href="/static/acceptable-use.html">
+                <strong>Acceptable Use Policy</strong>
+                <span class="muted">Review marketplace rules and platform standards</span>
+              </a>
+              <a class="quick-action-card" href="/static/refund-cancellation-policy.html">
+                <strong>Refund & Cancellation Policy</strong>
+                <span class="muted">Understand refunds, cancellations, and booking protection</span>
+              </a>
+              <a class="quick-action-card" href="mailto:support@trimly.com.ng">
+                <strong>Contact Support</strong>
+                <span class="muted">support@trimly.com.ng</span>
+              </a>
+              <div class="settings-shortcuts hidden" id="barberSettingsShortcuts">
+                <strong>Barber Shortcuts</strong>
+                <div class="settings-chip-row">
+                  <a class="pill" href="#barberProfileStudioPanel">Profile Studio</a>
+                  <a class="pill" href="#settingsBarberBusinessCard">Share Links</a>
+                  <a class="pill" href="/static/dashboard.html#barberKycPanel">KYC</a>
+                  <a class="pill" href="/static/dashboard.html#availabilityForm">Availability</a>
+                  <a class="pill" href="/static/dashboard.html#barberNotificationPreferences">Alerts</a>
+                </div>
+              </div>
+            </div>
+          </article>
+        </section>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-row">
+        <span>&copy; <span data-current-year></span> Trimly</span>
+        <span>Preferences, security, support, and account control in one place</span>
+      </div>
+    </footer>
+
+    <div id="toast" class="toast"></div>
+    <script type="module" src="/static/main.js?v=20260403c"></script>
+  </body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

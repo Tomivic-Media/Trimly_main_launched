@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trimly | Barbers</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Sora:wght@100..800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/style.css?v=20260402h" />
+  </head>
+  <body data-page="barbers">
+    <header class="site-header">
+      <div class="container nav-shell">
+        <a class="brand" href="/">
+          <span class="brand-badge">T</span>
+          <span>Trimly</span>
+        </a>
+        <button class="nav-toggle" data-nav-toggle aria-label="Toggle menu">Menu</button>
+        <nav class="nav-main" data-nav-menu>
+          <div class="nav-links">
+            <a href="/">Home</a>
+            <a class="active" href="/static/barbers.html">Barbers</a>
+            <a href="/static/dashboard.html">Dashboard</a>
+          </div>
+          <div class="auth-actions" data-auth-actions>
+            <a class="btn btn-ghost" href="/static/login.html">Login</a>
+            <a class="btn btn-primary" href="/static/register.html">Register</a>
+            <a class="auth-admin-link" href="/static/admin-login.html">Admin Login</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main class="section">
+      <div class="container dashboard-container">
+        <section class="hero-panel">
+          <h1 class="section-title">Find a barber that fits your style</h1>
+          <p class="section-subtitle">
+            Search verified barbers, compare pricing, and open a booking page in one step.
+          </p>
+
+          <form id="barberFilterForm" class="form-grid">
+            <div class="form-grid form-grid-2">
+              <div>
+                <label for="listSearch">Search</label>
+                <input id="listSearch" class="input" type="text" placeholder="Barber name or shop" />
+              </div>
+              <div>
+                <label for="listLocation">Location</label>
+                <input id="listLocation" class="input" type="text" placeholder="City, area, landmark" />
+              </div>
+            </div>
+            <div class="form-grid form-grid-2">
+              <div>
+                <label for="listMinPrice">Min Price (NGN)</label>
+                <input id="listMinPrice" class="input" type="number" min="0" step="100" placeholder="0" />
+              </div>
+              <div>
+                <label for="listMaxPrice">Max Price (NGN)</label>
+                <input id="listMaxPrice" class="input" type="number" min="0" step="100" placeholder="10000" />
+              </div>
+            </div>
+            <div class="settings-action-row">
+              <button class="btn btn-primary" type="submit">Apply Filters</button>
+              <a class="btn btn-ghost" href="/static/barbers.html">Reset</a>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head-row">
+            <div>
+              <h3>Available Barbers</h3>
+              <p class="muted">Only verified barbers who are currently available are shown here.</p>
+            </div>
+          </div>
+          <div id="barbersGrid" class="grid grid-3"></div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-row">
+        <span>&copy; <span data-current-year></span> Trimly</span>
+        <div class="footer-links-inline">
+          <a href="/static/acceptable-use.html">Acceptable Use</a>
+          <a href="/static/refund-cancellation-policy.html">Refund & Cancellation</a>
+        </div>
+      </div>
+    </footer>
+
+    <div id="toast" class="toast"></div>
+    <script type="module" src="/static/main.js?v=20260403c"></script>
+  </body>
+</html>
+

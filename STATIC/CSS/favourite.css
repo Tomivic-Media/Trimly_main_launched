@@ -1,0 +1,723 @@
+/* USER AGENT STYLESHEET RESET & COLOR VARIABLES */
+:root {
+  --font-family: "Geist", -apple-system, BlinkMacSystemFont, sans-serif;
+  --color-bg-sidebar: #f9fafb;
+  --color-bg-main: #ffffff;
+  --color-text-primary: #000000;
+  --color-text-secondary: #6b7280;
+  --color-accent: rgba(218, 228, 243, 1);
+  --color-border: #e5e7eb;
+  --color-hover: rgba(240, 240, 240, 1);
+  --sidebar-width-expanded: 15%;
+  --sidebar-width-collapsed: 5%;
+  --header-height: 80px;
+  --transition-speed: 0.3s;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: "Geist", sans-serif;
+  font-optical-sizing: auto;
+}
+
+body {
+  font-family: var(--font-family);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-main);
+  height: 100vh;
+  overflow: hidden; /* Prevents entire page scroll*/
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+input {
+  font-family: inherit;
+}
+
+/* --- 2. LAYOUT STRUCTURE --- */
+.app-container {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+}
+
+/* --- 3. SIDEBAR STYLES --- */
+.sidebar {
+  width: var(--sidebar-width-expanded);
+  min-width: 200px;
+  background-color: var(--color-bg-sidebar);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  transition: all var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+  overflow-x: hidden;
+  position: relative;
+  white-space: nowrap;
+  z-index: 50;
+}
+
+/* Collapsed State for Sidebar */
+.sidebar.collapsed {
+  width: 80px;
+  min-width: 0;
+}
+
+.sidebar.collapsed .logo-text,
+.sidebar.collapsed .nav-label,
+.sidebar.collapsed .social-icons {
+  opacity: 0;
+  pointer-events: none;
+  display: none;
+}
+
+.sidebar.collapsed .logo-icon {
+  margin-right: 0;
+}
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+.sidebar.collapsed .sidebar-header {
+  padding: 0;
+  justify-content: center;
+}
+
+/* Mobile Overlay */
+#mobile-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 40;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* Sidebar Internal Elements */
+.sidebar-header {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+}
+
+.logo-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.logo-text {
+  font-size: 20px;
+  font-weight: 700;
+  transition: opacity 0.2s;
+}
+.nav-list {
+  flex: 1;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 8px;
+  color: var(--color-text-secondary);
+  transition: all 0.2s;
+  gap: 12px;
+}
+
+.nav-item:hover {
+  background-color: var(--color-hover);
+  color: var(--color-text-primary);
+}
+.nav-item.active {
+  background-color: var(--color-accent);
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+.nav-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.nav-icon img {
+  width: 18px;
+  height: 18px;
+}
+
+.social-icons {
+  padding: 24px;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  transition: opacity 0.2s;
+}
+.social-icons i {
+  font-size: 20px;
+  color: var(--color-text-primary);
+  transition: color 0.2s;
+}
+.social-icons i:hover {
+  color: var(--color-accent);
+}
+
+/* --- 4. MAIN CONTENT STYLES --- */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: var(--color-bg-main);
+  transition: margin-left var(--transition-speed);
+}
+
+.top-bar {
+  height: var(--header-height);
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  background: rgba(255, 255, 255, 0.95);
+  z-index: 10;
+  border-bottom: 1px solid transparent;
+  width: 100%;
+}
+
+.search-container {
+  background-color: #f3f4f6;
+  border-radius: 999px;
+  padding: 12px 20px;
+  width: 80%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  font-size: 15px;
+  color: var(--color-text-primary);
+}
+
+.search-container img {
+  width: 18px;
+  height: 18px;
+}
+
+.notificationwithprofile {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px;
+}
+
+.content-scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 32px 40px 32px;
+}
+
+/* Filters */
+.filters-row {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.filters {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.select-wrapper {
+  position: relative;
+  display: inline-block;
+}
+.select-wrapper .select-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.select-wrapper .date-filter {
+  border: 1px solid #e0e0e0;
+  border-radius: 20px;
+  padding: 10px 16px 10px 36px;
+  font-family: inherit;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-chip {
+  border: 1px solid #e0e0e0;
+  border-radius: 20px;
+  padding: 10px 16px 10px 36px;
+  font-family: inherit;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.filter-chip:hover {
+  background-color: #e9e9e9;
+  border-color: #ccc;
+}
+.filter-chip:focus {
+  outline: none;
+  border-color: #000;
+}
+.clear-filters-btn {
+  background-color: transparent;
+  border: 1px solid rgba(229, 229, 229, 1);
+  border-radius: 8px;
+  padding: 5px;
+  font-size: 14px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Barber Grid */
+.section-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 1.5rem 0;
+  color: var(--color-text-primary);
+}
+
+.barber-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2%;
+  width: 100%;
+}
+
+.barber-card {
+  width: 100%;
+  border-radius: 2rem;
+  padding: 1rem;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: grid;
+  place-content: center;
+  height: 100%;
+}
+
+/* HOVER ANIMATION*/
+.barber-card:hover {
+  background-color: var(--color-hover);
+}
+
+.card-image-wrapper {
+  width: 100%;
+  aspect-ratio: 3 / 4; /* SAME ratio for all cards */
+  overflow: hidden;
+  position: relative;
+  border-radius: 1rem;
+}
+
+.card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* keeps proportions, fills container */
+  display: block;
+}
+
+.status-dot {
+  width: 32px;
+  height: 32px;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(5px);
+  border-radius: 50%;
+  position: absolute;
+  top: 12px;
+  left: 12px;
+}
+.available {
+  width: 12px;
+  height: 12px;
+  background-color: #34d399;
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.fav-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s;
+}
+.fav-btn:hover {
+  transform: scale(1.1);
+}
+.fav-btn img {
+  width: 16px;
+  height: 16px;
+}
+.card-info {
+  padding: 16px 0;
+}
+.card-title {
+  display: flex;
+  gap: 8px;
+}
+.verified-badge {
+  color: #f59e0b;
+}
+.card-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.card-meta span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.card-desc {
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* --- MOBILE RESPONSIVENESS --- */
+@media (max-width: 1024px) {
+  /* 1. Sidebar: Off-canvas Drawer */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 100px !important;
+    background-color: #ffffff;
+    z-index: 1000;
+
+    /* Animation Logic */
+    transform: translateX(-100%); /*still doesn't work */
+    transition: transform 0.3s ease-in-out;
+    box-shadow: none;
+  }
+
+  /* 2. The "Open" State */
+  .sidebar.mobile-open {
+    transform: translateX(0); /* Slide back to position 0*/
+    box-shadow: 5px 0 15px rgba(0, 0, 0, 0.1);
+  }
+
+  /* 3. Adjust Grid for Mobile */
+  .barber-grid {
+    grid-template-columns: 1fr; /* 1 card per row */
+  }
+
+  /* 4. Layout Adjustments */
+  .top-bar {
+    padding: 12px;
+  }
+  .search-container {
+    width: 100%;
+  }
+
+  .content-scroll-area {
+    padding: 16px;
+  }
+
+  .filters-row {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 5px;
+  }
+
+  /* Hide scrollbar for filters but allow scroll */
+  .filters-row::-webkit-scrollbar {
+    height: 4px;
+  }
+  .filters-row::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+  }
+
+  .filters-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+}
+
+/* Hamburger button (hidden on desktop) */
+.hamburger-btn {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: 30px;
+  margin-left: 10px;
+}
+
+/* When active (animate into X) */
+.hamburger-btn.active span:nth-child(1) {
+  transform: translateY(10px) rotate(45deg);
+}
+.hamburger-btn.active span:nth-child(2) {
+  opacity: 0;
+}
+.hamburger-btn.active span:nth-child(3) {
+  transform: translateY(-10px) rotate(-45deg);
+}
+
+/* Show hamburger only on mobile */
+@media (max-width: 1024px) {
+  .hamburger-btn {
+    display: flex;
+  }
+}
+
+/* Sidebar mobile slide-in */
+.sidebar {
+  transition: transform 0.3s ease;
+}
+
+@media (max-width: 1024px) {
+  .sidebar {
+    transform: translateX(-100%);
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100%;
+    z-index: 12;
+  }
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  #mobile-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    display: none;
+    transition: opacity 0.3s;
+    z-index: 10;
+  }
+}
+
+.price-tier {
+  margin-left: 12px;
+  color: #888;
+}
+
+.price-tier::first-letter {
+  text-transform: uppercase;
+}
+
+.fav-btn {
+  width: 55px !important;
+  height: 55px !important;
+}
+
+.fav-btn img {
+  width: 50px !important;
+  height: 50px !important;
+}
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #111;
+  color: #fff;
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 9999;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-6px);
+}
+
+.avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #111;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 20px;
+}
+
+/* Notification Badge Styling */
+.notification-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: #ff4444;
+  color: white;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+/* Update the notification container */
+.notifications {
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+}
+
+.notifications img {
+  width: 24px;
+  height: 24px;
+}
+
+/* Hide badge when count is 0 */
+.notification-badge:empty,
+.notification-badge[data-count="0"],
+.notification-badge[data-count="0"] {
+  display: none !important;
+}
+
+/* Notification Dropdown Scrollbar Styling */
+.notification-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notification-dropdown::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.notification-dropdown::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
+
+.notification-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Notification Item Hover Animation */
+.notification-item {
+  transition: all 0.2s ease;
+}
+
+.notification-item:hover {
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* View All Button Animation */
+#viewAllNotificationsBtn,
+#viewLessBtn {
+  transition: all 0.3s ease;
+}
+
+#viewAllNotificationsBtn:hover,
+#viewLessBtn:hover {
+  background: #f5f5f5 !important;
+  border-color: #ccc !important;
+  transform: translateY(-1px);
+}
+
+#viewAllNotificationsBtn:active,
+#viewLessBtn:active {
+  transform: translateY(0);
+}
+
+/* Badge Styles (Ensure these are in your CSS) */
+.notification-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: #ff4444;
+  color: white;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+.notification-badge[data-count="0"] {
+  display: none !important;
+}
