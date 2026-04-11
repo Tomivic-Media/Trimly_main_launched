@@ -5657,6 +5657,28 @@ async function initPaymentStatusPage() {
   const reference = String(params.get("reference") || params.get("trxref") || "").trim();
   const bookingId = Number(params.get("booking") || 0);
   const barberId = Number(params.get("barber") || 0);
+  const confirmed = String(params.get("confirmed") || "").trim() === "1";
+  const paymentError = String(params.get("payment_error") || "").trim();
+
+  if (confirmed) {
+    title.textContent = "Payment successful";
+    copy.textContent = "Your appointment has been paid for and secured successfully.";
+    actions.innerHTML = `
+      <a class="btn btn-primary" href="${token ? "/static/dashboard.html" : "/static/login.html"}">${token ? "View Dashboard" : "Log in to view booking"}</a>
+      <a class="btn btn-ghost" href="/static/booking.html?barber=${barberId || ""}&booking=${bookingId || ""}">Open Booking</a>
+    `;
+    return;
+  }
+
+  if (paymentError) {
+    title.textContent = "Payment not confirmed";
+    copy.textContent = paymentError;
+    actions.innerHTML = `
+      <a class="btn btn-primary" href="/static/dashboard.html">Back to Dashboard</a>
+      <a class="btn btn-ghost" href="/static/booking.html?barber=${barberId || ""}&booking=${bookingId || ""}">Return to Booking</a>
+    `;
+    return;
+  }
 
   if (!reference) {
     title.textContent = "Payment reference missing";

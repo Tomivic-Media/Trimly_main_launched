@@ -2,7 +2,8 @@ from datetime import date, datetime, time, timedelta
 from urllib.parse import urlencode
 
 import requests
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import RedirectResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session, joinedload
 
@@ -669,6 +670,7 @@ def update_booking_status(
 @router.post("/bookings/{booking_id}/initialize-payment", include_in_schema=False)
 def pay_for_booking(
     booking_id: int,
+    request: Request,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -692,7 +694,11 @@ def pay_for_booking(
         raise HTTPException(status_code=500, detail="Payment gateway is not configured")
 
     amount = int(booking.price * 100)
-    callback_url = f"{_frontend_public_base()}/payment-status.html?booking={booking.id}&barber={booking.barber_id}"
+    callback_base = str(request.base_url).rstrip("/")
+    callback_url = (
+        f"{callback_base}/payment-return?"
+        f"{urlencode({'booking': booking.id, 'barber': booking.barber_id})}"
+    )
     headers = {
         "Authorization": f"Bearer {PAYSTACK_SECRET_KEY}",
         "Content-Type": "application/json",
@@ -782,6 +788,42 @@ def verify_payment_public(reference: str, db: Session = Depends(get_db)):
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
     return _verify_paystack_payment_reference(db, booking, reference)
+
+
+@router.get("/payment-return")
+def payment_return(
+    reference: str | None = None,
+    trxref: str | None = None,
+    booking: int | None = None,
+    barber: int | None = None,
+    db: Session = Depends(get_db),
+):
+    resolved_reference = str(reference or trxref or "").strip()
+    destination = f"{_frontend_public_base()}/payment-status.html"
+    params: dict[str, str | int] = {}
+    if booking:
+        params["booking"] = booking
+    if barber:
+        params["barber"] = barber
+    if resolved_reference:
+        params["reference"] = resolved_reference
+    else:
+        params["payment_error"] = "Payment reference missing"
+        return RedirectResponse(url=f"{destination}?{urlencode(params)}", status_code=303)
+
+    booking_record = _booking_query(db).filter(Booking.payment_reference == resolved_reference).first()
+    if not booking_record:
+        params["payment_error"] = "Booking not found for this payment"
+        return RedirectResponse(url=f"{destination}?{urlencode(params)}", status_code=303)
+
+    try:
+        _verify_paystack_payment_reference(db, booking_record, resolved_reference)
+        params["confirmed"] = "1"
+    except HTTPException as exc:
+        detail = exc.detail if isinstance(exc.detail, str) else "Payment verification failed"
+        params["payment_error"] = detail
+
+    return RedirectResponse(url=f"{destination}?{urlencode(params)}", status_code=303)
 
 
 @router.post("/admin/bookings/{booking_id}/mark-completed", response_model=BookingResponse)
