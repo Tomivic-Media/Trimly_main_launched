@@ -692,7 +692,7 @@ def pay_for_booking(
         raise HTTPException(status_code=500, detail="Payment gateway is not configured")
 
     amount = int(booking.price * 100)
-    callback_url = f"{_frontend_public_base()}/payment-success?booking={booking.id}&barber={booking.barber_id}"
+    callback_url = f"{_frontend_public_base()}/payment-status.html?booking={booking.id}&barber={booking.barber_id}"
     headers = {
         "Authorization": f"Bearer {PAYSTACK_SECRET_KEY}",
         "Content-Type": "application/json",
