@@ -10,6 +10,10 @@
       "destination": "/index.html"
     },
     {
+      "source": "/admin",
+      "destination": "/admin.html"
+    },
+    {
       "source": "/static/(.*)",
       "destination": "/$1"
     },
