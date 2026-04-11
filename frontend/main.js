@@ -64,7 +64,7 @@ import {
   updateBarberStatus,
   updateBookingStatus,
   verifyPayment,
-} from "./api.js?v=20260409a";
+} from "./api.js?v=20260411a";
 
 const DAY_ORDER = [
   "monday",
@@ -264,9 +264,13 @@ async function hydrateHeaderNotifications(scope = document) {
 
   if (toggle.dataset.bound !== "true") {
     toggle.dataset.bound = "true";
-    toggle.addEventListener("click", (event) => {
+    toggle.addEventListener("click", async (event) => {
       event.stopPropagation();
+      const willOpen = !popover.classList.contains("open");
       popover.classList.toggle("open");
+      if (willOpen) {
+        await hydrateHeaderNotifications(scope);
+      }
     });
 
     document.addEventListener("click", (event) => {
@@ -357,6 +361,7 @@ function bindHeaderNotificationActions(scope = document) {
       try {
         await markNotificationRead(notificationId);
         await hydrateHeaderNotifications(scope);
+        await refreshVisibleNotificationPanels();
       } catch (error) {
         toast(error.message, true);
         button.disabled = false;
@@ -374,9 +379,15 @@ function bindHeaderNotificationActions(scope = document) {
       try {
         await deleteNotification(notificationId);
         await hydrateHeaderNotifications(scope);
+        await refreshVisibleNotificationPanels();
       } catch (error) {
-        toast(error.message, true);
-        button.disabled = false;
+        if (String(error.message || "").toLowerCase().includes("notification not found")) {
+          await hydrateHeaderNotifications(scope);
+          await refreshVisibleNotificationPanels();
+        } else {
+          toast(error.message, true);
+          button.disabled = false;
+        }
       }
     });
   });
@@ -979,6 +990,9 @@ async function initBookingPage() {
 
 function bindPasswordToggles() {
   document.querySelectorAll("[data-password-toggle]").forEach((button) => {
+    if (typeof button.onclick === "function") {
+      return;
+    }
     if (button.dataset.bound === "true") return;
     button.dataset.bound = "true";
     const targetId = button.dataset.passwordToggle;
@@ -2144,6 +2158,7 @@ async function hydrateNotificationsPanel({ listEl, countEl, readAllBtn, emptyTex
       await markAllNotificationsRead();
       toast("Notifications marked as read");
       await hydrateNotificationsPanel({ listEl, countEl, readAllBtn, emptyText });
+      await hydrateHeaderNotifications(document);
     } catch (error) {
       toast(error.message, true);
       readAllBtn.disabled = false;
@@ -2199,6 +2214,7 @@ function bindNotificationActions(container = document, refreshCallback = null) {
         if (typeof refreshCallback === "function") {
           await refreshCallback();
         }
+        await hydrateHeaderNotifications(document);
       } catch (error) {
         toast(error.message, true);
         button.disabled = false;
@@ -2218,12 +2234,36 @@ function bindNotificationActions(container = document, refreshCallback = null) {
         if (typeof refreshCallback === "function") {
           await refreshCallback();
         }
+        await hydrateHeaderNotifications(document);
       } catch (error) {
-        toast(error.message, true);
-        button.disabled = false;
+        if (String(error.message || "").toLowerCase().includes("notification not found")) {
+          if (typeof refreshCallback === "function") {
+            await refreshCallback();
+          }
+          await hydrateHeaderNotifications(document);
+        } else {
+          toast(error.message, true);
+          button.disabled = false;
+        }
       }
     });
   });
+}
+
+async function refreshVisibleNotificationPanels() {
+  const listEl = document.getElementById("notificationsList") || document.getElementById("adminNotificationsList");
+  const countEl =
+    document.getElementById("notificationCount") || document.getElementById("adminNotificationCount");
+  const readAllBtn =
+    document.getElementById("readAllNotifications") || document.getElementById("adminReadAllNotifications");
+
+  if (!listEl || !countEl || !readAllBtn) return;
+
+  const emptyText = document.getElementById("adminNotificationsList")
+    ? "No admin alerts yet. KYC, disputes, refunds, and payout items will show here."
+    : "No notifications yet.";
+
+  await hydrateNotificationsPanel({ listEl, countEl, readAllBtn, emptyText });
 }
 
 function isUrgentNotification(item) {
