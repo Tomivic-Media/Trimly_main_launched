@@ -5,6 +5,7 @@ from app.core.security import get_current_user
 from app.db.session import get_db
 from app.models.notification import Notification
 from app.schemas.notification import (
+    NotificationDeleteResponse,
     NotificationListResponse,
     NotificationMarkReadResponse,
     NotificationResponse,
@@ -68,4 +69,26 @@ def mark_all_notifications_read(
     return NotificationMarkReadResponse(
         message="All notifications marked as read",
         unread_count=0,
+    )
+
+
+@router.delete("/notifications/{notification_id}", response_model=NotificationDeleteResponse)
+def delete_notification(
+    notification_id: int,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    notification = (
+        db.query(Notification)
+        .filter(Notification.id == notification_id, Notification.user_id == current_user.id)
+        .first()
+    )
+    if not notification:
+        raise HTTPException(status_code=404, detail="Notification not found")
+
+    db.delete(notification)
+    db.commit()
+    return NotificationDeleteResponse(
+        message="Notification deleted",
+        unread_count=_unread_count(db, current_user.id),
     )

@@ -38,6 +38,7 @@ import {
   changeCurrentUserPassword,
   createBarberService,
   deactivateBarberService,
+  deleteNotification,
   updateBarberProfile,
   updateBarberService,
   getNotifications,
@@ -337,6 +338,7 @@ function renderHeaderNotificationsList(notifications) {
                 ? ""
                 : `<button class="btn btn-ghost btn-sm" type="button" data-header-notification-read="${Number(item.id)}">Read</button>`
             }
+            <button class="btn btn-ghost btn-sm" type="button" data-header-notification-delete="${Number(item.id)}">Delete</button>
           </div>
         </article>
       `
@@ -354,6 +356,23 @@ function bindHeaderNotificationActions(scope = document) {
       button.disabled = true;
       try {
         await markNotificationRead(notificationId);
+        await hydrateHeaderNotifications(scope);
+      } catch (error) {
+        toast(error.message, true);
+        button.disabled = false;
+      }
+    });
+  });
+
+  scope.querySelectorAll("[data-header-notification-delete]").forEach((button) => {
+    if (button.dataset.bound === "true") return;
+    button.dataset.bound = "true";
+    button.addEventListener("click", async () => {
+      const notificationId = Number(button.dataset.headerNotificationDelete || 0);
+      if (!notificationId) return;
+      button.disabled = true;
+      try {
+        await deleteNotification(notificationId);
         await hydrateHeaderNotifications(scope);
       } catch (error) {
         toast(error.message, true);
@@ -2159,6 +2178,7 @@ function renderNotificationsList(notifications, emptyText = "No notifications ye
                 ? ""
                 : `<button class="btn btn-ghost" type="button" data-notification-read="${Number(item.id)}">Mark read</button>`
             }
+            <button class="btn btn-ghost" type="button" data-notification-delete="${Number(item.id)}">Delete</button>
           </div>
         </article>
       `
@@ -2176,6 +2196,25 @@ function bindNotificationActions(container = document, refreshCallback = null) {
       button.disabled = true;
       try {
         await markNotificationRead(notificationId);
+        if (typeof refreshCallback === "function") {
+          await refreshCallback();
+        }
+      } catch (error) {
+        toast(error.message, true);
+        button.disabled = false;
+      }
+    });
+  });
+
+  container.querySelectorAll("[data-notification-delete]").forEach((button) => {
+    if (button.dataset.bound === "true") return;
+    button.dataset.bound = "true";
+    button.addEventListener("click", async () => {
+      const notificationId = Number(button.dataset.notificationDelete || 0);
+      if (!notificationId) return;
+      button.disabled = true;
+      try {
+        await deleteNotification(notificationId);
         if (typeof refreshCallback === "function") {
           await refreshCallback();
         }

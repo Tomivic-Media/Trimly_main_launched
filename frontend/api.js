@@ -431,6 +431,10 @@ async function markAllNotificationsRead() {
   return apiFetch("/notifications/read-all", { method: "PATCH" }, true);
 }
 
+async function deleteNotification(notificationId) {
+  return apiFetch(`/notifications/${notificationId}`, { method: "DELETE" }, true);
+}
+
 async function markBookingCompleted(bookingId) {
   return apiFetch(`/admin/bookings/${bookingId}/mark-completed`, { method: "POST" }, true);
 }
@@ -580,6 +584,7 @@ export {
   loginUser,
   markBookingCompleted,
   markAllNotificationsRead,
+  deleteNotification,
   markNotificationRead,
   moderateReview,
   normalizeRole,

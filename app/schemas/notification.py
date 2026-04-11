@@ -26,3 +26,8 @@ class NotificationListResponse(BaseModel):
 class NotificationMarkReadResponse(BaseModel):
     message: str
     unread_count: int
+
+
+class NotificationDeleteResponse(BaseModel):
+    message: str
+    unread_count: int
