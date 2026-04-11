@@ -822,6 +822,10 @@ def payment_return(
     except HTTPException as exc:
         detail = exc.detail if isinstance(exc.detail, str) else "Payment verification failed"
         params["payment_error"] = detail
+        db.rollback()
+    except Exception:
+        db.rollback()
+        params["payment_error"] = "Payment verification failed"
 
     return RedirectResponse(url=f"{destination}?{urlencode(params)}", status_code=303)
 

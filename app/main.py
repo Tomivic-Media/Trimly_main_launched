@@ -85,7 +85,7 @@ def ensure_runtime_schema() -> None:
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS payment_reference VARCHAR",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS payment_status VARCHAR(20)",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP",
-        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS payout_status VARCHAR(20)",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS payout_status VARCHAR(64)",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS transfer_reference VARCHAR",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS transferred_at TIMESTAMP",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS barber_payout_amount DOUBLE PRECISION",
@@ -95,6 +95,7 @@ def ensure_runtime_schema() -> None:
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_reminder_sent_at TIMESTAMP",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS barber_reminder_sent_at TIMESTAMP",
         "ALTER TABLE bookings ALTER COLUMN payment_status SET DEFAULT 'unpaid'",
+        "ALTER TABLE bookings ALTER COLUMN payout_status TYPE VARCHAR(64)",
         "ALTER TABLE bookings ALTER COLUMN payout_status SET DEFAULT 'pending'",
         "UPDATE bookings SET service_name = 'Haircut' WHERE service_name IS NULL",
         "UPDATE bookings SET payment_status = 'unpaid' WHERE payment_status IS NULL",
@@ -172,12 +173,12 @@ def ensure_runtime_schema() -> None:
         ),
     ]
 
-    with engine.begin() as connection:
-        for statement in statements:
-            try:
+    for statement in statements:
+        try:
+            with engine.begin() as connection:
                 connection.execute(text(statement))
-            except Exception:
-                continue
+        except Exception:
+            continue
 
 
 def ensure_bootstrap_super_admin() -> None:

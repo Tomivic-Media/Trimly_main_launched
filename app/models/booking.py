@@ -31,7 +31,7 @@ class Booking(Base):
     payment_status = Column(Enum(PaymentStatus), default=PaymentStatus.unpaid, nullable=False)
     paid_at = Column(DateTime, nullable=True)
 
-    payout_status = Column(String, default="pending", nullable=False)
+    payout_status = Column(String(64), default="pending", nullable=False)
     transfer_reference = Column(String, nullable=True)
     transferred_at = Column(DateTime, nullable=True)
     customer_reminder_sent_at = Column(DateTime, nullable=True)
