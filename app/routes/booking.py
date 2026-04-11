@@ -383,6 +383,55 @@ def _notify_payment_confirmed(db: Session, booking: Booking) -> None:
     )
 
 
+def _verify_paystack_payment_reference(db: Session, booking: Booking, reference: str) -> dict:
+    if booking.payment_status == PaymentStatus.paid or _logic_status(booking.status) in {
+        BookingStatus.paid.value,
+        BookingStatus.completed.value,
+    }:
+        return {"message": "Payment already verified", "booking_status": _logic_status(booking.status)}
+
+    if not PAYSTACK_SECRET_KEY:
+        raise HTTPException(status_code=500, detail="Payment gateway is not configured")
+
+    headers = {"Authorization": f"Bearer {PAYSTACK_SECRET_KEY}"}
+    try:
+        response = requests.get(
+            f"https://api.paystack.co/transaction/verify/{reference}",
+            headers=headers,
+            timeout=30,
+        )
+    except requests.RequestException as exc:
+        raise HTTPException(status_code=502, detail="Unable to verify payment with Paystack right now") from exc
+
+    try:
+        result = response.json()
+    except ValueError as exc:
+        raise HTTPException(status_code=502, detail="Invalid response returned during payment verification") from exc
+
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=400,
+            detail=result.get("message") or result.get("detail") or "Payment verification failed",
+        )
+
+    if result.get("data", {}).get("status") != "success":
+        raise HTTPException(status_code=400, detail="Payment not successful")
+
+    _assert_verified_barber(booking.barber)
+    already_paid = booking.payment_status == PaymentStatus.paid
+    apply_paid_booking_state(booking)
+    if not already_paid:
+        _notify_payment_confirmed(db, booking)
+    db.commit()
+
+    return {
+        "message": "Payment verified successfully",
+        "booking_status": BookingStatus.paid.value,
+        "payment_status": PaymentStatus.paid.value,
+        "booking_id": booking.id,
+    }
+
+
 def _notify_booking_completed(db: Session, booking: Booking) -> None:
     recipient_ids = [booking.customer_id]
     if booking.barber:
@@ -724,47 +773,15 @@ def verify_payment(
     if not (is_owner or is_barber or is_admin):
         raise HTTPException(status_code=403, detail="Not allowed")
 
-    if booking.payment_status == PaymentStatus.paid or _logic_status(booking.status) in {
-        BookingStatus.paid.value,
-        BookingStatus.completed.value,
-    }:
-        return {"message": "Payment already verified", "booking_status": _logic_status(booking.status)}
+    return _verify_paystack_payment_reference(db, booking, reference)
 
-    if not PAYSTACK_SECRET_KEY:
-        raise HTTPException(status_code=500, detail="Payment gateway is not configured")
 
-    headers = {"Authorization": f"Bearer {PAYSTACK_SECRET_KEY}"}
-    try:
-        response = requests.get(
-            f"https://api.paystack.co/transaction/verify/{reference}",
-            headers=headers,
-            timeout=30,
-        )
-    except requests.RequestException as exc:
-        raise HTTPException(status_code=502, detail="Unable to verify payment with Paystack right now") from exc
-
-    try:
-        result = response.json()
-    except ValueError as exc:
-        raise HTTPException(status_code=502, detail="Invalid response returned during payment verification") from exc
-
-    if response.status_code != 200:
-        raise HTTPException(
-            status_code=400,
-            detail=result.get("message") or result.get("detail") or "Payment verification failed",
-        )
-
-    if result.get("data", {}).get("status") != "success":
-        raise HTTPException(status_code=400, detail="Payment not successful")
-
-    _assert_verified_barber(booking.barber)
-    already_paid = booking.payment_status == PaymentStatus.paid
-    apply_paid_booking_state(booking)
-    if not already_paid:
-        _notify_payment_confirmed(db, booking)
-    db.commit()
-
-    return {"message": "Payment verified successfully", "booking_status": BookingStatus.paid.value}
+@router.get("/payment/verify-public/{reference}")
+def verify_payment_public(reference: str, db: Session = Depends(get_db)):
+    booking = _booking_query(db).filter(Booking.payment_reference == reference).first()
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    return _verify_paystack_payment_reference(db, booking, reference)
 
 
 @router.post("/admin/bookings/{booking_id}/mark-completed", response_model=BookingResponse)

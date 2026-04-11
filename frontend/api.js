@@ -415,6 +415,10 @@ async function verifyPayment(reference) {
   return apiFetch(`/payment/verify/${encodeURIComponent(reference)}`, { method: "GET" }, true);
 }
 
+async function verifyPaymentPublic(reference) {
+  return apiFetch(`/payment/verify-public/${encodeURIComponent(reference)}`, { method: "GET" });
+}
+
 async function getBookings() {
   return apiFetch("/bookings", { method: "GET" }, true);
 }
@@ -604,6 +608,7 @@ export {
   updateBarberStatus,
   updateBookingStatus,
   verifyPayment,
+  verifyPaymentPublic,
   adminRefundBooking,
 };
 

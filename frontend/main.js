@@ -64,6 +64,7 @@ import {
   updateBarberStatus,
   updateBookingStatus,
   verifyPayment,
+  verifyPaymentPublic,
 } from "./api.js?v=20260411a";
 
 const DAY_ORDER = [
@@ -5647,12 +5648,6 @@ async function initResetPasswordPage() {
 
 async function initPaymentStatusPage() {
   const token = getToken();
-  if (!token) {
-    const next = encodeURIComponent(window.location.pathname + window.location.search);
-    window.location.href = `/static/login.html?next=${next}`;
-    return;
-  }
-
   const title = document.getElementById("paymentStatusTitle");
   const copy = document.getElementById("paymentStatusCopy");
   const actions = document.getElementById("paymentStatusActions");
@@ -5675,17 +5670,21 @@ async function initPaymentStatusPage() {
   actions.innerHTML = `<a class="btn btn-ghost" href="/static/dashboard.html">Back to Dashboard</a>`;
 
   try {
-    await verifyPayment(reference);
+    if (token) {
+      await verifyPayment(reference);
+    } else {
+      await verifyPaymentPublic(reference);
+    }
     title.textContent = "Payment successful";
     copy.textContent = "Your appointment has been paid for and secured successfully.";
     actions.innerHTML = `
-      <a class="btn btn-primary" href="/static/dashboard.html">View Dashboard</a>
+      <a class="btn btn-primary" href="${token ? "/static/dashboard.html" : "/static/login.html"}">${token ? "View Dashboard" : "Log in to view booking"}</a>
       <a class="btn btn-ghost" href="/static/booking.html?barber=${barberId || ""}&booking=${bookingId || ""}">Open Booking</a>
     `;
   } catch (error) {
     let confirmedViaBooking = false;
 
-    if (bookingId) {
+    if (token && bookingId) {
       try {
         const bookings = await getBookings();
         const booking = Array.isArray(bookings)
@@ -5707,7 +5706,7 @@ async function initPaymentStatusPage() {
       copy.textContent =
         "Your payment went through successfully. We confirmed it from your booking status.";
       actions.innerHTML = `
-        <a class="btn btn-primary" href="/static/dashboard.html">View Dashboard</a>
+        <a class="btn btn-primary" href="${token ? "/static/dashboard.html" : "/static/login.html"}">${token ? "View Dashboard" : "Log in to view booking"}</a>
         <a class="btn btn-ghost" href="/static/booking.html?barber=${barberId || ""}&booking=${bookingId || ""}">Open Booking</a>
       `;
       return;
