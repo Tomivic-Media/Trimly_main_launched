@@ -58,6 +58,7 @@
           <button class="settings-tab-btn" type="button" data-settings-tab-target="activity">Activity</button>
           <button class="settings-tab-btn" type="button" data-settings-tab-target="security">Security</button>
           <button class="settings-tab-btn hidden" id="settingsBusinessTabBtn" type="button" data-settings-tab-target="business">Business</button>
+          <button class="settings-tab-btn hidden" id="settingsOperationsTabBtn" type="button" data-settings-tab-target="operations">Operations</button>
         </section>
 
         <section class="settings-grid">
@@ -412,6 +413,110 @@
             <p id="barberProfileNotice" class="notice"></p>
           </article>
 
+          <article class="settings-card hidden" id="settingsBarberAvailabilityCard" data-settings-group="operations">
+            <div class="panel-head-row">
+              <div>
+                <h4>Availability Settings</h4>
+                <p class="muted">Set when customers can book you without crowding the dashboard.</p>
+              </div>
+            </div>
+            <form id="availabilityForm" class="form-grid availability-form">
+              <fieldset class="day-checkboxes" id="availabilityDays">
+                <legend>Available Days</legend>
+                <label><input type="checkbox" value="monday" /> Monday</label>
+                <label><input type="checkbox" value="tuesday" /> Tuesday</label>
+                <label><input type="checkbox" value="wednesday" /> Wednesday</label>
+                <label><input type="checkbox" value="thursday" /> Thursday</label>
+                <label><input type="checkbox" value="friday" /> Friday</label>
+                <label><input type="checkbox" value="saturday" /> Saturday</label>
+                <label><input type="checkbox" value="sunday" /> Sunday</label>
+              </fieldset>
+
+              <div class="time-row">
+                <div>
+                  <label for="start">Start Time</label>
+                  <input id="start" name="start" class="input" type="time" required />
+                </div>
+                <div>
+                  <label for="end">End Time</label>
+                  <input id="end" name="end" class="input" type="time" required />
+                </div>
+              </div>
+
+              <button class="btn btn-primary" type="submit">Save Availability</button>
+            </form>
+            <p id="availabilityNotice" class="notice"></p>
+          </article>
+
+          <article class="settings-card hidden" id="settingsBarberKycCard" data-settings-group="operations">
+            <div class="panel-head-row">
+              <div>
+                <h4>KYC & Compliance</h4>
+                <p class="muted">Keep your payouts and public profile in good standing from settings.</p>
+              </div>
+              <span id="barberKycBadge" class="status-badge status-pending">Pending</span>
+            </div>
+            <div id="barberKycSummary" class="compliance-summary"></div>
+            <div class="barber-notification-preferences" id="barberNotificationPreferences">
+              <label class="status-toggle" for="barberNotificationSoundToggle">
+                <input id="barberNotificationSoundToggle" type="checkbox" />
+                <span class="status-switch"></span>
+                <span>Play sound for urgent requests</span>
+              </label>
+              <label class="status-toggle" for="barberNotificationHighlightToggle">
+                <input id="barberNotificationHighlightToggle" type="checkbox" />
+                <span class="status-switch"></span>
+                <span>Highlight urgent booking requests</span>
+              </label>
+            </div>
+            <form id="barberKycDashboardForm" class="form-grid hidden">
+              <div>
+                <label for="dashboard_kyc_phone_number">Phone Number</label>
+                <input id="dashboard_kyc_phone_number" name="phone_number" class="input" type="tel" required />
+              </div>
+              <div>
+                <label for="dashboard_kyc_shop_address">Shop Address</label>
+                <input id="dashboard_kyc_shop_address" name="shop_address" class="input" type="text" required />
+              </div>
+              <div>
+                <label for="dashboard_kyc_shop_photo_url">Shop Photo URL</label>
+                <input id="dashboard_kyc_shop_photo_url" name="shop_photo_url" class="input" type="url" required />
+              </div>
+              <div>
+                <label for="dashboard_kyc_account_name">Account Name</label>
+                <input id="dashboard_kyc_account_name" name="account_name" class="input" type="text" required />
+              </div>
+              <div>
+                <label for="dashboard_kyc_bank_name">Bank Name</label>
+                <input id="dashboard_kyc_bank_name" name="bank_name" class="input" type="text" required />
+              </div>
+              <div>
+                <label for="dashboard_kyc_bank_account_number">Bank Account Number</label>
+                <input id="dashboard_kyc_bank_account_number" name="bank_account_number" class="input" type="text" inputmode="numeric" required />
+              </div>
+              <button class="btn btn-primary" type="submit">Submit KYC</button>
+            </form>
+            <p id="barberKycNotice" class="notice"></p>
+          </article>
+
+          <article class="settings-card settings-card-span-2 hidden" id="settingsBarberCalendarCard" data-settings-group="operations">
+            <div class="panel-head-row">
+              <div>
+                <h4>Calendar View</h4>
+                <p class="muted">See the same day and week schedule in settings instead of on the dashboard.</p>
+              </div>
+              <div class="calendar-toolbar">
+                <div class="calendar-switch">
+                  <button type="button" class="btn btn-ghost active" data-calendar-view="day">Day</button>
+                  <button type="button" class="btn btn-ghost" data-calendar-view="week">Week</button>
+                </div>
+                <input id="calendarDate" class="input calendar-date" type="date" />
+              </div>
+            </div>
+            <div id="barberCalendarGrid" class="calendar-grid"></div>
+            <div id="calendarAppointmentDetails" class="appointment-details"></div>
+          </article>
+
           <article class="settings-card" data-settings-group="account">
             <h4>Policies & Support</h4>
             <div class="settings-link-list">
@@ -432,9 +537,9 @@
                 <div class="settings-chip-row">
                   <a class="pill" href="#barberProfileStudioPanel">Profile Studio</a>
                   <a class="pill" href="#settingsBarberBusinessCard">Share Links</a>
-                  <a class="pill" href="./dashboard.html#barberKycPanel">KYC</a>
-                  <a class="pill" href="./dashboard.html#availabilityForm">Availability</a>
-                  <a class="pill" href="./dashboard.html#barberNotificationPreferences">Alerts</a>
+                  <a class="pill" href="./settings.html?tab=operations">Operations</a>
+                  <a class="pill" href="./settings.html?tab=operations#barberKycBadge">KYC</a>
+                  <a class="pill" href="./settings.html?tab=operations#availabilityForm">Availability</a>
                 </div>
               </div>
             </div>

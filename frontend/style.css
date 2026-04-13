@@ -2000,6 +2000,10 @@ label {
   gap: 22px;
 }
 
+.barber-side-stack-wide {
+  grid-column: 1 / -1;
+}
+
 .barber-panel-subtitle {
   margin: 4px 0 0;
 }

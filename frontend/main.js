@@ -208,7 +208,7 @@ function hydrateAuthActions() {
           <div class="notification-popover-list" data-notification-list>
             <div class="loading">Loading notifications...</div>
           </div>
-          <a class="notification-popover-footer" data-notification-view-all href="${["admin", "super_admin"].includes(normalizeRole(localStorage.getItem("trimly_role") || "")) ? "/admin" : "/static/dashboard.html"}">View all</a>
+          <a class="notification-popover-footer" data-notification-view-all href="${["admin", "super_admin"].includes(normalizeRole(localStorage.getItem("trimly_role") || "")) ? "/admin" : "/static/settings.html"}">View all</a>
         </div>
       </div>
       <a class="btn btn-icon" href="/static/settings.html" aria-label="Open settings" title="Settings">&#9881;</a>
@@ -1354,8 +1354,6 @@ async function initDashboardPage() {
     allBookingsPanel?.classList.remove("hidden");
     await hydrateBarberDashboard();
     bindBarberStatusToggle();
-    bindAvailabilitySettings();
-    bindCalendarControls();
   } else if (["admin", "super_admin"].includes(role)) {
     stopBarberAlertPolling();
     window.location.href = "/admin";
@@ -1458,6 +1456,18 @@ async function initSettingsPage() {
         portfolioUrlInput,
         addPortfolioBtn,
         uploadPortfolioBtn
+      );
+      bindAvailabilitySettings();
+      bindCalendarControls();
+      hydrateBarberKycPanel(
+        document.getElementById("barberKycBadge"),
+        document.getElementById("barberKycSummary"),
+        document.getElementById("barberKycDashboardForm"),
+        document.getElementById("barberKycNotice")
+      );
+      hydrateBarberNotificationPreferences(
+        document.getElementById("barberNotificationSoundToggle"),
+        document.getElementById("barberNotificationHighlightToggle")
       );
     }
   } catch (_error) {
@@ -1654,9 +1664,6 @@ async function hydrateCustomerDashboard() {
   const searchInput = document.getElementById("customerBarberSearch");
   const styleButtons = document.querySelectorAll(".style-chip");
   const quickBookAgain = document.getElementById("quickBookAgain");
-  const notificationsEl = document.getElementById("customerNotificationsList");
-  const notificationCountEl = document.getElementById("customerNotificationCount");
-  const readAllNotificationsBtn = document.getElementById("customerReadAllNotifications");
 
   const statTotalAppointments = document.getElementById("statTotalAppointments");
   const statFavoriteBarbers = document.getElementById("statFavoriteBarbers");
@@ -1800,12 +1807,6 @@ async function hydrateCustomerDashboard() {
     }
   }
 
-  await hydrateNotificationsPanel({
-    listEl: notificationsEl,
-    countEl: notificationCountEl,
-    readAllBtn: readAllNotificationsBtn,
-    emptyText: "You have no notifications yet. Booking updates will show here.",
-  });
 }
 
 function nearbyBarberTemplate(barber, distanceKm) {
@@ -1958,12 +1959,6 @@ async function hydrateBarberDashboard() {
   const sharePanel = document.getElementById("barberSharePanel");
   const shareProfileInput = document.getElementById("barberPublicProfileLink");
   const shareBookingInput = document.getElementById("barberDirectBookingLink");
-  const notificationsEl = document.getElementById("barberNotificationsList");
-  const notificationCountEl = document.getElementById("barberNotificationCount");
-  const readAllNotificationsBtn = document.getElementById("barberReadAllNotifications");
-  const soundToggle = document.getElementById("barberNotificationSoundToggle");
-  const highlightToggle = document.getElementById("barberNotificationHighlightToggle");
-
   const earningsTodayValue = document.getElementById("earningsTodayValue");
   const earningsWeekValue = document.getElementById("earningsWeekValue");
   const earningsTotalValue = document.getElementById("earningsPendingEscrowValue");
@@ -2108,25 +2103,12 @@ async function hydrateBarberDashboard() {
     }
   }
 
-  await hydrateNotificationsPanel({
-    listEl: notificationsEl,
-    countEl: notificationCountEl,
-    readAllBtn: readAllNotificationsBtn,
-    emptyText: "No alerts yet. New booking requests and payment updates will appear here.",
-  });
-  hydrateBarberNotificationPreferences(soundToggle, highlightToggle);
   await hydrateBarberAlertPanels({
     pendingEl,
-    notificationsEl,
-    notificationCountEl,
-    readAllNotificationsBtn,
     silent: true,
   });
   ensureBarberAlertPolling({
     pendingEl,
-    notificationsEl,
-    notificationCountEl,
-    readAllNotificationsBtn,
   });
 }
 
@@ -2413,7 +2395,8 @@ function focusDashboardTarget() {
   const focus = String(params.get("focus") || "").toLowerCase();
 
   if (focus === "kyc") {
-    return highlightAndScroll(document.getElementById("barberKycPanel"));
+    window.location.href = "/static/settings.html?tab=operations#barberKycBadge";
+    return true;
   }
 
   if (disputeId) {
@@ -2768,7 +2751,7 @@ function rehydrateBarberSettingsEditors() {
 }
 
 function normalizeSettingsTab(value) {
-  const allowed = ["account", "activity", "security", "business"];
+  const allowed = ["account", "activity", "security", "business", "operations"];
   const normalized = String(value || "").toLowerCase();
   return allowed.includes(normalized) ? normalized : "account";
 }
@@ -2810,7 +2793,10 @@ function initSettingsTabs() {
 
   const params = new URLSearchParams(window.location.search);
   const requestedTab = normalizeSettingsTab(params.get("tab"));
-  const defaultTab = requestedTab === "business" && state.currentRole !== "barber" ? "account" : requestedTab;
+  const defaultTab =
+    (requestedTab === "business" || requestedTab === "operations") && state.currentRole !== "barber"
+      ? "account"
+      : requestedTab;
   setActiveSettingsTab(defaultTab, { syncUrl: false });
 }
 
@@ -2858,17 +2844,24 @@ function hydrateSettingsPanel() {
   const payoutSummaryEl = document.getElementById("settingsPayoutSummary");
   const payoutListEl = document.getElementById("settingsPayoutList");
   const settingsBusinessTabBtn = document.getElementById("settingsBusinessTabBtn");
+  const settingsOperationsTabBtn = document.getElementById("settingsOperationsTabBtn");
   const customerActivityCard = document.getElementById("settingsCustomerActivityCard");
   const customerRecentActivityEl = document.getElementById("settingsCustomerRecentActivity");
   const disputesCard = document.getElementById("settingsDisputesCard");
   const settingsDisputesListEl = document.getElementById("settingsSharedDisputesList");
   const settingsDisputeCountEl = document.getElementById("settingsDisputeCount");
+  const barberAvailabilityCard = document.getElementById("settingsBarberAvailabilityCard");
+  const barberKycCard = document.getElementById("settingsBarberKycCard");
+  const barberCalendarCard = document.getElementById("settingsBarberCalendarCard");
 
   if (barberShortcuts) {
     barberShortcuts.classList.toggle("hidden", state.currentRole !== "barber");
   }
   if (settingsBusinessTabBtn) {
     settingsBusinessTabBtn.classList.toggle("hidden", state.currentRole !== "barber");
+  }
+  if (settingsOperationsTabBtn) {
+    settingsOperationsTabBtn.classList.toggle("hidden", state.currentRole !== "barber");
   }
   if (barberBusinessCard) {
     barberBusinessCard.dataset.roleHidden = String(state.currentRole !== "barber");
@@ -2884,6 +2877,15 @@ function hydrateSettingsPanel() {
   }
   if (payoutCard) {
     payoutCard.dataset.roleHidden = String(!["barber", "admin", "super_admin"].includes(state.currentRole));
+  }
+  if (barberAvailabilityCard) {
+    barberAvailabilityCard.dataset.roleHidden = String(state.currentRole !== "barber");
+  }
+  if (barberKycCard) {
+    barberKycCard.dataset.roleHidden = String(state.currentRole !== "barber");
+  }
+  if (barberCalendarCard) {
+    barberCalendarCard.dataset.roleHidden = String(state.currentRole !== "barber");
   }
   if (customerActivityCard) {
     customerActivityCard.dataset.roleHidden = String(state.currentRole !== "customer");
@@ -3271,9 +3273,6 @@ function hydrateBarberNotificationPreferences(soundToggle, highlightToggle) {
         await hydrateHeaderNotifications(document);
         await hydrateBarberAlertPanels({
           pendingEl: document.getElementById("barberPending"),
-          notificationsEl: document.getElementById("barberNotificationsList"),
-          notificationCountEl: document.getElementById("barberNotificationCount"),
-          readAllNotificationsBtn: document.getElementById("barberReadAllNotifications"),
           silent: true,
         });
         toast(highlightToggle.checked ? "Urgent request highlight enabled" : "Urgent request highlight disabled");
@@ -3612,7 +3611,7 @@ async function hydrateBarberAlertPanels({
   readAllNotificationsBtn,
   silent = false,
 } = {}) {
-  if (!pendingEl || !notificationsEl || !notificationCountEl || !readAllNotificationsBtn) return;
+  if (!pendingEl) return;
 
   try {
     const [bookings, notificationResponse] = await Promise.all([
@@ -3648,15 +3647,17 @@ async function hydrateBarberAlertPanels({
     const items = Array.isArray(notificationResponse?.items) ? notificationResponse.items : [];
     const unreadCount = Number(notificationResponse?.unread_count || 0);
     state.notifications = items;
-    notificationsEl.innerHTML = renderNotificationsList(
-      items,
-      "No alerts yet. New booking requests and payment updates will appear here."
-    );
-    notificationCountEl.textContent = `${unreadCount} unread`;
-    readAllNotificationsBtn.disabled = unreadCount === 0;
-    bindNotificationActions(notificationsEl, async () =>
-      hydrateBarberAlertPanels({ pendingEl, notificationsEl, notificationCountEl, readAllNotificationsBtn, silent: true })
-    );
+    if (notificationsEl && notificationCountEl && readAllNotificationsBtn) {
+      notificationsEl.innerHTML = renderNotificationsList(
+        items,
+        "No alerts yet. New booking requests and payment updates will appear here."
+      );
+      notificationCountEl.textContent = `${unreadCount} unread`;
+      readAllNotificationsBtn.disabled = unreadCount === 0;
+      bindNotificationActions(notificationsEl, async () =>
+        hydrateBarberAlertPanels({ pendingEl, notificationsEl, notificationCountEl, readAllNotificationsBtn, silent: true })
+      );
+    }
 
     const urgentUnreadIds = new Set(
       items

@@ -143,45 +143,32 @@
             </div>
           </div>
 
-          <div class="customer-secondary-grid">
-            <article class="panel customer-feature-panel">
-              <div class="panel-head-row">
-                <h3>Notifications</h3>
-                <div class="action-row">
-                  <span class="pill" id="customerNotificationCount">0 unread</span>
-                  <button class="btn btn-ghost" type="button" id="customerReadAllNotifications">Mark all read</button>
-                </div>
+          <article class="panel customer-feature-panel">
+            <div class="panel-head-row">
+              <div>
+                <h3>Quick Actions</h3>
+                <p class="muted customer-panel-subtitle">Common tasks without leaving the dashboard.</p>
               </div>
-              <div id="customerNotificationsList" class="booking-list"></div>
-            </article>
-
-            <article class="panel">
-              <div class="panel-head-row">
-                <div>
-                  <h3>Quick Actions</h3>
-                  <p class="muted customer-panel-subtitle">Common tasks without leaving the dashboard.</p>
-                </div>
-              </div>
-              <div class="quick-actions-grid">
-                <a class="quick-action-card" href="./barbers.html">
-                  <strong>Find Barbers</strong>
-                  <span class="muted">Browse by location and rating</span>
-                </a>
-                <a class="quick-action-card" id="quickBookAgain" href="./barbers.html">
-                  <strong>Book Again</strong>
-                  <span class="muted">Repeat your last service</span>
-                </a>
-                <a class="quick-action-card" href="./settings.html?tab=activity">
-                  <strong>View Booking History</strong>
-                  <span class="muted">Open history, disputes, and refunds in settings</span>
-                </a>
-                <a class="quick-action-card" href="./favourite.html">
-                  <strong>Saved Barbers</strong>
-                  <span class="muted">Jump into your favorites list</span>
-                </a>
-              </div>
-            </article>
-          </div>
+            </div>
+            <div class="quick-actions-grid">
+              <a class="quick-action-card" href="./barbers.html">
+                <strong>Find Barbers</strong>
+                <span class="muted">Browse by location and rating</span>
+              </a>
+              <a class="quick-action-card" id="quickBookAgain" href="./barbers.html">
+                <strong>Book Again</strong>
+                <span class="muted">Repeat your last service</span>
+              </a>
+              <a class="quick-action-card" href="./settings.html?tab=activity">
+                <strong>View Booking History</strong>
+                <span class="muted">Open history, disputes, and refunds in settings</span>
+              </a>
+              <a class="quick-action-card" href="./favourite.html">
+                <strong>Saved Barbers</strong>
+                <span class="muted">Jump into your favorites list</span>
+              </a>
+            </div>
+          </article>
 
         </section>
 
@@ -263,30 +250,7 @@
           </div>
 
           <div class="barber-main-grid barber-main-grid-alt">
-            <article class="panel barber-feature-panel">
-              <div class="panel-head-row">
-                <h3>Notifications</h3>
-                <div class="action-row">
-                  <span class="pill" id="barberNotificationCount">0 unread</span>
-                  <button class="btn btn-ghost" type="button" id="barberReadAllNotifications">Mark all read</button>
-                </div>
-              </div>
-              <div class="barber-notification-preferences" id="barberNotificationPreferences">
-                <label class="status-toggle" for="barberNotificationSoundToggle">
-                  <input id="barberNotificationSoundToggle" type="checkbox" />
-                  <span class="status-switch"></span>
-                  <span>Play sound for urgent requests</span>
-                </label>
-                <label class="status-toggle" for="barberNotificationHighlightToggle">
-                  <input id="barberNotificationHighlightToggle" type="checkbox" />
-                  <span class="status-switch"></span>
-                  <span>Highlight urgent booking requests</span>
-                </label>
-              </div>
-              <div id="barberNotificationsList" class="booking-list"></div>
-            </article>
-
-            <div class="barber-side-stack">
+            <div class="barber-side-stack barber-side-stack-wide">
               <article class="panel">
                 <div class="panel-head-row">
                   <h3>Profile Performance</h3>
@@ -322,82 +286,6 @@
             </div>
           </div>
 
-          <div class="barber-ops-grid">
-            <article class="panel">
-              <div class="panel-head-row">
-                <div>
-                  <h3>Availability Settings</h3>
-                  <p class="muted barber-panel-subtitle">Set when customers can actually book you.</p>
-                </div>
-              </div>
-              <form id="availabilityForm" class="form-grid availability-form">
-                <fieldset class="day-checkboxes" id="availabilityDays">
-                  <legend>Available Days</legend>
-                  <label><input type="checkbox" value="monday" /> Monday</label>
-                  <label><input type="checkbox" value="tuesday" /> Tuesday</label>
-                  <label><input type="checkbox" value="wednesday" /> Wednesday</label>
-                  <label><input type="checkbox" value="thursday" /> Thursday</label>
-                  <label><input type="checkbox" value="friday" /> Friday</label>
-                  <label><input type="checkbox" value="saturday" /> Saturday</label>
-                  <label><input type="checkbox" value="sunday" /> Sunday</label>
-                </fieldset>
-
-                <div class="time-row">
-                  <div>
-                    <label for="start">Start Time</label>
-                    <input id="start" name="start" class="input" type="time" required />
-                  </div>
-                  <div>
-                    <label for="end">End Time</label>
-                    <input id="end" name="end" class="input" type="time" required />
-                  </div>
-                </div>
-
-                <button class="btn btn-primary" type="submit">Save Availability</button>
-              </form>
-              <p id="availabilityNotice" class="notice"></p>
-            </article>
-
-            <article class="panel" id="barberKycPanel">
-              <div class="panel-head-row">
-                <div>
-                  <h3>KYC & Compliance</h3>
-                  <p class="muted barber-panel-subtitle">Keep your payouts and public profile in good standing.</p>
-                </div>
-                <span id="barberKycBadge" class="status-badge status-pending">Pending</span>
-              </div>
-              <div id="barberKycSummary" class="compliance-summary"></div>
-              <form id="barberKycDashboardForm" class="form-grid hidden">
-                <div>
-                  <label for="dashboard_kyc_phone_number">Phone Number</label>
-                  <input id="dashboard_kyc_phone_number" name="phone_number" class="input" type="tel" required />
-                </div>
-                <div>
-                  <label for="dashboard_kyc_shop_address">Shop Address</label>
-                  <input id="dashboard_kyc_shop_address" name="shop_address" class="input" type="text" required />
-                </div>
-                <div>
-                  <label for="dashboard_kyc_shop_photo_url">Shop Photo URL</label>
-                  <input id="dashboard_kyc_shop_photo_url" name="shop_photo_url" class="input" type="url" required />
-                </div>
-                <div>
-                  <label for="dashboard_kyc_account_name">Account Name</label>
-                  <input id="dashboard_kyc_account_name" name="account_name" class="input" type="text" required />
-                </div>
-                <div>
-                  <label for="dashboard_kyc_bank_name">Bank Name</label>
-                  <input id="dashboard_kyc_bank_name" name="bank_name" class="input" type="text" required />
-                </div>
-                <div>
-                  <label for="dashboard_kyc_bank_account_number">Bank Account Number</label>
-                  <input id="dashboard_kyc_bank_account_number" name="bank_account_number" class="input" type="text" inputmode="numeric" required />
-                </div>
-                <button class="btn btn-primary" type="submit">Submit KYC</button>
-              </form>
-              <p id="barberKycNotice" class="notice"></p>
-            </article>
-          </div>
-
           <div class="barber-bottom-grid">
             <article class="panel">
               <div class="panel-head-row">
@@ -407,21 +295,6 @@
                 </div>
               </div>
               <div id="barberRecentClients" class="booking-list"></div>
-            </article>
-
-            <article class="panel">
-              <div class="panel-head-row">
-                <h3>Calendar View</h3>
-                <div class="calendar-toolbar">
-                  <div class="calendar-switch">
-                    <button type="button" class="btn btn-ghost active" data-calendar-view="day">Day</button>
-                    <button type="button" class="btn btn-ghost" data-calendar-view="week">Week</button>
-                  </div>
-                  <input id="calendarDate" class="input calendar-date" type="date" />
-                </div>
-              </div>
-              <div id="barberCalendarGrid" class="calendar-grid"></div>
-              <div id="calendarAppointmentDetails" class="appointment-details"></div>
             </article>
           </div>
 
