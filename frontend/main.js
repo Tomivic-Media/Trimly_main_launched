@@ -1323,7 +1323,10 @@ async function initDashboardPage() {
 
   const displayName = fullName || deriveDisplayName(email);
   if (greetingEl) {
-    greetingEl.textContent = `Welcome back, ${displayName}. Ready for your next cut?`;
+    greetingEl.textContent =
+      role === "barber"
+        ? `Good to see you, ${displayName}. Your chair is ready for the week.`
+        : `Welcome back, ${displayName}. Ready for your next cut?`;
   }
 
   roleBadge.textContent =

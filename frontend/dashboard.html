@@ -44,219 +44,292 @@
         </p>
 
         <section id="customerDashboard" class="customer-marketplace hidden">
-          <article class="panel customer-hero-section">
-            <div class="customer-hero-top">
-              <div>
-                <h2>Book Your Next Cut</h2>
+          <article class="panel customer-overview-panel">
+            <div class="customer-overview-grid">
+              <div class="customer-overview-copy">
+                <span class="dashboard-eyebrow">Customer dashboard</span>
+                <h2>Discover top barbers, manage bookings, and keep your next appointment close.</h2>
                 <p class="muted">
-                  Search barbers near you and lock in your next appointment fast.
+                  Search by style or location, stay on top of upcoming bookings, and move from discovery to payment
+                  without losing your place.
                 </p>
+
+                <form id="customerSearchForm" class="search-row customer-search-row">
+                  <input
+                    id="customerBarberSearch"
+                    class="input"
+                    type="text"
+                    placeholder="Search barbers, location, or style"
+                  />
+                  <button class="btn btn-primary" type="submit">Search Barbers</button>
+                </form>
+
+                <div class="style-chip-row">
+                  <button class="style-chip" type="button" data-style="Skin Fade">Skin Fade</button>
+                  <button class="style-chip" type="button" data-style="Buzz Cut">Buzz Cut</button>
+                  <button class="style-chip" type="button" data-style="Beard Trim">Beard Trim</button>
+                  <button class="style-chip" type="button" data-style="Afro Shape Up">Afro Shape Up</button>
+                  <button class="style-chip" type="button" data-style="Braids">Braids</button>
+                </div>
               </div>
+
+              <aside class="customer-upcoming-shell">
+                <div class="panel-head-row">
+                  <div>
+                    <h3>Upcoming booking</h3>
+                    <p class="muted customer-panel-subtitle">Your next appointment and actions in one place.</p>
+                  </div>
+                </div>
+                <div id="customerUpcomingCard" class="upcoming-appointment-card customer-upcoming-card"></div>
+              </aside>
             </div>
 
-            <form id="customerSearchForm" class="search-row">
-              <input
-                id="customerBarberSearch"
-                class="input"
-                type="text"
-                placeholder="Search barbers, location, or style"
-              />
-              <button class="btn btn-primary" type="submit">Search Barbers</button>
-            </form>
-
-            <div class="style-chip-row">
-              <button class="style-chip" type="button" data-style="Skin Fade">Skin Fade</button>
-              <button class="style-chip" type="button" data-style="Buzz Cut">Buzz Cut</button>
-              <button class="style-chip" type="button" data-style="Beard Trim">Beard Trim</button>
-              <button class="style-chip" type="button" data-style="Afro Shape Up">Afro Shape Up</button>
-              <button class="style-chip" type="button" data-style="Braids">Braids</button>
-            </div>
-
-            <div id="customerUpcomingCard" class="upcoming-appointment-card"></div>
+            <section class="customer-stat-grid">
+              <article class="stat-summary-card customer-stat-card customer-stat-card-primary">
+                <small>Total Appointments</small>
+                <strong id="statTotalAppointments">0</strong>
+                <span class="muted">All bookings made on Trimly</span>
+              </article>
+              <article class="stat-summary-card customer-stat-card">
+                <small>Favorite Barbers</small>
+                <strong id="statFavoriteBarbers">0</strong>
+                <span class="muted">Saved for faster rebooking</span>
+              </article>
+              <article class="stat-summary-card customer-stat-card">
+                <small>Completed Haircuts</small>
+                <strong id="statCompletedHaircuts">0</strong>
+                <span class="muted">Finished appointments in your history</span>
+              </article>
+              <article class="stat-summary-card customer-stat-card">
+                <small>Loyalty Points</small>
+                <strong id="statLoyaltyPoints">0</strong>
+                <span class="muted">Rewards building up over time</span>
+              </article>
+            </section>
           </article>
 
-          <section class="stats-summary-grid">
-            <article class="stat-summary-card">
-              <small>Total Appointments</small>
-              <strong id="statTotalAppointments">0</strong>
-            </article>
-            <article class="stat-summary-card">
-              <small>Favorite Barbers</small>
-              <strong id="statFavoriteBarbers">0</strong>
-            </article>
-            <article class="stat-summary-card">
-              <small>Completed Haircuts</small>
-              <strong id="statCompletedHaircuts">0</strong>
-            </article>
-            <article class="stat-summary-card">
-              <small>Loyalty Points</small>
-              <strong id="statLoyaltyPoints">0</strong>
-            </article>
-          </section>
-
-          <article class="panel">
-            <div class="panel-head-row">
-              <h3>Notifications</h3>
-              <div class="action-row">
-                <span class="pill" id="customerNotificationCount">0 unread</span>
-                <button class="btn btn-ghost" type="button" id="customerReadAllNotifications">Mark all read</button>
+          <div class="customer-main-grid">
+            <article class="panel customer-feature-panel">
+              <div class="panel-head-row">
+                <div>
+                  <h3>Trending Barbers Near You</h3>
+                  <p class="muted customer-panel-subtitle">Top-rated options customers are booking right now.</p>
+                </div>
+                <a href="./barbers.html" class="muted">See all</a>
               </div>
-            </div>
-            <div id="customerNotificationsList" class="booking-list"></div>
-          </article>
-
-          <article class="panel">
-            <div class="panel-head-row">
-              <h3>Trending Barbers Near You</h3>
-              <a href="./barbers.html" class="muted">See all</a>
-            </div>
-            <div id="customerTrending" class="grid grid-4"></div>
-          </article>
-
-          <div class="customer-bottom-grid">
-            <article class="panel">
-              <h3>Nearby Barbers</h3>
-              <div id="customerNearby" class="nearby-grid"></div>
+              <div id="customerTrending" class="grid grid-4"></div>
             </article>
 
-            <article class="panel">
-              <h3>Book Again</h3>
-              <div id="customerBookAgain" class="book-again-wrap"></div>
-            </article>
+            <div class="customer-side-stack">
+              <article class="panel">
+                <div class="panel-head-row">
+                  <div>
+                    <h3>Nearby Barbers</h3>
+                    <p class="muted customer-panel-subtitle">Closest options when you need a quick booking.</p>
+                  </div>
+                </div>
+                <div id="customerNearby" class="nearby-grid"></div>
+              </article>
+
+              <article class="panel">
+                <div class="panel-head-row">
+                  <div>
+                    <h3>Book Again</h3>
+                    <p class="muted customer-panel-subtitle">Jump straight back to barbers you already trust.</p>
+                  </div>
+                </div>
+                <div id="customerBookAgain" class="book-again-wrap"></div>
+              </article>
+            </div>
           </div>
 
-          <article class="panel">
-            <h3>Quick Actions</h3>
-            <div class="quick-actions-grid">
-              <a class="quick-action-card" href="./barbers.html">
-                <strong>Find Barbers</strong>
-                <span class="muted">Browse by location and rating</span>
-              </a>
-              <a class="quick-action-card" id="quickBookAgain" href="./barbers.html">
-                <strong>Book Again</strong>
-                <span class="muted">Repeat your last service</span>
-              </a>
-              <a class="quick-action-card" href="./settings.html?tab=activity">
-                <strong>View Booking History</strong>
-                <span class="muted">Open history, disputes, and refunds in settings</span>
-              </a>
-              <a class="quick-action-card" href="./favourite.html">
-                <strong>Saved Barbers</strong>
-                <span class="muted">Jump into your favorites list</span>
-              </a>
-            </div>
-          </article>
+          <div class="customer-secondary-grid">
+            <article class="panel customer-feature-panel">
+              <div class="panel-head-row">
+                <h3>Notifications</h3>
+                <div class="action-row">
+                  <span class="pill" id="customerNotificationCount">0 unread</span>
+                  <button class="btn btn-ghost" type="button" id="customerReadAllNotifications">Mark all read</button>
+                </div>
+              </div>
+              <div id="customerNotificationsList" class="booking-list"></div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-head-row">
+                <div>
+                  <h3>Quick Actions</h3>
+                  <p class="muted customer-panel-subtitle">Common tasks without leaving the dashboard.</p>
+                </div>
+              </div>
+              <div class="quick-actions-grid">
+                <a class="quick-action-card" href="./barbers.html">
+                  <strong>Find Barbers</strong>
+                  <span class="muted">Browse by location and rating</span>
+                </a>
+                <a class="quick-action-card" id="quickBookAgain" href="./barbers.html">
+                  <strong>Book Again</strong>
+                  <span class="muted">Repeat your last service</span>
+                </a>
+                <a class="quick-action-card" href="./settings.html?tab=activity">
+                  <strong>View Booking History</strong>
+                  <span class="muted">Open history, disputes, and refunds in settings</span>
+                </a>
+                <a class="quick-action-card" href="./favourite.html">
+                  <strong>Saved Barbers</strong>
+                  <span class="muted">Jump into your favorites list</span>
+                </a>
+              </div>
+            </article>
+          </div>
 
         </section>
 
         <section id="barberDashboard" class="barber-hub hidden">
-          <div class="barber-top-grid">
-            <article class="panel status-panel">
-              <h3>Status</h3>
-              <p class="muted">Control whether customers can find and book you.</p>
-              <label class="status-toggle" for="barberStatusToggle">
-                <input id="barberStatusToggle" type="checkbox" />
-                <span class="status-switch"></span>
-                <span id="barberStatusLabel">Offline</span>
-              </label>
-              <p id="barberStatusNotice" class="notice"></p>
-            </article>
+          <article class="panel barber-overview-panel">
+            <div class="barber-overview-grid">
+              <div class="barber-overview-copy">
+                <span class="dashboard-eyebrow">Barber dashboard</span>
+                <h2>Run your bookings, earnings, and availability from one place.</h2>
+                <p class="muted">
+                  Keep the work queue moving, stay visible to customers, and make sure every appointment
+                  feels handled before it becomes urgent.
+                </p>
+                <div class="barber-overview-badges">
+                  <span class="pill" id="barberChecklistProgress">0 / 5 done</span>
+                  <span class="pill" id="barberProfileHealth">Needs work</span>
+                </div>
+              </div>
 
-            <article class="panel">
-              <div class="panel-head-row">
-                <h3>Launch Checklist</h3>
-                <span class="pill" id="barberChecklistProgress">0 / 5 done</span>
-              </div>
-              <div id="barberOnboardingChecklist" class="checklist-grid"></div>
-            </article>
-          </div>
-
-          <div class="barber-top-grid">
-            <article class="panel">
-              <h3>Today's Appointments</h3>
-              <div id="barberTodayList" class="booking-list"></div>
-            </article>
-            <article class="panel">
-              <div class="panel-head-row">
-                <h3>Profile Performance</h3>
-                <span class="pill" id="barberProfileHealth">Needs work</span>
-              </div>
-              <div class="kpi-grid kpi-grid-2">
-                <div class="kpi">
-                  <small class="muted">Public Rating</small>
-                  <strong id="barberProfileRating">New</strong>
+              <aside class="barber-status-card">
+                <div class="panel-head-row">
+                  <h3>Booking visibility</h3>
+                  <span class="pill">Live control</span>
                 </div>
-                <div class="kpi">
-                  <small class="muted">Review Count</small>
-                  <strong id="barberProfileReviewCount">0</strong>
-                </div>
-                <div class="kpi">
-                  <small class="muted">Portfolio Photos</small>
-                  <strong id="barberProfilePortfolioCount">0</strong>
-                </div>
-                <div class="kpi">
-                  <small class="muted">Public Profile</small>
-                  <strong id="barberProfileShareReadiness">Draft</strong>
-                </div>
-              </div>
-            </article>
-          </div>
-
-          <article class="panel">
-            <div class="panel-head-row">
-              <h3>Notifications</h3>
-              <div class="action-row">
-                <span class="pill" id="barberNotificationCount">0 unread</span>
-                <button class="btn btn-ghost" type="button" id="barberReadAllNotifications">Mark all read</button>
-              </div>
+                <p class="muted">Control whether customers can find you and send new requests.</p>
+                <label class="status-toggle" for="barberStatusToggle">
+                  <input id="barberStatusToggle" type="checkbox" />
+                  <span class="status-switch"></span>
+                  <span id="barberStatusLabel">Offline</span>
+                </label>
+                <p id="barberStatusNotice" class="notice"></p>
+              </aside>
             </div>
-            <div class="barber-notification-preferences" id="barberNotificationPreferences">
-              <label class="status-toggle" for="barberNotificationSoundToggle">
-                <input id="barberNotificationSoundToggle" type="checkbox" />
-                <span class="status-switch"></span>
-                <span>Play sound for urgent requests</span>
-              </label>
-              <label class="status-toggle" for="barberNotificationHighlightToggle">
-                <input id="barberNotificationHighlightToggle" type="checkbox" />
-                <span class="status-switch"></span>
-                <span>Highlight urgent booking requests</span>
-              </label>
-            </div>
-            <div id="barberNotificationsList" class="booking-list"></div>
+
+            <section class="barber-stat-grid">
+              <article class="barber-stat-card barber-stat-card-primary">
+                <small>This week earnings</small>
+                <strong id="earningsWeekValue">NGN 0</strong>
+                <span class="muted">Revenue already locked in this week</span>
+              </article>
+              <article class="barber-stat-card">
+                <small>Today earnings</small>
+                <strong id="earningsTodayValue">NGN 0</strong>
+                <span class="muted">What you have earned so far today</span>
+              </article>
+              <article class="barber-stat-card">
+                <small>Awaiting payout review</small>
+                <strong id="earningsPendingEscrowValue">NGN 0</strong>
+                <span class="muted">Jobs that still need payout completion</span>
+              </article>
+              <article class="barber-stat-card">
+                <small>Total jobs completed</small>
+                <strong id="jobsValue">0</strong>
+                <span class="muted">Completed bookings on your account</span>
+              </article>
+            </section>
           </article>
 
-          <div class="barber-mid-grid">
-            <article class="panel">
-              <h3>New Booking Requests</h3>
-              <div id="barberPending" class="booking-list"></div>
-            </article>
-
-            <article class="panel">
-              <h3>Earnings Summary</h3>
-              <div class="kpi-grid kpi-grid-2">
-                <div class="kpi">
-                  <small class="muted">Today's Earnings</small>
-                  <strong id="earningsTodayValue">NGN 0</strong>
-                </div>
-                <div class="kpi">
-                  <small class="muted">Weekly Earnings</small>
-                  <strong id="earningsWeekValue">NGN 0</strong>
-                </div>
-                <div class="kpi">
-                  <small class="muted">Awaiting Payout Review</small>
-                  <strong id="earningsPendingEscrowValue">NGN 0</strong>
-                </div>
-                <div class="kpi">
-                  <small class="muted">Total Jobs Completed</small>
-                  <strong id="jobsValue">0</strong>
+          <div class="barber-main-grid">
+            <article class="panel barber-feature-panel">
+              <div class="panel-head-row">
+                <div>
+                  <h3>New Booking Requests</h3>
+                  <p class="muted barber-panel-subtitle">Handle fresh requests quickly so the day stays organized.</p>
                 </div>
               </div>
+              <div id="barberPending" class="booking-list booking-list-spacious"></div>
+            </article>
+
+            <article class="panel barber-side-panel">
+              <div class="panel-head-row">
+                <div>
+                  <h3>Today's Appointments</h3>
+                  <p class="muted barber-panel-subtitle">Your live schedule for today.</p>
+                </div>
+              </div>
+              <div id="barberTodayList" class="booking-list booking-list-compact"></div>
             </article>
           </div>
 
-          <div class="barber-mid-grid">
+          <div class="barber-main-grid barber-main-grid-alt">
+            <article class="panel barber-feature-panel">
+              <div class="panel-head-row">
+                <h3>Notifications</h3>
+                <div class="action-row">
+                  <span class="pill" id="barberNotificationCount">0 unread</span>
+                  <button class="btn btn-ghost" type="button" id="barberReadAllNotifications">Mark all read</button>
+                </div>
+              </div>
+              <div class="barber-notification-preferences" id="barberNotificationPreferences">
+                <label class="status-toggle" for="barberNotificationSoundToggle">
+                  <input id="barberNotificationSoundToggle" type="checkbox" />
+                  <span class="status-switch"></span>
+                  <span>Play sound for urgent requests</span>
+                </label>
+                <label class="status-toggle" for="barberNotificationHighlightToggle">
+                  <input id="barberNotificationHighlightToggle" type="checkbox" />
+                  <span class="status-switch"></span>
+                  <span>Highlight urgent booking requests</span>
+                </label>
+              </div>
+              <div id="barberNotificationsList" class="booking-list"></div>
+            </article>
+
+            <div class="barber-side-stack">
+              <article class="panel">
+                <div class="panel-head-row">
+                  <h3>Profile Performance</h3>
+                  <span class="pill">Public profile</span>
+                </div>
+                <div class="kpi-grid kpi-grid-2">
+                  <div class="kpi">
+                    <small class="muted">Public Rating</small>
+                    <strong id="barberProfileRating">New</strong>
+                  </div>
+                  <div class="kpi">
+                    <small class="muted">Review Count</small>
+                    <strong id="barberProfileReviewCount">0</strong>
+                  </div>
+                  <div class="kpi">
+                    <small class="muted">Portfolio Photos</small>
+                    <strong id="barberProfilePortfolioCount">0</strong>
+                  </div>
+                  <div class="kpi">
+                    <small class="muted">Public Profile</small>
+                    <strong id="barberProfileShareReadiness">Draft</strong>
+                  </div>
+                </div>
+              </article>
+
+              <article class="panel">
+                <div class="panel-head-row">
+                  <h3>Launch Checklist</h3>
+                  <span class="pill">Setup quality</span>
+                </div>
+                <div id="barberOnboardingChecklist" class="checklist-grid"></div>
+              </article>
+            </div>
+          </div>
+
+          <div class="barber-ops-grid">
             <article class="panel">
-              <h3>Availability Settings</h3>
+              <div class="panel-head-row">
+                <div>
+                  <h3>Availability Settings</h3>
+                  <p class="muted barber-panel-subtitle">Set when customers can actually book you.</p>
+                </div>
+              </div>
               <form id="availabilityForm" class="form-grid availability-form">
                 <fieldset class="day-checkboxes" id="availabilityDays">
                   <legend>Available Days</legend>
@@ -287,7 +360,10 @@
 
             <article class="panel" id="barberKycPanel">
               <div class="panel-head-row">
-                <h3>KYC & Compliance</h3>
+                <div>
+                  <h3>KYC & Compliance</h3>
+                  <p class="muted barber-panel-subtitle">Keep your payouts and public profile in good standing.</p>
+                </div>
                 <span id="barberKycBadge" class="status-badge status-pending">Pending</span>
               </div>
               <div id="barberKycSummary" class="compliance-summary"></div>
@@ -322,28 +398,42 @@
             </article>
           </div>
 
-          <div class="barber-mid-grid">
+          <div class="barber-bottom-grid">
             <article class="panel">
-              <h3>Recent Clients</h3>
+              <div class="panel-head-row">
+                <div>
+                  <h3>Recent Clients</h3>
+                  <p class="muted barber-panel-subtitle">The people you have most recently served.</p>
+                </div>
+              </div>
               <div id="barberRecentClients" class="booking-list"></div>
             </article>
 
+            <article class="panel">
+              <div class="panel-head-row">
+                <h3>Calendar View</h3>
+                <div class="calendar-toolbar">
+                  <div class="calendar-switch">
+                    <button type="button" class="btn btn-ghost active" data-calendar-view="day">Day</button>
+                    <button type="button" class="btn btn-ghost" data-calendar-view="week">Week</button>
+                  </div>
+                  <input id="calendarDate" class="input calendar-date" type="date" />
+                </div>
+              </div>
+              <div id="barberCalendarGrid" class="calendar-grid"></div>
+              <div id="calendarAppointmentDetails" class="appointment-details"></div>
+            </article>
           </div>
 
-          <article class="panel">
+          <section id="allBookingsPanel" class="panel barber-bookings-panel">
             <div class="panel-head-row">
-              <h3>Calendar View</h3>
-              <div class="calendar-toolbar">
-                <div class="calendar-switch">
-                  <button type="button" class="btn btn-ghost active" data-calendar-view="day">Day</button>
-                  <button type="button" class="btn btn-ghost" data-calendar-view="week">Week</button>
-                </div>
-                <input id="calendarDate" class="input calendar-date" type="date" />
+              <div>
+                <h3>All Bookings</h3>
+                <p class="muted barber-panel-subtitle">Full booking history, payment state, and customer actions.</p>
               </div>
             </div>
-            <div id="barberCalendarGrid" class="calendar-grid"></div>
-            <div id="calendarAppointmentDetails" class="appointment-details"></div>
-          </article>
+            <div id="barberAll" class="booking-list"></div>
+          </section>
         </section>
 
         <section id="adminDashboard" class="admin-hub hidden">
@@ -380,11 +470,6 @@
             </div>
             <div id="adminRefundList" class="booking-list"></div>
           </article>
-        </section>
-
-        <section id="allBookingsPanel" class="panel">
-          <h3>All Bookings</h3>
-          <div id="barberAll" class="booking-list"></div>
         </section>
 
       </div>

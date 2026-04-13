@@ -1057,20 +1057,32 @@ label {
 
 .booking-item {
   border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 12px;
+  border-radius: 16px;
+  padding: 15px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 14px;
   flex-wrap: wrap;
-  background: rgba(255, 250, 242, 0.84);
+  background: rgba(255, 250, 242, 0.92);
+  box-shadow: 0 8px 18px rgba(24, 57, 43, 0.04);
 }
 
 .booking-item-urgent {
   border-color: rgba(201, 169, 107, 0.72);
   background: linear-gradient(180deg, rgba(201, 169, 107, 0.24), rgba(255, 250, 242, 0.88));
   box-shadow: 0 0 0 1px rgba(201, 169, 107, 0.14);
+}
+
+.booking-item > div:first-child {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.booking-item strong {
+  display: block;
+  font-size: 1rem;
+  margin-bottom: 4px;
 }
 
 .request-priority-chip {
@@ -1101,6 +1113,8 @@ label {
 .booking-tags {
   display: inline-flex;
   gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .action-row {
@@ -1129,15 +1143,36 @@ label {
   font-size: 1.22rem;
 }
 
-.customer-marketplace {
-  display: grid;
-  gap: 18px;
+.request-service {
+  margin: 6px 0 0;
+  color: var(--text);
+  font-weight: 600;
 }
 
-.customer-top-grid {
+.client-row {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 16px;
+  background: rgba(255, 250, 242, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.client-row > div {
+  min-width: 0;
+}
+
+.client-row strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.customer-marketplace {
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
-  gap: 18px;
+  gap: 22px;
 }
 
 .dashboard-hero-panel h2 {
@@ -1178,12 +1213,6 @@ label {
   align-items: center;
   gap: 10px;
   margin-bottom: 12px;
-}
-
-.customer-bottom-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px;
 }
 
 .quick-actions-grid {
@@ -1309,8 +1338,9 @@ label {
   .profile-layout,
   .profile-content-grid,
   .dashboard-grid,
-  .customer-top-grid,
-  .customer-bottom-grid {
+  .customer-main-grid,
+  .customer-secondary-grid,
+  .customer-overview-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1328,6 +1358,10 @@ label {
 
   .profile-stat-grid {
     grid-template-columns: 1fr;
+  }
+
+  .customer-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1374,6 +1408,10 @@ label {
     position: static;
     margin-top: 12px;
   }
+
+  .customer-stat-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 
@@ -1382,14 +1420,105 @@ label {
   width: min(1360px, calc(100vw - 24px));
 }
 
-.customer-hero-section {
-  display: grid;
-  gap: 14px;
-  background: linear-gradient(145deg, rgba(24, 34, 47, 0.95), rgba(15, 20, 28, 0.95));
+.customer-overview-panel {
+  padding: 22px;
+  background:
+    radial-gradient(circle at top right, rgba(201, 169, 107, 0.16), transparent 34%),
+    linear-gradient(165deg, rgba(255, 251, 244, 0.98), rgba(244, 235, 223, 0.98));
+  box-shadow: var(--shadow);
 }
 
-.customer-hero-top h2 {
-  margin: 0 0 6px;
+.customer-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.85fr);
+  gap: 22px;
+  align-items: start;
+  margin-bottom: 20px;
+}
+
+.customer-overview-copy h2 {
+  margin: 0 0 10px;
+  font-size: clamp(1.9rem, 3vw, 2.6rem);
+  line-height: 1.06;
+}
+
+.customer-overview-copy p {
+  margin: 0 0 18px;
+  max-width: 720px;
+}
+
+.customer-search-row {
+  max-width: 760px;
+  margin-bottom: 16px;
+}
+
+.customer-upcoming-shell {
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 18px;
+  background: rgba(255, 250, 242, 0.92);
+  box-shadow: 0 10px 28px rgba(24, 57, 43, 0.06);
+}
+
+.customer-upcoming-shell .panel-head-row {
+  margin-bottom: 14px;
+}
+
+.customer-upcoming-card {
+  min-height: 220px;
+  box-shadow: 0 14px 26px rgba(10, 14, 20, 0.12);
+}
+
+.customer-panel-subtitle {
+  margin: 4px 0 0;
+}
+
+.customer-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.customer-stat-card {
+  border-radius: 18px;
+  padding: 18px;
+  background: rgba(255, 250, 242, 0.9);
+  box-shadow: 0 10px 28px rgba(24, 57, 43, 0.06);
+  display: grid;
+  gap: 8px;
+  min-height: 132px;
+}
+
+.customer-stat-card strong {
+  font-size: clamp(1.45rem, 2vw, 1.95rem);
+  line-height: 1;
+}
+
+.customer-stat-card-primary {
+  background: linear-gradient(145deg, rgba(46, 106, 79, 0.96), rgba(24, 57, 43, 0.98));
+  color: #fffaf2;
+  border-color: rgba(24, 57, 43, 0.42);
+}
+
+.customer-stat-card-primary small,
+.customer-stat-card-primary span {
+  color: rgba(255, 250, 242, 0.78);
+}
+
+.customer-main-grid,
+.customer-secondary-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.28fr) minmax(320px, 0.92fr);
+  gap: 22px;
+}
+
+.customer-feature-panel {
+  box-shadow: var(--shadow);
+}
+
+.customer-side-stack {
+  display: grid;
+  gap: 22px;
 }
 
 .style-chip-row {
@@ -1571,17 +1700,43 @@ label {
   .stats-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .barber-overview-grid,
+  .barber-main-grid,
+  .barber-ops-grid,
+  .barber-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .barber-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 760px) {
   .stats-summary-grid {
     grid-template-columns: 1fr;
   }
+
+  .barber-overview-panel {
+    padding: 18px;
+  }
+
+  .barber-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .barber-status-card,
+  .barber-stat-card,
+  .client-row,
+  .booking-item {
+    border-radius: 14px;
+  }
 }
 
 .barber-hub {
   display: grid;
-  gap: 18px;
+  gap: 22px;
 }
 
 .admin-hub {
@@ -1595,15 +1750,144 @@ label {
   gap: 18px;
 }
 
-.barber-top-grid,
-.barber-mid-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px;
-}
-
 .status-panel .notice {
   margin-bottom: 0;
+}
+
+.dashboard-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  border-radius: 999px;
+  padding: 7px 12px;
+  background: rgba(46, 106, 79, 0.12);
+  border: 1px solid rgba(46, 106, 79, 0.18);
+  color: var(--primary-strong);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.barber-overview-panel {
+  padding: 22px;
+  background:
+    radial-gradient(circle at top right, rgba(201, 169, 107, 0.18), transparent 32%),
+    linear-gradient(165deg, rgba(255, 251, 244, 0.98), rgba(244, 235, 223, 0.98));
+  box-shadow: var(--shadow);
+}
+
+.barber-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.8fr);
+  gap: 18px;
+  align-items: start;
+  margin-bottom: 20px;
+}
+
+.barber-overview-copy h2 {
+  margin: 0 0 10px;
+  font-size: clamp(1.9rem, 3vw, 2.7rem);
+  line-height: 1.05;
+}
+
+.barber-overview-copy p {
+  margin: 0;
+  max-width: 700px;
+}
+
+.barber-overview-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.barber-status-card {
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 18px;
+  background: rgba(255, 250, 242, 0.9);
+  display: grid;
+  gap: 14px;
+}
+
+.barber-status-card .panel-head-row {
+  margin-bottom: 0;
+}
+
+.barber-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.barber-stat-card {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 18px;
+  background: rgba(255, 250, 242, 0.9);
+  display: grid;
+  gap: 8px;
+  min-height: 140px;
+  box-shadow: 0 10px 28px rgba(24, 57, 43, 0.06);
+}
+
+.barber-stat-card small,
+.barber-stat-card span {
+  color: var(--muted);
+}
+
+.barber-stat-card strong {
+  font-size: clamp(1.5rem, 2vw, 2rem);
+  line-height: 1;
+}
+
+.barber-stat-card-primary {
+  background: linear-gradient(145deg, rgba(46, 106, 79, 0.96), rgba(24, 57, 43, 0.98));
+  border-color: rgba(24, 57, 43, 0.4);
+  color: #fffaf2;
+}
+
+.barber-stat-card-primary small,
+.barber-stat-card-primary span {
+  color: rgba(255, 250, 242, 0.78);
+}
+
+.barber-main-grid,
+.barber-ops-grid,
+.barber-bottom-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.9fr);
+  gap: 22px;
+}
+
+.barber-main-grid-alt {
+  align-items: start;
+}
+
+.barber-feature-panel,
+.barber-side-panel,
+.barber-bookings-panel {
+  box-shadow: var(--shadow);
+}
+
+.barber-side-stack {
+  display: grid;
+  gap: 22px;
+}
+
+.barber-panel-subtitle {
+  margin: 4px 0 0;
+}
+
+.booking-list-spacious {
+  gap: 14px;
+}
+
+.booking-list-compact {
+  gap: 12px;
 }
 
 .barber-notification-preferences {
