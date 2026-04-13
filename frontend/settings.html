@@ -53,8 +53,15 @@
           </div>
         </section>
 
+        <section class="settings-tab-bar" id="settingsTabBar" aria-label="Settings sections">
+          <button class="settings-tab-btn active" type="button" data-settings-tab-target="account">Account</button>
+          <button class="settings-tab-btn" type="button" data-settings-tab-target="activity">Activity</button>
+          <button class="settings-tab-btn" type="button" data-settings-tab-target="security">Security</button>
+          <button class="settings-tab-btn hidden" id="settingsBusinessTabBtn" type="button" data-settings-tab-target="business">Business</button>
+        </section>
+
         <section class="settings-grid">
-          <article class="settings-card">
+          <article class="settings-card" data-settings-group="account">
             <h4>Profile</h4>
             <form id="settingsProfileForm" class="form-grid">
               <div>
@@ -74,7 +81,7 @@
             <p id="settingsProfileNotice" class="notice"></p>
           </article>
 
-          <article class="settings-card">
+          <article class="settings-card" data-settings-group="account">
             <h4>Preferences</h4>
             <form id="settingsPreferencesForm" class="form-grid">
               <div>
@@ -97,7 +104,7 @@
             <p id="settingsPreferencesNotice" class="notice"></p>
           </article>
 
-          <article class="settings-card">
+          <article class="settings-card" data-settings-group="security">
             <h4>Security</h4>
             <form id="settingsPasswordForm" class="form-grid">
               <div>
@@ -126,7 +133,7 @@
             <p id="settingsPasswordNotice" class="notice"></p>
           </article>
 
-          <article class="settings-card">
+          <article class="settings-card" data-settings-group="account">
             <div class="panel-head-row">
               <h4>Loyalty & Referrals</h4>
               <span class="pill" id="settingsLoyaltyPointsPill">0 pts</span>
@@ -154,7 +161,7 @@
             </div>
           </article>
 
-          <article class="settings-card">
+          <article class="settings-card" data-settings-group="security">
             <div class="panel-head-row">
               <h4>Device & Session Management</h4>
               <button class="btn btn-ghost btn-sm" type="button" id="revokeOtherSessionsBtn">Log out other devices</button>
@@ -163,7 +170,7 @@
             <p id="settingsSessionsNotice" class="notice"></p>
           </article>
 
-          <article class="settings-card">
+          <article class="settings-card" data-settings-group="account">
             <h4>Account Insights</h4>
             <div class="kpi-grid kpi-grid-2">
               <div class="kpi">
@@ -185,7 +192,29 @@
             </div>
           </article>
 
-          <article class="settings-card hidden" id="settingsBarberBusinessCard">
+          <article class="settings-card hidden" id="settingsCustomerActivityCard" data-settings-group="activity">
+            <div class="panel-head-row">
+              <div>
+                <h4>Booking History</h4>
+                <p class="muted">Completed, cancelled, and past bookings now live in settings instead of the dashboard.</p>
+              </div>
+              <a class="muted" href="./settings.html?tab=activity">Refresh</a>
+            </div>
+            <div id="settingsCustomerRecentActivity" class="booking-list"></div>
+          </article>
+
+          <article class="settings-card hidden" id="settingsDisputesCard" data-settings-group="activity">
+            <div class="panel-head-row">
+              <div>
+                <h4>Disputes & Refunds</h4>
+                <p class="muted">Track open cases, refunds, and booking issues without crowding your dashboard.</p>
+              </div>
+              <span class="pill" id="settingsDisputeCount">0 open</span>
+            </div>
+            <div id="settingsSharedDisputesList" class="booking-list"></div>
+          </article>
+
+          <article class="settings-card hidden" id="settingsBarberBusinessCard" data-settings-group="business">
             <h4>Barber Business Snapshot</h4>
             <div class="settings-link-list">
               <div class="settings-inline-stat">
@@ -223,7 +252,7 @@
             </div>
           </article>
 
-          <article class="settings-card hidden" id="settingsBarberServicesCard">
+          <article class="settings-card hidden" id="settingsBarberServicesCard" data-settings-group="business">
             <div class="panel-head-row">
               <div>
                 <h4>Services & Pricing</h4>
@@ -254,7 +283,7 @@
             <div id="barberServicesList" class="service-editor-list"></div>
           </article>
 
-          <article class="settings-card hidden" id="settingsBarberAnalyticsCard">
+          <article class="settings-card hidden" id="settingsBarberAnalyticsCard" data-settings-group="business">
             <h4>Barber Analytics</h4>
             <div class="kpi-grid kpi-grid-2">
               <div class="kpi">
@@ -276,7 +305,7 @@
             </div>
           </article>
 
-          <article class="settings-card hidden" id="settingsPayoutReportCard">
+          <article class="settings-card hidden" id="settingsPayoutReportCard" data-settings-group="business">
             <div class="panel-head-row">
               <h4>Payout Report</h4>
               <span class="pill" id="settingsPayoutSummary">NGN 0</span>
@@ -284,7 +313,7 @@
             <div id="settingsPayoutList" class="booking-list"></div>
           </article>
 
-          <article class="settings-card settings-card-span-2 hidden" id="barberProfileStudioPanel">
+          <article class="settings-card settings-card-span-2 hidden" id="barberProfileStudioPanel" data-settings-group="business">
             <div class="panel-head-row">
               <div>
                 <h4>Profile Studio</h4>
@@ -383,7 +412,7 @@
             <p id="barberProfileNotice" class="notice"></p>
           </article>
 
-          <article class="settings-card">
+          <article class="settings-card" data-settings-group="account">
             <h4>Policies & Support</h4>
             <div class="settings-link-list">
               <a class="quick-action-card" href="./acceptable-use.html">

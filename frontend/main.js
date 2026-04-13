@@ -1342,12 +1342,10 @@ async function initDashboardPage() {
     barberSection.classList.remove("hidden");
     adminSection.classList.add("hidden");
     allBookingsPanel?.classList.remove("hidden");
-    sharedDisputesPanel?.classList.remove("hidden");
     await hydrateBarberDashboard();
     bindBarberStatusToggle();
     bindAvailabilitySettings();
     bindCalendarControls();
-    await hydrateSharedDisputes();
   } else if (["admin", "super_admin"].includes(role)) {
     stopBarberAlertPolling();
     window.location.href = "/admin";
@@ -1357,9 +1355,7 @@ async function initDashboardPage() {
     adminSection.classList.add("hidden");
     customerSection.classList.remove("hidden");
     allBookingsPanel?.classList.add("hidden");
-    sharedDisputesPanel?.classList.remove("hidden");
     await hydrateCustomerDashboard();
-    await hydrateSharedDisputes();
   }
 }
 
@@ -1657,7 +1653,7 @@ async function hydrateCustomerDashboard() {
   const statCompletedHaircuts = document.getElementById("statCompletedHaircuts");
   const statLoyaltyPoints = document.getElementById("statLoyaltyPoints");
 
-  if (!upcomingCardEl || !trendingEl || !nearbyEl || !bookAgainEl || !recentActivityEl || !disputesEl) {
+  if (!upcomingCardEl || !trendingEl || !nearbyEl || !bookAgainEl) {
     return;
   }
 
@@ -1684,8 +1680,12 @@ async function hydrateCustomerDashboard() {
   trendingEl.innerHTML = `<div class="loading">Loading trending barbers...</div>`;
   nearbyEl.innerHTML = `<div class="loading">Loading nearby barbers...</div>`;
   bookAgainEl.innerHTML = `<div class="loading">Loading last booking...</div>`;
-  recentActivityEl.innerHTML = `<div class="loading">Loading activity...</div>`;
-  disputesEl.innerHTML = `<div class="loading">Loading disputes...</div>`;
+  if (recentActivityEl) {
+    recentActivityEl.innerHTML = `<div class="loading">Loading activity...</div>`;
+  }
+  if (disputesEl) {
+    disputesEl.innerHTML = `<div class="loading">Loading disputes...</div>`;
+  }
 
   try {
     const [bookings, apiBarbers, disputes, customerInsights] = await Promise.all([
@@ -1762,8 +1762,12 @@ async function hydrateCustomerDashboard() {
         : "/static/barbers.html";
     }
 
-    recentActivityEl.innerHTML = renderRecentActivityList(bookings, barberMap, state.disputes);
-    disputesEl.innerHTML = renderDisputeList(state.disputes, "No disputes raised.");
+    if (recentActivityEl) {
+      recentActivityEl.innerHTML = renderRecentActivityList(bookings, barberMap, state.disputes);
+    }
+    if (disputesEl) {
+      disputesEl.innerHTML = renderDisputeList(state.disputes, "No disputes raised.");
+    }
     if (disputeCountEl) {
       disputeCountEl.textContent = `${state.disputes.filter((item) =>
         ["open", "investigating"].includes(String(item.status || "").toLowerCase())
@@ -1778,8 +1782,12 @@ async function hydrateCustomerDashboard() {
     trendingEl.innerHTML = `<p class="error">${message}</p>`;
     nearbyEl.innerHTML = `<p class="error">${message}</p>`;
     bookAgainEl.innerHTML = `<p class="error">${message}</p>`;
-    recentActivityEl.innerHTML = `<p class="error">${message}</p>`;
-    disputesEl.innerHTML = `<p class="error">${message}</p>`;
+    if (recentActivityEl) {
+      recentActivityEl.innerHTML = `<p class="error">${message}</p>`;
+    }
+    if (disputesEl) {
+      disputesEl.innerHTML = `<p class="error">${message}</p>`;
+    }
   }
 
   await hydrateNotificationsPanel({
@@ -1958,17 +1966,7 @@ async function hydrateBarberDashboard() {
   const profilePortfolioCountEl = document.getElementById("barberProfilePortfolioCount");
   const profileShareReadinessEl = document.getElementById("barberProfileShareReadiness");
 
-  if (
-    !pendingEl ||
-    !allEl ||
-    !todayEl ||
-    !recentClientsEl ||
-    !disputesEl ||
-    !earningsTodayValue ||
-    !earningsWeekValue ||
-    !earningsTotalValue ||
-    !jobsValue
-  ) {
+  if (!pendingEl || !allEl || !todayEl || !recentClientsEl || !earningsTodayValue || !earningsWeekValue || !earningsTotalValue || !jobsValue) {
     return;
   }
 
@@ -1976,7 +1974,9 @@ async function hydrateBarberDashboard() {
   allEl.innerHTML = `<div class="loading">Loading bookings...</div>`;
   todayEl.innerHTML = `<div class="loading">Loading today's appointments...</div>`;
   recentClientsEl.innerHTML = `<div class="loading">Loading recent clients...</div>`;
-  disputesEl.innerHTML = `<div class="loading">Loading disputes...</div>`;
+  if (disputesEl) {
+    disputesEl.innerHTML = `<div class="loading">Loading disputes...</div>`;
+  }
 
   try {
     const [bookings, disputes, barberInsights] = await Promise.all([
@@ -2040,7 +2040,9 @@ async function hydrateBarberDashboard() {
     todayEl.innerHTML = renderTodayAppointmentList(todayAppointments);
     allEl.innerHTML = renderBookingList(state.barberBookings, "No bookings yet.", state.disputes);
     recentClientsEl.innerHTML = renderRecentClientsList(completed);
-    disputesEl.innerHTML = renderDisputeList(state.disputes, "No disputes raised.");
+    if (disputesEl) {
+      disputesEl.innerHTML = renderDisputeList(state.disputes, "No disputes raised.");
+    }
     if (checklistEl && checklistProgressEl && profileHealthEl && profileRatingEl && profileReviewCountEl && profilePortfolioCountEl && profileShareReadinessEl) {
       const checklist = buildBarberChecklist(state.barberProfile, state.barberKyc);
       const completedItems = checklist.filter((item) => item.done).length;
@@ -2091,7 +2093,9 @@ async function hydrateBarberDashboard() {
     allEl.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
     todayEl.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
     recentClientsEl.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
-    disputesEl.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
+    if (disputesEl) {
+      disputesEl.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
+    }
   }
 
   await hydrateNotificationsPanel({
@@ -2118,14 +2122,31 @@ async function hydrateBarberDashboard() {
 
 async function hydrateSharedDisputes() {
   const sharedDisputesEl = document.getElementById("sharedDisputesList");
-  if (!sharedDisputesEl) return;
+  const settingsDisputesEl = document.getElementById("settingsSharedDisputesList");
+  const settingsDisputeCountEl = document.getElementById("settingsDisputeCount");
+  if (!sharedDisputesEl && !settingsDisputesEl) return;
 
   try {
     const disputes = await getMyDisputes();
     state.disputes = Array.isArray(disputes) ? disputes : [];
-    sharedDisputesEl.innerHTML = renderDisputeList(state.disputes, "No disputes raised.");
+    if (sharedDisputesEl) {
+      sharedDisputesEl.innerHTML = renderDisputeList(state.disputes, "No disputes raised.");
+    }
+    if (settingsDisputesEl) {
+      settingsDisputesEl.innerHTML = renderDisputeList(state.disputes, "No disputes raised.");
+    }
+    if (settingsDisputeCountEl) {
+      settingsDisputeCountEl.textContent = `${state.disputes.filter((item) =>
+        ["open", "investigating"].includes(String(item.status || "").toLowerCase())
+      ).length} open`;
+    }
   } catch (error) {
-    sharedDisputesEl.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
+    if (sharedDisputesEl) {
+      sharedDisputesEl.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
+    }
+    if (settingsDisputesEl) {
+      settingsDisputesEl.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
+    }
   }
 }
 
@@ -2736,6 +2757,53 @@ function rehydrateBarberSettingsEditors() {
   );
 }
 
+function normalizeSettingsTab(value) {
+  const allowed = ["account", "activity", "security", "business"];
+  const normalized = String(value || "").toLowerCase();
+  return allowed.includes(normalized) ? normalized : "account";
+}
+
+function applySettingsTabVisibility(activeTab) {
+  document.querySelectorAll("[data-settings-group]").forEach((card) => {
+    const group = String(card.dataset.settingsGroup || "account").toLowerCase();
+    const roleHidden = card.dataset.roleHidden === "true";
+    card.classList.toggle("hidden", roleHidden || group !== activeTab);
+  });
+}
+
+function setActiveSettingsTab(nextTab, { syncUrl = true } = {}) {
+  const activeTab = normalizeSettingsTab(nextTab);
+  document.querySelectorAll("[data-settings-tab-target]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.settingsTabTarget === activeTab);
+  });
+  applySettingsTabVisibility(activeTab);
+
+  if (syncUrl) {
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", activeTab);
+    window.history.replaceState({}, "", url.toString());
+  }
+}
+
+function initSettingsTabs() {
+  const tabBar = document.getElementById("settingsTabBar");
+  if (!tabBar) return;
+
+  tabBar.querySelectorAll("[data-settings-tab-target]").forEach((button) => {
+    if (button.dataset.bound === "true") return;
+    button.dataset.bound = "true";
+    button.addEventListener("click", () => {
+      if (button.classList.contains("hidden")) return;
+      setActiveSettingsTab(button.dataset.settingsTabTarget);
+    });
+  });
+
+  const params = new URLSearchParams(window.location.search);
+  const requestedTab = normalizeSettingsTab(params.get("tab"));
+  const defaultTab = requestedTab === "business" && state.currentRole !== "barber" ? "account" : requestedTab;
+  setActiveSettingsTab(defaultTab, { syncUrl: false });
+}
+
 function hydrateSettingsPanel() {
   const profileForm = document.getElementById("settingsProfileForm");
   const profileNotice = document.getElementById("settingsProfileNotice");
@@ -2779,25 +2847,41 @@ function hydrateSettingsPanel() {
   const payoutCard = document.getElementById("settingsPayoutReportCard");
   const payoutSummaryEl = document.getElementById("settingsPayoutSummary");
   const payoutListEl = document.getElementById("settingsPayoutList");
+  const settingsBusinessTabBtn = document.getElementById("settingsBusinessTabBtn");
+  const customerActivityCard = document.getElementById("settingsCustomerActivityCard");
+  const customerRecentActivityEl = document.getElementById("settingsCustomerRecentActivity");
+  const disputesCard = document.getElementById("settingsDisputesCard");
+  const settingsDisputesListEl = document.getElementById("settingsSharedDisputesList");
+  const settingsDisputeCountEl = document.getElementById("settingsDisputeCount");
 
   if (barberShortcuts) {
     barberShortcuts.classList.toggle("hidden", state.currentRole !== "barber");
   }
+  if (settingsBusinessTabBtn) {
+    settingsBusinessTabBtn.classList.toggle("hidden", state.currentRole !== "barber");
+  }
   if (barberBusinessCard) {
-    barberBusinessCard.classList.toggle("hidden", state.currentRole !== "barber");
+    barberBusinessCard.dataset.roleHidden = String(state.currentRole !== "barber");
   }
   if (barberServicesCard) {
-    barberServicesCard.classList.toggle("hidden", state.currentRole !== "barber");
+    barberServicesCard.dataset.roleHidden = String(state.currentRole !== "barber");
   }
   if (barberProfileStudioPanel) {
-    barberProfileStudioPanel.classList.toggle("hidden", state.currentRole !== "barber");
+    barberProfileStudioPanel.dataset.roleHidden = String(state.currentRole !== "barber");
   }
   if (barberAnalyticsCard) {
-    barberAnalyticsCard.classList.toggle("hidden", state.currentRole !== "barber");
+    barberAnalyticsCard.dataset.roleHidden = String(state.currentRole !== "barber");
   }
   if (payoutCard) {
-    payoutCard.classList.toggle("hidden", !["barber", "admin", "super_admin"].includes(state.currentRole));
+    payoutCard.dataset.roleHidden = String(!["barber", "admin", "super_admin"].includes(state.currentRole));
   }
+  if (customerActivityCard) {
+    customerActivityCard.dataset.roleHidden = String(state.currentRole !== "customer");
+  }
+  if (disputesCard) {
+    disputesCard.dataset.roleHidden = String(!["customer", "barber"].includes(state.currentRole));
+  }
+  initSettingsTabs();
 
   if (state.currentRole === "barber" && state.barberProfile) {
     const profile = state.barberProfile;
@@ -2953,7 +3037,20 @@ function hydrateSettingsPanel() {
       : ["admin", "super_admin"].includes(state.currentRole)
         ? getAdminPayoutReport().catch(() => null)
         : Promise.resolve(null),
-  ]).then(([referralSummary, sessionResponse, customerInsights, barberInsights, payoutReport]) => {
+    state.currentRole === "customer" ? getBookings().catch(() => []) : Promise.resolve([]),
+    state.currentRole === "customer" ? getBarbers({ available: true }).catch(() => []) : Promise.resolve([]),
+    ["customer", "barber"].includes(state.currentRole) ? getMyDisputes().catch(() => []) : Promise.resolve([]),
+  ]).then(
+    ([
+      referralSummary,
+      sessionResponse,
+      customerInsights,
+      barberInsights,
+      payoutReport,
+      activityBookings,
+      activityBarbers,
+      activityDisputes,
+    ]) => {
     const referralCode = referralSummary?.referral_code || state.currentUser?.referral_code || "";
     if (loyaltyPill) loyaltyPill.textContent = `${Number(referralSummary?.loyalty_points ?? state.currentUser?.loyalty_points ?? 0)} pts`;
     if (referralCodeEl) referralCodeEl.textContent = referralCode || "Not ready";
@@ -3020,7 +3117,28 @@ function hydrateSettingsPanel() {
 
     if (payoutSummaryEl) payoutSummaryEl.textContent = priceText(payoutReport?.total_barber_payout || 0);
     if (payoutListEl) payoutListEl.innerHTML = renderSettingsPayoutList(payoutReport);
-  });
+
+      if (settingsDisputesListEl) {
+        const disputes = Array.isArray(activityDisputes) ? activityDisputes : [];
+        state.disputes = disputes;
+        settingsDisputesListEl.innerHTML = renderDisputeList(disputes, "No disputes raised.");
+        if (settingsDisputeCountEl) {
+          settingsDisputeCountEl.textContent = `${disputes.filter((item) =>
+            ["open", "investigating"].includes(String(item.status || "").toLowerCase())
+          ).length} open`;
+        }
+      }
+
+      if (customerRecentActivityEl && state.currentRole === "customer") {
+        const bookings = Array.isArray(activityBookings) ? activityBookings : [];
+        const mappedBarbers = (Array.isArray(activityBarbers) ? activityBarbers : []).map((item, index) => mapBarber(item, index));
+        const barberMap = new Map(mappedBarbers.map((barber) => [Number(barber.id), barber]));
+        customerRecentActivityEl.innerHTML = renderRecentActivityList(bookings, barberMap, state.disputes);
+        bindInlinePaymentButtons(customerRecentActivityEl);
+        bindDashboardBookingActions();
+      }
+    }
+  );
 
   if (profileForm && state.currentUser) {
     profileForm.elements.full_name.value = state.currentUser.full_name || "";

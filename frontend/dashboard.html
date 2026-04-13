@@ -136,9 +136,9 @@
                 <strong>Book Again</strong>
                 <span class="muted">Repeat your last service</span>
               </a>
-              <a class="quick-action-card" href="#customerRecentActivitySection">
+              <a class="quick-action-card" href="./settings.html?tab=activity">
                 <strong>View Booking History</strong>
-                <span class="muted">Check all your appointment activity</span>
+                <span class="muted">Open history, disputes, and refunds in settings</span>
               </a>
               <a class="quick-action-card" href="./favourite.html">
                 <strong>Saved Barbers</strong>
@@ -147,18 +147,6 @@
             </div>
           </article>
 
-          <article class="panel">
-            <div class="panel-head-row">
-              <h3>Disputes & Refunds</h3>
-              <span class="pill" id="customerDisputeCount">0 open</span>
-            </div>
-            <div id="customerDisputesList" class="booking-list"></div>
-          </article>
-
-          <article class="panel" id="customerRecentActivitySection">
-            <h3>Recent Activity</h3>
-            <div id="customerRecentActivity" class="booking-list"></div>
-          </article>
         </section>
 
         <section id="barberDashboard" class="barber-hub hidden">
@@ -340,10 +328,6 @@
               <div id="barberRecentClients" class="booking-list"></div>
             </article>
 
-            <article class="panel">
-              <h3>Disputes & Refunds</h3>
-              <div id="barberDisputesList" class="booking-list"></div>
-            </article>
           </div>
 
           <article class="panel">
@@ -401,14 +385,6 @@
         <section id="allBookingsPanel" class="panel">
           <h3>All Bookings</h3>
           <div id="barberAll" class="booking-list"></div>
-        </section>
-
-        <section class="panel" id="sharedDisputesPanel">
-          <div class="panel-head-row">
-            <h3>My Disputes</h3>
-            <a class="muted" href="./dashboard.html">Refresh</a>
-          </div>
-          <div id="sharedDisputesList" class="booking-list"></div>
         </section>
 
       </div>
