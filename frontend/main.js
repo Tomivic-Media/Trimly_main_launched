@@ -907,12 +907,19 @@ async function initBookingPage() {
   try {
     const barber = mapBarber(await getBarberById(barberId), Number(barberId));
     barberSummary.innerHTML = `
-      <strong>${escapeHtml(barber.shopName)}</strong>
-      <span>${escapeHtml(barber.location)}</span>
-      <span>${priceText(barber.price)} / cut</span>
-      <span class="pill ${barber.available ? "pill-success" : ""}">
-        ${barber.available ? "Online" : "Offline"}
-      </span>
+      <article class="booking-summary-card">
+        <div class="booking-summary-copy">
+          <span class="booking-summary-kicker">${escapeHtml(barber.barberName || "Trimly Barber")}</span>
+          <strong>${escapeHtml(barber.shopName)}</strong>
+          <p class="muted">${escapeHtml(barber.location)}</p>
+        </div>
+        <div class="booking-summary-meta">
+          <span class="pill">${priceText(barber.price)} / cut</span>
+          <span class="pill ${barber.available ? "pill-success" : ""}">
+            ${barber.available ? "Online" : "Offline"}
+          </span>
+        </div>
+      </article>
     `;
 
     if (!barber.available) {
@@ -5381,10 +5388,11 @@ async function renderBookingPaymentActions(bookingId, container) {
         payBtn.textContent = "Redirecting...";
         try {
           const payment = await initializePayment(booking.id);
-          if (!payment || !payment.payment_url) {
+          const paymentUrl = payment?.authorization_url || payment?.payment_url;
+          if (!paymentUrl) {
             throw new Error("Paystack did not return a payment link");
           }
-          window.location.href = payment.payment_url;
+          window.location.href = paymentUrl;
         } catch (error) {
           toast(error.message, true);
           payBtn.disabled = false;

@@ -37,22 +37,28 @@
 
     <main class="section">
       <div class="container dashboard-container">
-        <h1 class="section-title">Book your appointment</h1>
-        <p class="section-subtitle">
-          Choose a date and time, send your booking request, and complete payment after the barber approves.
-        </p>
+        <section class="booking-page-hero">
+          <p class="section-kicker">Trimly Booking Flow</p>
+          <h1 class="section-title">Book your appointment</h1>
+          <p class="section-subtitle">
+            Choose your date and time, send your request, and complete payment only after the barber approves.
+          </p>
+        </section>
 
-        <div class="dashboard-grid">
-          <section class="panel">
+        <div class="booking-page-grid">
+          <section class="panel booking-primary-panel">
             <div class="panel-head-row">
-              <h3>Choose Time</h3>
+              <div>
+                <h3>Appointment details</h3>
+                <p class="muted booking-panel-subtitle">Pick a clean slot and send your request when you are ready.</p>
+              </div>
               <a class="muted" href="./barbers.html">Back to barbers</a>
             </div>
 
-            <div id="bookingBarberSummary" class="booking-tags booking-tags-expanded"></div>
+            <div id="bookingBarberSummary" class="booking-summary-shell"></div>
             <p id="bookingNotice" class="notice"></p>
 
-            <form id="bookingForm" class="form-grid">
+            <form id="bookingForm" class="form-grid booking-form-grid">
               <div>
                 <label for="bookingDate">Date</label>
                 <input id="bookingDate" name="date" class="input" type="date" required />
@@ -67,30 +73,56 @@
             </form>
           </section>
 
-          <aside class="panel">
-            <h3>How it works</h3>
-            <div class="booking-list">
-              <article class="booking-item">
+          <aside class="booking-sidebar-stack">
+            <section class="panel booking-guide-panel">
+              <div class="panel-head-row">
                 <div>
-                  <strong>1. Send request</strong>
-                  <p class="muted">Pick a slot and submit your booking request to the barber.</p>
+                  <h3>How it works</h3>
+                  <p class="muted booking-panel-subtitle">Trimly keeps payment and approvals simple.</p>
                 </div>
-              </article>
-              <article class="booking-item">
-                <div>
-                  <strong>2. Wait for approval</strong>
-                  <p class="muted">Payment opens only after the barber accepts your appointment.</p>
-                </div>
-              </article>
-              <article class="booking-item">
-                <div>
-                  <strong>3. Pay securely</strong>
-                  <p class="muted">Once approved, you will see the payment action here immediately.</p>
-                </div>
-              </article>
-            </div>
+              </div>
+              <div class="booking-list booking-list-spacious">
+                <article class="booking-item">
+                  <div>
+                    <strong>1. Send request</strong>
+                    <p class="muted">Pick a slot and submit your booking request to the barber.</p>
+                  </div>
+                </article>
+                <article class="booking-item">
+                  <div>
+                    <strong>2. Wait for approval</strong>
+                    <p class="muted">Payment opens only after the barber accepts your appointment.</p>
+                  </div>
+                </article>
+                <article class="booking-item">
+                  <div>
+                    <strong>3. Pay securely</strong>
+                    <p class="muted">Once approved, your payment action appears here immediately.</p>
+                  </div>
+                </article>
+              </div>
+            </section>
 
-            <div id="bookingPaymentActions" class="payment-actions"></div>
+            <section class="panel booking-payment-panel">
+              <div class="panel-head-row">
+                <div>
+                  <h3>Payment status</h3>
+                  <p class="muted booking-panel-subtitle">Approval-first payment keeps the flow transparent.</p>
+                </div>
+              </div>
+              <div id="bookingPaymentActions" class="payment-actions"></div>
+            </section>
+
+            <section class="panel booking-trust-panel">
+              <div class="panel-head-row">
+                <h3>Why this flow works</h3>
+              </div>
+              <div class="booking-trust-list">
+                <div class="booking-trust-item">You only pay after the barber approves your appointment.</div>
+                <div class="booking-trust-item">Booking status and payment updates stay visible in your dashboard.</div>
+                <div class="booking-trust-item">If a slot no longer works, you can rebook from the same flow quickly.</div>
+              </div>
+            </section>
           </aside>
         </div>
       </div>

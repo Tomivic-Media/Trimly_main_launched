@@ -17,7 +17,43 @@
       <div class="container nav-shell">
         <a class="brand" href="/">
           <span class="brand-badge">T</span>
-          <span>&copy; <span data-current-year></span> Trimly</span>
+          <span>Trimly</span>
+        </a>
+        <button class="nav-toggle" data-nav-toggle aria-label="Toggle menu">Menu</button>
+        <nav class="nav-main" data-nav-menu>
+          <div class="nav-links">
+            <a href="/">Home</a>
+            <a class="active" href="./barbers.html">Barbers</a>
+            <a href="./dashboard.html">Dashboard</a>
+          </div>
+          <div class="auth-actions" data-auth-actions>
+            <a class="btn btn-ghost" href="./login.html">Login</a>
+            <a class="btn btn-primary" href="./register.html">Register</a>
+            <a class="auth-admin-link" href="./admin-login.html">Admin Login</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main class="section">
+      <div class="container profile-page-shell">
+        <section class="profile-page-hero">
+          <p class="section-kicker">Trimly Barber Profile</p>
+          <h1 class="section-title">Choose your barber with confidence.</h1>
+          <p class="section-subtitle">
+            Review services, see availability, explore portfolio work, and move straight into booking when the fit feels right.
+          </p>
+        </section>
+
+        <div id="barberProfileView" class="profile-page-content">
+          <div class="loading">Loading profile...</div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-row">
+        <span>&copy; <span data-current-year></span> Trimly</span>
         <span>Choose quality. Book with confidence.</span>
       </div>
     </footer>
@@ -26,32 +62,3 @@
     <script type="module" src="./main.js?v=20260411a"></script>
   </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

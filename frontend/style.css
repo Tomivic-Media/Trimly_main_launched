@@ -908,6 +908,11 @@ label {
 .payment-status-card {
   display: grid;
   gap: 12px;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top right, rgba(201, 169, 107, 0.12), transparent 34%),
+    rgba(255, 250, 242, 0.96);
+  box-shadow: 0 10px 26px rgba(24, 57, 43, 0.05);
 }
 
 .payment-status-head {
@@ -936,6 +941,117 @@ label {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.profile-page-shell {
+  display: grid;
+  gap: 22px;
+}
+
+.profile-page-hero {
+  display: grid;
+  gap: 10px;
+  max-width: 760px;
+}
+
+.profile-page-content {
+  display: grid;
+}
+
+.booking-page-hero {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 22px;
+  max-width: 760px;
+}
+
+.booking-page-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.85fr);
+  gap: 22px;
+}
+
+.booking-primary-panel,
+.booking-guide-panel,
+.booking-payment-panel,
+.booking-trust-panel {
+  box-shadow: var(--shadow);
+}
+
+.booking-sidebar-stack {
+  display: grid;
+  gap: 22px;
+}
+
+.booking-panel-subtitle {
+  margin: 4px 0 0;
+}
+
+.booking-summary-shell {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.booking-summary-card {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 18px;
+  background:
+    radial-gradient(circle at top right, rgba(201, 169, 107, 0.12), transparent 32%),
+    linear-gradient(165deg, rgba(255, 251, 244, 0.98), rgba(244, 235, 223, 0.98));
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.booking-summary-copy {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.booking-summary-copy strong {
+  font-size: 1.15rem;
+}
+
+.booking-summary-copy p {
+  margin: 0;
+}
+
+.booking-summary-kicker {
+  display: inline-flex;
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.booking-summary-meta {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.booking-form-grid {
+  gap: 14px;
+}
+
+.booking-trust-list {
+  display: grid;
+  gap: 10px;
+}
+
+.booking-trust-item {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: rgba(255, 250, 242, 0.88);
+  color: #33463e;
 }
 
 .dashboard-grid {
@@ -1338,6 +1454,7 @@ label {
   .profile-layout,
   .profile-content-grid,
   .dashboard-grid,
+  .booking-page-grid,
   .customer-main-grid,
   .customer-secondary-grid,
   .customer-overview-grid {
@@ -1407,6 +1524,11 @@ label {
   .profile-floating-rating {
     position: static;
     margin-top: 12px;
+  }
+
+  .booking-summary-card {
+    padding: 16px;
+    border-radius: 16px;
   }
 
   .customer-stat-grid {
