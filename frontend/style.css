@@ -2008,6 +2008,14 @@ label {
   margin: 4px 0 0;
 }
 
+.barber-overview-copy,
+.barber-status-card,
+.barber-stat-card,
+.barber-feature-panel,
+.barber-side-panel {
+  min-width: 0;
+}
+
 .booking-list-spacious {
   gap: 14px;
 }
@@ -2033,6 +2041,53 @@ label {
   border-radius: 12px;
   padding: 14px;
   background: rgba(255, 250, 242, 0.84);
+}
+
+@media (max-width: 1100px) {
+  .barber-overview-grid,
+  .barber-main-grid,
+  .barber-main-grid-alt,
+  .barber-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .barber-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .barber-overview-panel {
+    padding: 18px;
+  }
+
+  .barber-overview-grid {
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .barber-overview-copy h2 {
+    font-size: clamp(1.8rem, 8vw, 2.35rem);
+    line-height: 1.08;
+  }
+
+  .barber-overview-copy p {
+    font-size: 0.98rem;
+    line-height: 1.65;
+  }
+
+  .barber-overview-badges {
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .barber-status-card {
+    padding: 16px;
+  }
+
+  .barber-stat-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .portfolio-add-row {
