@@ -1041,6 +1041,62 @@ label {
   gap: 14px;
 }
 
+.booking-service-block {
+  display: grid;
+  gap: 12px;
+}
+
+.booking-service-options {
+  display: grid;
+  gap: 10px;
+}
+
+.booking-service-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 250, 242, 0.88);
+  cursor: pointer;
+}
+
+.booking-service-option input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+.booking-service-option-copy {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.booking-service-option-copy strong,
+.booking-service-option-copy span {
+  margin: 0;
+}
+
+.booking-service-summary {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid rgba(201, 169, 107, 0.45);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(201, 169, 107, 0.16), rgba(255, 250, 242, 0.86));
+}
+
+.booking-service-summary-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .booking-trust-list {
   display: grid;
   gap: 10px;
@@ -2440,6 +2496,31 @@ label {
   background: rgba(255, 250, 242, 0.88);
 }
 
+.profile-service-list {
+  display: grid;
+  gap: 10px;
+}
+
+.profile-service-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 250, 242, 0.82);
+}
+
+.profile-service-card p,
+.profile-service-card strong {
+  margin: 0;
+}
+
+.barber-service-pill-row {
+  margin: 10px 0 4px;
+}
+
 .admin-filter-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: end;
@@ -2928,6 +3009,13 @@ label {
 
   .review-rating-picker {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .booking-service-option,
+  .profile-service-card,
+  .booking-service-summary-head {
+    grid-template-columns: 1fr;
+    display: grid;
   }
 }
 

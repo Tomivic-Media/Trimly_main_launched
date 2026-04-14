@@ -59,6 +59,16 @@
             <p id="bookingNotice" class="notice"></p>
 
             <form id="bookingForm" class="form-grid booking-form-grid">
+              <div class="booking-service-block">
+                <div class="panel-head-row">
+                  <div>
+                    <h4>Select services</h4>
+                    <p class="muted booking-panel-subtitle">Choose one or more services the barber currently offers.</p>
+                  </div>
+                </div>
+                <div id="bookingServiceOptions" class="booking-service-options"></div>
+                <div id="bookingServiceSummary" class="booking-service-summary hidden"></div>
+              </div>
               <div>
                 <label for="bookingDate">Date</label>
                 <input id="bookingDate" name="date" class="input" type="date" required />

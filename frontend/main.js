@@ -446,6 +446,7 @@ function mapBarber(barber, index = 0) {
     ? barber.available_days.map((day) => String(day).toLowerCase())
     : [];
   const mediaSources = barberMediaSources(barber);
+  const services = normalizeBarberServices(barber);
 
   return {
     id: Number(barber.id),
@@ -467,6 +468,7 @@ function mapBarber(barber, index = 0) {
     availableStartTime: normalizeTimeForInput(barber.available_start_time),
     availableEndTime: normalizeTimeForInput(barber.available_end_time),
     otherServices: barber.other_services || "",
+    services,
   };
 }
 
@@ -481,6 +483,59 @@ function splitServiceList(value) {
     .filter(Boolean);
 }
 
+function normalizeBarberServices(barber) {
+  const rawServices = Array.isArray(barber?.services) ? barber.services : [];
+  const normalized = rawServices
+    .filter((service) => service && service.is_active !== false)
+    .map((service, index) => ({
+      id: Number(service.id || 0),
+      name: String(service.name || "").trim() || `Service ${index + 1}`,
+      price: Number(service.price || 0),
+      isHomeService: Boolean(service.is_home_service),
+      isActive: service.is_active !== false,
+    }))
+    .filter((service) => service.name);
+
+  if (normalized.length) {
+    return normalized;
+  }
+
+  const fallback = [];
+  if (Number(barber?.haircut_price || 0) > 0) {
+    fallback.push({
+      id: 0,
+      name: "Haircut",
+      price: Number(barber.haircut_price || 0),
+      isHomeService: false,
+      isActive: true,
+    });
+  }
+  if (Number(barber?.beard_trim_price || 0) > 0) {
+    fallback.push({
+      id: 0,
+      name: "Beard Trim",
+      price: Number(barber.beard_trim_price || 0),
+      isHomeService: false,
+      isActive: true,
+    });
+  }
+  splitServiceList(barber?.other_services).forEach((name) => {
+    fallback.push({
+      id: 0,
+      name,
+      price: 0,
+      isHomeService: /home/i.test(name),
+      isActive: true,
+    });
+  });
+  return fallback;
+}
+
+function serviceLabel(service) {
+  const base = service?.price > 0 ? `${priceText(service.price)} ${service.name}` : String(service?.name || "Service");
+  return service?.isHomeService ? `${base} • Home service` : base;
+}
+
 function barberCardTemplate(barber, ctaLabel = "View Profile") {
   const ctaHref =
     ctaLabel === "Book Now"
@@ -490,6 +545,7 @@ function barberCardTemplate(barber, ctaLabel = "View Profile") {
     ? `${barber.rating.toFixed(1)} (${barber.reviewCount} review${barber.reviewCount === 1 ? "" : "s"})`
     : "New barber";
   const ratingStars = barber.reviewCount ? renderStars(barber.rating) : "";
+  const servicePreview = Array.isArray(barber.services) ? barber.services.slice(0, 3) : [];
 
   return `
     <article class="card barber-card">
@@ -515,6 +571,13 @@ function barberCardTemplate(barber, ctaLabel = "View Profile") {
             ? `Average rating calculated from completed booking reviews`
             : "Be one of the first to book this barber"
         )}</p>
+        ${
+          servicePreview.length
+            ? `<div class="pill-row barber-service-pill-row">${servicePreview
+                .map((service) => `<span class="pill">${escapeHtml(service.name)}</span>`)
+                .join("")}</div>`
+            : ""
+        }
         <a class="btn btn-primary btn-block" href="${ctaHref}">${ctaLabel}</a>
       </div>
     </article>
@@ -682,11 +745,7 @@ async function initBarberProfilePage() {
       : "Every day";
     const publicProfileUrl = `${window.location.origin}/static/barber-profile.html?id=${barber.id}`;
     const directBookingUrl = `${window.location.origin}/static/booking.html?barber=${barber.id}`;
-    const serviceChips = [
-      `${priceText(barber.price)} Haircut`,
-      barber.beardTrimPrice ? `${priceText(barber.beardTrimPrice)} Beard Trim` : "",
-      ...splitServiceList(barber.otherServices),
-    ].filter(Boolean);
+    const serviceChips = Array.isArray(barber.services) ? barber.services : [];
     const nextSlots = availableTimes.slice(0, 6);
     const reliabilityItems = [
       barber.available ? "Currently online for bookings" : "Profile currently offline",
@@ -767,8 +826,22 @@ async function initBarberProfilePage() {
               <h3>Services</h3>
               <span class="pill">${serviceChips.length} listed</span>
             </div>
-            <div class="pill-row">
-              ${serviceChips.map((service) => `<span class="pill">${escapeHtml(service)}</span>`).join("")}
+            <div class="profile-service-list">
+              ${serviceChips.length
+                ? serviceChips
+                    .map(
+                      (service) => `
+                        <article class="profile-service-card">
+                          <div>
+                            <strong>${escapeHtml(service.name)}</strong>
+                            <p class="muted">${service.isHomeService ? "Available for home service" : "Shop visit available"}</p>
+                          </div>
+                          <span class="pill">${escapeHtml(priceText(service.price))}</span>
+                        </article>
+                      `
+                    )
+                    .join("")
+                : `<p class="muted">No services listed yet.</p>`}
             </div>
           </section>
 
@@ -869,9 +942,74 @@ async function initBookingPage() {
   const dateInput = document.getElementById("bookingDate");
   const timeSelect = document.getElementById("bookingTime");
   const barberSummary = document.getElementById("bookingBarberSummary");
+  const bookingServiceOptions = document.getElementById("bookingServiceOptions");
+  const bookingServiceSummary = document.getElementById("bookingServiceSummary");
 
   if (!bookingForm || !dateInput || !timeSelect || !barberSummary || !barberId) {
     return;
+  }
+
+  let selectedServiceIds = [];
+  let bookingServices = [];
+
+  function renderBookingServiceSummary() {
+    if (!bookingServiceSummary) return;
+    const selectedServices = bookingServices.filter((service) => selectedServiceIds.includes(Number(service.id)));
+    if (!selectedServices.length) {
+      bookingServiceSummary.classList.add("hidden");
+      bookingServiceSummary.innerHTML = "";
+      return;
+    }
+
+    const total = selectedServices.reduce((sum, service) => sum + Number(service.price || 0), 0);
+    bookingServiceSummary.classList.remove("hidden");
+    bookingServiceSummary.innerHTML = `
+      <div class="booking-service-summary-head">
+        <strong>${selectedServices.length} service${selectedServices.length === 1 ? "" : "s"} selected</strong>
+        <span class="pill">${escapeHtml(priceText(total))}</span>
+      </div>
+      <div class="pill-row">
+        ${selectedServices.map((service) => `<span class="pill">${escapeHtml(serviceLabel(service))}</span>`).join("")}
+      </div>
+    `;
+  }
+
+  function renderBookingServiceOptions(services) {
+    if (!bookingServiceOptions) return;
+
+    if (!Array.isArray(services) || !services.length) {
+      bookingServiceOptions.innerHTML = `<p class="muted">This barber has not listed any bookable services yet.</p>`;
+      renderBookingServiceSummary();
+      return;
+    }
+
+    bookingServiceOptions.innerHTML = services
+      .map(
+        (service) => `
+          <label class="booking-service-option">
+            <input type="checkbox" value="${Number(service.id || 0)}" ${selectedServiceIds.includes(Number(service.id)) ? "checked" : ""} />
+            <div class="booking-service-option-copy">
+              <strong>${escapeHtml(service.name)}</strong>
+              <span class="muted">${service.isHomeService ? "Home service available" : "Shop visit available"}</span>
+            </div>
+            <span class="pill">${escapeHtml(priceText(service.price))}</span>
+          </label>
+        `
+      )
+      .join("");
+
+    bookingServiceOptions.querySelectorAll("input[type='checkbox']").forEach((input) => {
+      input.addEventListener("change", () => {
+        selectedServiceIds = bookingServiceOptions.querySelectorAll("input[type='checkbox']:checked")
+          ? Array.from(bookingServiceOptions.querySelectorAll("input[type='checkbox']:checked"))
+              .map((item) => Number(item.value || 0))
+              .filter((value) => Number.isFinite(value) && value > 0)
+          : [];
+        renderBookingServiceSummary();
+      });
+    });
+
+    renderBookingServiceSummary();
   }
 
   const now = new Date();
@@ -906,6 +1044,8 @@ async function initBookingPage() {
 
   try {
     const barber = mapBarber(await getBarberById(barberId), Number(barberId));
+    bookingServices = Array.isArray(barber.services) ? barber.services.filter((service) => Number(service.id || 0) > 0) : [];
+    selectedServiceIds = bookingServices.length ? [Number(bookingServices[0].id)] : [];
     barberSummary.innerHTML = `
       <article class="booking-summary-card">
         <div class="booking-summary-copy">
@@ -921,6 +1061,7 @@ async function initBookingPage() {
         </div>
       </article>
     `;
+    renderBookingServiceOptions(bookingServices);
 
     if (!barber.available) {
       bookingNotice.textContent = "This barber is currently offline and not accepting bookings.";
@@ -955,8 +1096,16 @@ async function initBookingPage() {
       return;
     }
 
+    if (!selectedServiceIds.length) {
+      bookingNotice.textContent = "Please select at least one service.";
+      bookingNotice.className = "notice error";
+      return;
+    }
+
     const localDate = new Date(`${selectedDate}T${selectedTime}:00`);
     const scheduledTime = localDate.toISOString();
+    const selectedServices = bookingServices.filter((service) => selectedServiceIds.includes(Number(service.id)));
+    const serviceName = selectedServices.map((service) => service.name).join(", ") || "Haircut";
 
     const submitBtn = bookingForm.querySelector("button[type='submit']");
     submitBtn.disabled = true;
@@ -970,7 +1119,8 @@ async function initBookingPage() {
       const bookingResult = await createBooking({
         barber_id: Number(barberId),
         scheduled_time: scheduledTime,
-        service_name: "Haircut",
+        service_name: serviceName,
+        service_ids: selectedServiceIds,
       });
 
       bookingNotice.textContent =
