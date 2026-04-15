@@ -5892,10 +5892,11 @@ function bindInlinePaymentButtons(container = document) {
 
 function renderChatBubble(message) {
   const mine = String(message.sender_role || "").toLowerCase() === String(state.currentRole || "").toLowerCase();
+  const senderName = message.sender_name || (mine ? "You" : "Trimly user");
   return `
     <article class="chat-bubble ${mine ? "mine" : ""}">
       <div class="chat-bubble-meta">
-        <strong>${escapeHtml(message.sender_name || "Trimly User")}</strong>
+        <strong>${escapeHtml(senderName)}</strong>
         <span>${escapeHtml(formatDateTime(message.created_at))}</span>
       </div>
       <p>${escapeHtml(message.content || message.message || "")}</p>
@@ -6155,6 +6156,10 @@ async function initMessagesPage() {
   const form = document.getElementById("messageComposerForm");
   const input = document.getElementById("messageInput");
   const notice = document.getElementById("messageNotice");
+  const contextStrip = document.getElementById("chatContextStrip");
+  const backBookingLink = document.getElementById("chatBackBookingLink");
+  const chatModePill = document.getElementById("chatModePill");
+  const chatQuickHint = document.getElementById("chatQuickHint");
 
   if (!bookingId || !header || !subtitle || !list || !form || !input || !notice) {
     return;
@@ -6193,14 +6198,59 @@ async function initMessagesPage() {
     const counterpart = state.currentRole === "barber"
       ? booking.customer_name || booking.customer_email || `Customer #${booking.customer_id}`
       : booking.barber_name || `Barber #${booking.barber_id}`;
+    const selectedServices = Array.isArray(booking.selected_services) ? booking.selected_services : [];
+    const isHomeService = selectedServices.some((service) => Boolean(service?.is_home_service));
+    const serviceMode = isHomeService ? "Home service" : "Shop visit";
+    const serviceSummary = selectedServices.length
+      ? selectedServices.map((service) => service.name).filter(Boolean).join(", ")
+      : booking.service_name || "Haircut";
 
     header.textContent = `Booking Chat #${bookingId}`;
-    subtitle.textContent = `Chat with ${counterpart} about ${booking.service_name || "Haircut"}.`;
+    subtitle.textContent = `Chat with ${counterpart} about ${serviceSummary}.`;
+    if (chatModePill) {
+      chatModePill.textContent = `${serviceMode} chat`;
+    }
+    if (chatQuickHint) {
+      chatQuickHint.textContent = isHomeService
+        ? "Use this chat for estate directions, gate codes, parking notes, and arrival timing."
+        : "Use this chat for arrival timing, shop directions, and service questions before the appointment.";
+    }
+    if (backBookingLink) {
+      backBookingLink.href = `/static/booking.html?barber=${Number(booking.barber_id)}&booking=${bookingId}`;
+    }
+    if (contextStrip) {
+      contextStrip.innerHTML = `
+        <article class="chat-context-card">
+          <small class="muted">Booking status</small>
+          <strong>${escapeHtml(capitalize(String(booking.status || "approved")))}</strong>
+        </article>
+        <article class="chat-context-card">
+          <small class="muted">Service</small>
+          <strong>${escapeHtml(serviceSummary)}</strong>
+        </article>
+        <article class="chat-context-card">
+          <small class="muted">Appointment</small>
+          <strong>${escapeHtml(formatDateTime(booking.scheduled_time))}</strong>
+        </article>
+        <article class="chat-context-card">
+          <small class="muted">Mode</small>
+          <strong>${escapeHtml(serviceMode)}</strong>
+        </article>
+      `;
+    }
 
-    await refreshChatMessages(bookingId, list);
+    await refreshChatMessages(bookingId, list, {
+      counterpart,
+      isHomeService,
+      serviceSummary,
+    });
 
     state.chatPollInterval = setInterval(() => {
-      refreshChatMessages(bookingId, list).catch(() => {
+      refreshChatMessages(bookingId, list, {
+        counterpart,
+        isHomeService,
+        serviceSummary,
+      }).catch(() => {
         // Keep polling quiet; the notice handles visible errors during send.
       });
     }, 3000);
@@ -6220,7 +6270,11 @@ async function initMessagesPage() {
         notice.textContent = "";
         notice.className = "notice";
         try {
-          await refreshChatMessages(bookingId, list);
+          await refreshChatMessages(bookingId, list, {
+            counterpart,
+            isHomeService,
+            serviceSummary,
+          });
         } catch (_refreshError) {
           notice.textContent = "Message sent. Updating the thread...";
           notice.className = "notice";
@@ -6240,13 +6294,19 @@ async function initMessagesPage() {
   }
 }
 
-async function refreshChatMessages(bookingId, list) {
+async function refreshChatMessages(bookingId, list, context = {}) {
   const messages = await getBookingMessages(bookingId);
   if (!messages.length) {
+    const introTitle = context.isHomeService
+      ? "Share the home-service details"
+      : "Start the appointment conversation";
+    const introCopy = context.isHomeService
+      ? `Let ${context.counterpart || "the barber"} know the estate, gate, landmark, parking instructions, and anything they should expect before arrival.`
+      : `Use this thread to confirm arrival timing, shop directions, or anything ${context.counterpart || "the other person"} should know before the appointment.`;
     list.innerHTML = `
       <div class="chat-empty-state">
-        <strong>Start conversation with your barber</strong>
-        <p class="muted">Messages for this booking will appear here once the chat begins.</p>
+        <strong>${escapeHtml(introTitle)}</strong>
+        <p class="muted">${escapeHtml(introCopy)}</p>
       </div>
     `;
     return;

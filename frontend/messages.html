@@ -36,32 +36,51 @@
 
     <main class="section">
       <div class="container chat-page-shell">
+        <section class="chat-page-hero">
+          <p class="section-kicker">Approved Booking Chat</p>
+          <h1 id="messagesHeading" class="section-title">Booking Chat</h1>
+          <p id="messagesSubtitle" class="section-subtitle">
+            Talk directly with your barber once the booking has been approved.
+          </p>
+        </section>
+
         <section class="chat-page-card">
           <div class="chat-page-head">
             <div>
-              <p class="section-kicker">Approved Booking Chat</p>
-              <h1 id="messagesHeading" class="section-title">Booking Chat</h1>
-              <p id="messagesSubtitle" class="section-subtitle">
-                Talk directly with your barber once the booking has been approved.
+              <span id="chatModePill" class="pill">Live booking chat</span>
+              <h2 class="chat-card-title">Conversation</h2>
+              <p id="chatQuickHint" class="muted chat-quick-hint">
+                Use this space for arrival updates, address details, gate instructions, and service questions.
               </p>
             </div>
-            <a class="btn btn-ghost" href="./dashboard.html">Back to Dashboard</a>
+            <div class="chat-head-actions">
+              <a id="chatBackBookingLink" class="btn btn-ghost" href="./dashboard.html">Open Booking</a>
+              <a class="btn btn-ghost" href="./dashboard.html">Back to Dashboard</a>
+            </div>
           </div>
+
+          <div id="chatContextStrip" class="chat-context-strip"></div>
 
           <div id="messagesList" class="chat-thread"></div>
 
           <form id="messageComposerForm" class="chat-composer">
-            <input
-              id="messageInput"
-              class="input chat-composer-input"
-              type="text"
-              placeholder="Type your message here"
-              autocomplete="off"
-              required
-            />
-            <button class="btn btn-primary chat-send-btn" type="submit" aria-label="Send message">
-              Send
-            </button>
+            <div class="chat-composer-copy">
+              <strong>Send a message</strong>
+              <span class="muted">Keep the customer and barber aligned before the appointment starts.</span>
+            </div>
+            <div class="chat-composer-controls">
+              <input
+                id="messageInput"
+                class="input chat-composer-input"
+                type="text"
+                placeholder="Type your message here"
+                autocomplete="off"
+                required
+              />
+              <button class="btn btn-primary chat-send-btn" type="submit" aria-label="Send message">
+                Send
+              </button>
+            </div>
           </form>
 
           <p id="messageNotice" class="notice"></p>
