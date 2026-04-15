@@ -2171,6 +2171,17 @@ async function hydrateBarberDashboard() {
   const approvalBannerEl = document.getElementById("barberApprovalBanner");
   const approvalBannerTitleEl = document.getElementById("barberApprovalBannerTitle");
   const approvalBannerTextEl = document.getElementById("barberApprovalBannerText");
+  const pendingCountEl = document.getElementById("barberPendingCount");
+  const todayCountEl = document.getElementById("barberTodayCount");
+  const todayRunSheetCountEl = document.getElementById("barberTodayRunSheetCount");
+  const recentClientsCountEl = document.getElementById("barberRecentClientsCount");
+  const allBookingsCountEl = document.getElementById("barberAllBookingsCount");
+  const overviewPendingCountEl = document.getElementById("barberOverviewPendingCount");
+  const overviewNextSlotEl = document.getElementById("barberOverviewNextSlot");
+  const overviewListingStatusEl = document.getElementById("barberOverviewListingStatus");
+  const nextAppointmentSummaryEl = document.getElementById("barberNextAppointmentSummary");
+  const queueSummaryEl = document.getElementById("barberQueueSummary");
+  const payoutSummaryEl = document.getElementById("barberPayoutSummary");
 
   if (!pendingEl || !allEl || !todayEl || !recentClientsEl || !earningsTodayValue || !earningsWeekValue || !earningsTotalValue || !jobsValue) {
     return;
@@ -2223,6 +2234,14 @@ async function hydrateBarberDashboard() {
       .filter((booking) => toDateInput(new Date(booking.scheduled_time)) === todayKey)
       .sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time));
 
+    const recentClients = completed
+      .slice()
+      .sort((a, b) => new Date(b.scheduled_time) - new Date(a.scheduled_time))
+      .filter((booking, index, collection) => {
+        const key = String(booking.customer_id || booking.id);
+        return collection.findIndex((item) => String(item.customer_id || item.id) === key) === index;
+      });
+
     const todayEarnings = completed
       .filter((booking) => toDateInput(new Date(booking.scheduled_time)) === todayKey)
       .reduce((sum, booking) => sum + Number(booking.barber_earnings || 0), 0);
@@ -2248,6 +2267,58 @@ async function hydrateBarberDashboard() {
     todayEl.innerHTML = renderTodayAppointmentList(todayAppointments);
     allEl.innerHTML = renderBookingList(state.barberBookings, "No bookings yet.", state.disputes);
     recentClientsEl.innerHTML = renderRecentClientsList(completed);
+
+    if (pendingCountEl) {
+      pendingCountEl.textContent = `${pending.length} waiting`;
+    }
+    if (todayCountEl) {
+      todayCountEl.textContent = `${todayAppointments.length} today`;
+    }
+    if (todayRunSheetCountEl) {
+      todayRunSheetCountEl.textContent = `${todayAppointments.length} booked`;
+    }
+    if (recentClientsCountEl) {
+      recentClientsCountEl.textContent = `${Math.min(recentClients.length, 6)} recent`;
+    }
+    if (allBookingsCountEl) {
+      allBookingsCountEl.textContent = `${state.barberBookings.length} total`;
+    }
+    if (overviewPendingCountEl) {
+      overviewPendingCountEl.textContent = String(pending.length);
+    }
+    if (overviewNextSlotEl) {
+      overviewNextSlotEl.textContent = todayAppointments.length
+        ? `${formatTime(todayAppointments[0].scheduled_time)} today`
+        : "No bookings";
+    }
+    if (overviewListingStatusEl) {
+      const listingStatus = String(state.barberProfile?.kyc_status || "pending").toLowerCase();
+      overviewListingStatusEl.textContent =
+        listingStatus === "verified"
+          ? "Public and visible"
+          : listingStatus === "rejected"
+          ? "Changes needed"
+          : listingStatus === "suspended"
+          ? "Temporarily paused"
+          : "Pending approval";
+    }
+    if (nextAppointmentSummaryEl) {
+      nextAppointmentSummaryEl.textContent = todayAppointments.length
+        ? `${formatTime(todayAppointments[0].scheduled_time)} · ${todayAppointments[0].customer_name || `Customer #${todayAppointments[0].customer_id}`}`
+        : "No appointments scheduled";
+    }
+    if (queueSummaryEl) {
+      queueSummaryEl.textContent = pending.length
+        ? `${pending.length} request${pending.length === 1 ? "" : "s"} waiting for your response`
+        : "No requests waiting";
+    }
+    if (payoutSummaryEl) {
+      payoutSummaryEl.textContent = priceText(
+        barberInsights?.awaiting_payout_review ??
+          paidAwaitingRelease.reduce((sum, booking) => sum + Number(booking.barber_payout_amount || 0), 0)
+      );
+    }
+
     if (disputesEl) {
       disputesEl.innerHTML = renderDisputeList(state.disputes, "No disputes raised.");
     }
