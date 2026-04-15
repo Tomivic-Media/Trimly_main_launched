@@ -1062,6 +1062,16 @@ async function initBookingPage() {
           <span class="booking-summary-kicker">${escapeHtml(barber.barberName || "Trimly Barber")}</span>
           <strong>${escapeHtml(barber.shopName)}</strong>
           <p class="muted">${escapeHtml(barber.location)}</p>
+          <div class="booking-summary-brief">
+            <div class="booking-summary-brief-item">
+              <span class="muted">Starting from</span>
+              <strong>${priceText(barber.price)}</strong>
+            </div>
+            <div class="booking-summary-brief-item">
+              <span class="muted">Availability</span>
+              <strong>${barber.available ? "Accepting bookings" : "Offline"}</strong>
+            </div>
+          </div>
         </div>
         <div class="booking-summary-meta">
           <span class="pill">${priceText(barber.price)} / cut</span>
@@ -5725,6 +5735,8 @@ function renderPaymentTimeline(statusValue, paymentStatus) {
 
 function renderPaymentSummary(booking) {
   const services = Array.isArray(booking?.selected_services) ? booking.selected_services : [];
+  const statusValue = String(booking?.status || "pending").toLowerCase();
+  const paymentStatus = String(booking?.payment_status || "unpaid").toLowerCase();
   const serviceChips = services.length
     ? services.map((service) => `<span class="pill">${escapeHtml(serviceLabel({
       name: service.name,
@@ -5734,7 +5746,14 @@ function renderPaymentSummary(booking) {
     : `<span class="pill">${escapeHtml(booking?.service_name || "Haircut")}</span>`;
 
   return `
-    <div class="payment-summary-grid">
+    <div class="payment-summary-shell">
+      <div class="payment-status-ribbon">
+        <span class="pill ${["approved", "accepted"].includes(statusValue) ? "pill-success" : ""}">
+          ${escapeHtml(statusValue === "approved" || statusValue === "accepted" ? "Ready for payment" : capitalize(statusValue))}
+        </span>
+        <span class="pill">${escapeHtml(paymentStatus === "paid" ? "Payment complete" : "Payment pending")}</span>
+      </div>
+      <div class="payment-summary-grid">
       <div class="payment-summary-row">
         <span class="muted">Appointment</span>
         <strong>${escapeHtml(formatDateTime(booking?.scheduled_time))}</strong>
@@ -5747,14 +5766,15 @@ function renderPaymentSummary(booking) {
         <span class="muted">Total amount</span>
         <strong>${escapeHtml(priceText(booking?.price || 0))}</strong>
       </div>
-    </div>
-    <div class="pill-row payment-service-pill-row">
-      ${serviceChips}
-    </div>
-    <div class="booking-trust-list payment-trust-list">
-      <div class="booking-trust-item">Only approved bookings unlock payment.</div>
-      <div class="booking-trust-item">Your payment status stays visible in your dashboard.</div>
-      <div class="booking-trust-item">Need to change plans? Rebook quickly from this screen.</div>
+      </div>
+      <div class="pill-row payment-service-pill-row">
+        ${serviceChips}
+      </div>
+      <div class="booking-trust-list payment-trust-list">
+        <div class="booking-trust-item">Only approved bookings unlock payment.</div>
+        <div class="booking-trust-item">Your payment status stays visible in your dashboard.</div>
+        <div class="booking-trust-item">Need to change plans? Rebook quickly from this screen.</div>
+      </div>
     </div>
   `;
 }
@@ -5834,16 +5854,21 @@ async function renderBookingPaymentActions(bookingId, container) {
 
     if (["approved", "accepted"].includes(statusValue)) {
       container.innerHTML = `
-        <div class="panel payment-status-card">
+        <div class="panel payment-status-card payment-status-card-approved">
           <div class="payment-status-head">
             <div class="payment-status-copy">
-              <strong>Booking approved</strong>
-              <p class="payment-helper">Your barber has approved this appointment. You can pay now to secure it.</p>
+              <span class="payment-state-eyebrow">Approved booking</span>
+              <strong>Ready to pay and lock in your slot</strong>
+              <p class="payment-helper">Your barber has approved this appointment. Complete payment now so your booking is fully secured.</p>
             </div>
             <span class="status-badge status-approved">Approved</span>
           </div>
           ${renderPaymentTimeline(statusValue, paymentStatus)}
           ${renderPaymentSummary(booking)}
+          <div class="payment-next-step">
+            <strong>What happens next</strong>
+            <p class="muted">After payment, this appointment stays visible in your dashboard and chat stays available for final coordination.</p>
+          </div>
           <div class="payment-action-row">
             <button class="btn btn-primary" type="button" data-pay-booking-id="${Number(booking.id)}">Pay Now</button>
             <button class="btn btn-ghost" type="button" data-refresh-booking-id="${Number(booking.id)}">Refresh Status</button>
@@ -5873,7 +5898,8 @@ async function renderBookingPaymentActions(bookingId, container) {
         <div class="panel payment-status-card">
           <div class="payment-status-head">
             <div class="payment-status-copy">
-              <strong>Waiting for barber approval</strong>
+              <span class="payment-state-eyebrow">Approval pending</span>
+              <strong>Waiting for the barber to approve</strong>
               <p class="payment-helper">Your booking is pending. Pay Now will appear here as soon as the barber approves.</p>
             </div>
             <span class="status-badge status-pending">Pending</span>

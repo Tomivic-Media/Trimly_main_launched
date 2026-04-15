@@ -917,6 +917,14 @@ label {
   box-shadow: 0 10px 26px rgba(24, 57, 43, 0.05);
 }
 
+.payment-status-card-approved {
+  border-color: rgba(46, 106, 79, 0.28);
+  background:
+    radial-gradient(circle at top right, rgba(46, 106, 79, 0.14), transparent 30%),
+    radial-gradient(circle at bottom left, rgba(201, 169, 107, 0.12), transparent 34%),
+    rgba(255, 250, 242, 0.98);
+}
+
 .payment-status-head {
   display: flex;
   align-items: flex-start;
@@ -930,8 +938,24 @@ label {
   gap: 6px;
 }
 
+.payment-state-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(46, 106, 79, 0.12);
+  border: 1px solid rgba(46, 106, 79, 0.2);
+  color: var(--primary-strong);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .payment-status-copy strong {
-  font-size: 1rem;
+  font-size: 1.1rem;
+  line-height: 1.2;
 }
 
 .payment-helper {
@@ -1001,6 +1025,17 @@ label {
   background: rgba(255, 250, 242, 0.7);
 }
 
+.payment-summary-shell {
+  display: grid;
+  gap: 12px;
+}
+
+.payment-status-ribbon {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .payment-summary-row {
   display: flex;
   justify-content: space-between;
@@ -1015,6 +1050,20 @@ label {
 
 .payment-trust-list {
   gap: 8px;
+}
+
+.payment-next-step {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid rgba(46, 106, 79, 0.16);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.payment-next-step strong,
+.booking-summary-brief-item strong {
+  font-size: 1rem;
 }
 
 .profile-page-shell {
@@ -1105,6 +1154,22 @@ label {
 
 .booking-summary-copy p {
   margin: 0;
+}
+
+.booking-summary-brief {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.booking-summary-brief-item {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid rgba(46, 106, 79, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.42);
 }
 
 .booking-summary-kicker {
@@ -3667,6 +3732,11 @@ label {
     line-height: 1.5;
   }
 
+  .payment-next-step,
+  .booking-summary-brief-item {
+    padding: 12px;
+  }
+
   .payment-action-row {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3684,6 +3754,10 @@ label {
   .customer-stat-grid,
   .payment-summary-row,
   .payment-action-row {
+    grid-template-columns: 1fr;
+  }
+
+  .booking-summary-brief {
     grid-template-columns: 1fr;
   }
 }
