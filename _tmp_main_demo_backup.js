@@ -2168,9 +2168,6 @@ async function hydrateBarberDashboard() {
   const profileReviewCountEl = document.getElementById("barberProfileReviewCount");
   const profilePortfolioCountEl = document.getElementById("barberProfilePortfolioCount");
   const profileShareReadinessEl = document.getElementById("barberProfileShareReadiness");
-  const approvalBannerEl = document.getElementById("barberApprovalBanner");
-  const approvalBannerTitleEl = document.getElementById("barberApprovalBannerTitle");
-  const approvalBannerTextEl = document.getElementById("barberApprovalBannerText");
 
   if (!pendingEl || !allEl || !todayEl || !recentClientsEl || !earningsTodayValue || !earningsWeekValue || !earningsTotalValue || !jobsValue) {
     return;
@@ -2204,8 +2201,6 @@ async function hydrateBarberDashboard() {
     } catch (_error) {
       state.barberKyc = null;
     }
-
-    hydrateBarberApprovalBanner(approvalBannerEl, approvalBannerTitleEl, approvalBannerTextEl, state.barberProfile);
 
     const now = new Date();
     const todayKey = toDateInput(now);
@@ -2313,38 +2308,6 @@ async function hydrateBarberDashboard() {
   ensureBarberAlertPolling({
     pendingEl,
   });
-}
-
-function hydrateBarberApprovalBanner(bannerEl, titleEl, textEl, profile) {
-  if (!bannerEl || !titleEl || !textEl) return;
-
-  const status = String(profile?.kyc_status || "pending").toLowerCase();
-  bannerEl.classList.remove("hidden", "is-rejected", "is-suspended");
-
-  if (status === "verified") {
-    bannerEl.classList.add("hidden");
-    return;
-  }
-
-  if (status === "rejected") {
-    bannerEl.classList.add("is-rejected");
-    titleEl.textContent = "Profile review update: changes needed";
-    textEl.textContent =
-      "Your barber page is not publicly listed right now. An admin asked for updates before approval, so please review your Operations tab and resubmit the required details.";
-    return;
-  }
-
-  if (status === "suspended") {
-    bannerEl.classList.add("is-suspended");
-    titleEl.textContent = "Public listing is currently paused";
-    textEl.textContent =
-      "Your barber page is temporarily not visible to customers. Please check the latest compliance or operations update before expecting new public bookings.";
-    return;
-  }
-
-  titleEl.textContent = "Approval in progress";
-  textEl.textContent =
-    "Your barber page is currently under review. Customers cannot see your public listing yet, and you will be listed automatically once an admin approves your profile.";
 }
 
 async function hydrateSharedDisputes() {

@@ -1625,26 +1625,6 @@ label {
 }
 
 @media (max-width: 760px) {
-  .container,
-  .dashboard-container {
-    width: min(100%, calc(100vw - 10px));
-  }
-
-  .nav-shell {
-    min-height: 64px;
-    gap: 10px;
-  }
-
-  .brand {
-    font-size: 1.15rem;
-  }
-
-  .brand-badge {
-    width: 30px;
-    height: 30px;
-    border-radius: 9px;
-  }
-
   .nav-toggle {
     display: inline-grid;
     place-items: center;
@@ -1653,16 +1633,14 @@ label {
   .nav-main {
     position: absolute;
     top: 72px;
-    left: 6px;
-    right: 6px;
+    left: 0;
+    right: 0;
     background: #0f1318;
     border-bottom: 1px solid var(--line);
-    border-radius: 16px;
-    padding: 12px 14px 16px;
+    padding: 12px 4vw 16px;
     flex-direction: column;
     align-items: flex-start;
     display: none;
-    box-shadow: 0 18px 34px rgba(10, 14, 20, 0.2);
   }
 
   .nav-main.is-open {
@@ -1690,50 +1668,13 @@ label {
     margin-top: 12px;
   }
 
-  .section {
-    padding: 28px 0 34px;
-  }
-
-  .section-title {
-    font-size: clamp(1.65rem, 6.8vw, 2rem);
-    line-height: 1.08;
-  }
-
-  .section-subtitle {
-    margin-bottom: 20px;
-    font-size: 0.98rem;
-    line-height: 1.55;
-  }
-
   .booking-summary-card {
     padding: 16px;
     border-radius: 16px;
   }
 
-  .booking-page-hero,
-  .profile-page-hero {
-    max-width: none;
-  }
-
-  .booking-page-grid,
-  .booking-sidebar-stack {
-    gap: 18px;
-  }
-
-  .booking-primary-panel .panel-head-row,
-  .booking-guide-panel .panel-head-row,
-  .booking-payment-panel .panel-head-row {
-    align-items: flex-start;
-  }
-
-  .booking-item,
-  .client-row,
-  .history-row {
-    border-radius: 14px;
-  }
-
   .customer-stat-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 }
 
@@ -2127,54 +2068,6 @@ label {
   margin-top: 18px;
 }
 
-.barber-approval-banner {
-  margin-bottom: 20px;
-  border: 1px solid rgba(201, 169, 107, 0.52);
-  border-radius: 18px;
-  padding: 16px 18px;
-  background: linear-gradient(160deg, rgba(201, 169, 107, 0.22), rgba(255, 250, 242, 0.96));
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  flex-wrap: wrap;
-  box-shadow: 0 10px 28px rgba(201, 169, 107, 0.12);
-}
-
-.barber-approval-banner-copy {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-}
-
-.barber-approval-banner-copy strong {
-  font-size: 1rem;
-  color: #785a24;
-}
-
-.barber-approval-banner-copy p {
-  margin: 0;
-  color: #5d4a28;
-  max-width: 760px;
-}
-
-.barber-approval-banner.is-rejected,
-.barber-approval-banner.is-suspended {
-  border-color: rgba(182, 84, 75, 0.42);
-  background: linear-gradient(160deg, rgba(182, 84, 75, 0.14), rgba(255, 250, 242, 0.96));
-  box-shadow: 0 10px 28px rgba(182, 84, 75, 0.09);
-}
-
-.barber-approval-banner.is-rejected .barber-approval-banner-copy strong,
-.barber-approval-banner.is-suspended .barber-approval-banner-copy strong {
-  color: #8b433d;
-}
-
-.barber-approval-banner.is-rejected .barber-approval-banner-copy p,
-.barber-approval-banner.is-suspended .barber-approval-banner-copy p {
-  color: #6a4744;
-}
-
 .barber-status-card {
   border: 1px solid var(--line);
   border-radius: 20px;
@@ -2335,7 +2228,7 @@ label {
   }
 
   .barber-stat-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 }
 
@@ -3264,106 +3157,6 @@ label {
   .profile-review-panel {
     padding: 18px;
   }
-
-  .booking-page-hero {
-    gap: 8px;
-    margin-bottom: 16px;
-  }
-
-  .booking-page-grid,
-  .booking-sidebar-stack {
-    gap: 14px;
-  }
-
-  .booking-primary-panel,
-  .booking-guide-panel,
-  .booking-payment-panel,
-  .booking-trust-panel,
-  .payment-status-card {
-    border-radius: 16px;
-  }
-
-  .booking-panel-subtitle,
-  .payment-helper {
-    font-size: 0.94rem;
-  }
-
-  .payment-status-card {
-    gap: 14px;
-    padding: 14px;
-  }
-
-  .payment-status-head {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .payment-status-copy strong {
-    font-size: 1.02rem;
-  }
-
-  .payment-timeline {
-    gap: 8px;
-  }
-
-  .payment-timeline-step {
-    grid-template-columns: 14px 1fr;
-    gap: 8px;
-    align-items: flex-start;
-  }
-
-  .payment-summary-grid {
-    padding: 12px 14px;
-    gap: 8px;
-  }
-
-  .payment-summary-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 10px;
-    align-items: start;
-    justify-content: space-between;
-  }
-
-  .payment-service-pill-row {
-    gap: 8px;
-  }
-
-  .payment-service-pill-row .pill {
-    width: fit-content;
-    max-width: 100%;
-  }
-
-  .payment-trust-list,
-  .booking-trust-list {
-    gap: 8px;
-  }
-
-  .booking-trust-item {
-    padding: 12px;
-    font-size: 0.95rem;
-    line-height: 1.5;
-  }
-
-  .payment-action-row {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-  }
-
-  .payment-action-row .btn {
-    width: 100%;
-    justify-content: center;
-  }
-}
-
-@media (max-width: 520px) {
-  .barber-stat-grid,
-  .customer-stat-grid,
-  .payment-summary-row,
-  .payment-action-row {
-    grid-template-columns: 1fr;
-  }
 }
 
 .input-with-action {
@@ -3783,218 +3576,4 @@ label {
 
 .policy-list li + li {
   margin-top: 8px;
-}
-
-@media (max-width: 760px) {
-  .hero {
-    padding: 42px 0 28px;
-  }
-
-  .hero-grid,
-  .settings-hero,
-  .profile-layout,
-  .profile-content-grid,
-  .settings-upload-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-
-  .hero p,
-  .customer-overview-copy p,
-  .barber-overview-copy p,
-  .profile-bio-lead,
-  .section-subtitle {
-    max-width: none;
-  }
-
-  .hero-panel,
-  .profile-layout,
-  .profile-portfolio-panel,
-  .settings-hero-card,
-  .policy-card {
-    border-radius: 18px;
-    padding: 18px;
-  }
-
-  .hero-stats,
-  .profile-stat-grid,
-  .form-grid-2 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .search-row,
-  .settings-action-row,
-  .profile-action-row,
-  .notification-popover-actions,
-  .action-row {
-    align-items: stretch;
-  }
-
-  .search-row > *,
-  .settings-action-row > *,
-  .profile-action-row > * {
-    flex: 1 1 180px;
-  }
-
-  .filter-bar {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .settings-tab-bar {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    margin-bottom: 16px;
-    scrollbar-width: none;
-  }
-
-  .settings-tab-bar::-webkit-scrollbar {
-    display: none;
-  }
-
-  .settings-tab-btn {
-    flex: 0 0 auto;
-    white-space: nowrap;
-  }
-
-  .chat-page-shell {
-    gap: 18px;
-  }
-
-  .chat-page-head {
-    display: grid;
-    gap: 14px;
-  }
-
-  .chat-head-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-  }
-
-  .chat-head-actions .btn {
-    width: 100%;
-  }
-
-  .notification-popover {
-    right: -2px;
-    width: min(420px, calc(100vw - 12px));
-  }
-
-  .footer-row {
-    display: grid;
-    gap: 10px;
-  }
-}
-
-@media (max-width: 620px) {
-  .container,
-  .dashboard-container,
-  .settings-page-shell,
-  .policy-shell {
-    width: min(100%, calc(100vw - 8px));
-  }
-
-  .hero {
-    padding: 30px 0 20px;
-  }
-
-  .hero h1 {
-    font-size: clamp(1.95rem, 8.5vw, 2.5rem);
-    line-height: 1.05;
-  }
-
-  .hero-stats,
-  .profile-stat-grid,
-  .kpi-grid,
-  .chat-head-actions {
-    grid-template-columns: 1fr;
-  }
-
-  .portfolio-gallery-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-  }
-
-  .portfolio-gallery-card img {
-    height: 180px;
-  }
-
-  .notification-popover {
-    left: 0;
-    right: 0;
-    width: auto;
-  }
-
-  .notification-popover-head,
-  .notification-heading-row,
-  .panel-head-row,
-  .review-card-head,
-  .calendar-toolbar {
-    display: grid;
-    gap: 10px;
-    justify-content: stretch;
-    align-items: start;
-  }
-
-  .notification-popover-actions > *,
-  .action-row > * {
-    flex: 1 1 140px;
-  }
-
-  .policy-card {
-    padding: 18px;
-  }
-}
-
-@media (max-width: 480px) {
-  .brand {
-    font-size: 1.08rem;
-  }
-
-  .brand-badge {
-    width: 28px;
-    height: 28px;
-    font-size: 0.88rem;
-  }
-
-  .nav-toggle {
-    width: 40px;
-    height: 40px;
-  }
-
-  .hero-panel,
-  .profile-layout,
-  .profile-portfolio-panel,
-  .settings-hero-card,
-  .policy-card,
-  .panel,
-  .settings-card,
-  .chat-page-card,
-  .form-card {
-    padding: 14px;
-    border-radius: 16px;
-  }
-
-  .search-row > *,
-  .settings-action-row > *,
-  .profile-action-row > *,
-  .notification-popover-actions > *,
-  .action-row > * {
-    flex-basis: 100%;
-  }
-
-  .portfolio-gallery-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .portfolio-gallery-card img {
-    height: 220px;
-  }
-
-  .footer-links-inline {
-    display: grid;
-    gap: 8px;
-  }
 }
