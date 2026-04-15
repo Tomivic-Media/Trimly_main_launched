@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trimly | Demo Mode</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Sora:wght@100..800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./style.css?v=20260402h" />
+  </head>
+  <body data-page="demo">
+    <header class="site-header">
+      <div class="container nav-shell">
+        <a class="brand" href="/">
+          <span class="brand-badge">T</span>
+          <span>Trimly</span>
+        </a>
+        <button class="nav-toggle" data-nav-toggle aria-label="Toggle menu">Menu</button>
+        <nav class="nav-main" data-nav-menu>
+          <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="./barbers.html">Barbers</a>
+            <a class="active" href="./demo.html">Demo</a>
+          </div>
+          <div class="auth-actions" data-auth-actions>
+            <a class="btn btn-ghost" href="./login.html">Login</a>
+            <a class="btn btn-primary" href="./register.html">Register</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main class="section">
+      <div class="container demo-shell">
+        <section class="demo-hero">
+          <div>
+            <span class="pill pill-chat">Demo mode</span>
+            <h1 class="section-title">Open Trimly with ready-made customer and barber data.</h1>
+            <p class="section-subtitle">
+              Use this launcher when we want to review the product quickly without logging in or depending on live backend state.
+            </p>
+          </div>
+          <article class="demo-status-card">
+            <small class="muted">Current session</small>
+            <strong id="demoActiveRole">No demo session started yet.</strong>
+            <button id="demoResetBtn" class="btn btn-ghost" type="button">Clear Demo Session</button>
+          </article>
+        </section>
+
+        <section id="demoLauncher" class="demo-launch-grid">
+          <article class="demo-launch-card">
+            <span class="dashboard-eyebrow">Customer demo</span>
+            <h2>Browse, book, pay, and chat.</h2>
+            <p class="muted">
+              Starts with a customer account that already has favorite barbers, booking history, an approved payment flow, and a live home-service chat.
+            </p>
+            <div class="demo-launch-actions">
+              <button class="btn btn-primary" type="button" data-demo-role="customer" data-demo-target="/static/dashboard.html">
+                Open Customer Dashboard
+              </button>
+              <button class="btn btn-ghost" type="button" data-demo-role="customer" data-demo-target="/static/barbers.html">
+                Browse Barbers
+              </button>
+              <button class="btn btn-ghost" type="button" data-demo-role="customer" data-demo-target="/static/barber-profile.html?id=11">
+                Open Barber Profile
+              </button>
+              <button class="btn btn-ghost" type="button" data-demo-role="customer" data-demo-target="/static/booking.html?barber=11&booking=201">
+                Open Booking + Payment
+              </button>
+              <button class="btn btn-ghost" type="button" data-demo-role="customer" data-demo-target="/static/messages.html?booking=201">
+                Open Customer Chat
+              </button>
+              <button class="btn btn-ghost" type="button" data-demo-role="customer" data-demo-target="/static/settings.html?tab=activity">
+                Open Customer Settings
+              </button>
+            </div>
+          </article>
+
+          <article class="demo-launch-card">
+            <span class="dashboard-eyebrow">Barber demo</span>
+            <h2>Review bookings, services, settings, and operations.</h2>
+            <p class="muted">
+              Starts with a barber account that already has active services, bookings across multiple statuses, payout activity, and notifications waiting in the bell.
+            </p>
+            <div class="demo-launch-actions">
+              <button class="btn btn-primary" type="button" data-demo-role="barber" data-demo-target="/static/dashboard.html">
+                Open Barber Dashboard
+              </button>
+              <button class="btn btn-ghost" type="button" data-demo-role="barber" data-demo-target="/static/messages.html?booking=201">
+                Open Barber Chat
+              </button>
+              <button class="btn btn-ghost" type="button" data-demo-role="barber" data-demo-target="/static/settings.html?tab=business">
+                Open Services & Business
+              </button>
+              <button class="btn btn-ghost" type="button" data-demo-role="barber" data-demo-target="/static/settings.html?tab=operations">
+                Open Barber Settings
+              </button>
+              <button class="btn btn-ghost" type="button" data-demo-role="barber" data-demo-target="/static/barber-profile.html?id=11">
+                Open Public Profile
+              </button>
+              <button class="btn btn-ghost" type="button" data-demo-role="barber" data-demo-target="/static/settings.html?tab=security">
+                Open Security
+              </button>
+            </div>
+          </article>
+        </section>
+
+        <section class="demo-notes-grid">
+          <article class="panel">
+            <h3>Included in demo mode</h3>
+            <ul class="demo-note-list">
+              <li>Customer dashboard, barber dashboard, booking, payment, profile, settings, and chat.</li>
+              <li>Readable Nigerian demo data with NGN pricing and realistic names, services, and booking statuses.</li>
+              <li>Persistent local actions like send message, pay booking, mark notification read, and update services.</li>
+            </ul>
+          </article>
+          <article class="panel">
+            <h3>How we should use it</h3>
+            <ul class="demo-note-list">
+              <li>UI review without repeated login.</li>
+              <li>Quick walkthroughs for social captures and product polish checks.</li>
+              <li>Safe testing of interactions without touching production data.</li>
+            </ul>
+          </article>
+        </section>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-row">
+        <span>&copy; <span data-current-year></span> Trimly</span>
+        <div class="footer-links-inline">
+          <a href="./acceptable-use.html">Acceptable Use</a>
+          <a href="./refund-cancellation-policy.html">Refund & Cancellation</a>
+        </div>
+      </div>
+    </footer>
+
+    <div id="toast" class="toast"></div>
+    <script type="module" src="./main.js?v=20260411a"></script>
+  </body>
+</html>

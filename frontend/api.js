@@ -1,3 +1,9 @@
+import {
+  clearDemoSession,
+  demoApiFetch,
+  isDemoMode,
+} from "./demo-data.js";
+
 const API_BASE_URL =
   (typeof window !== "undefined" && window.__TRIMLY_API_BASE_URL) ||
   "https://api.trimly.com.ng";
@@ -12,6 +18,10 @@ function authHeaders() {
 }
 
 async function apiFetch(path, options = {}, needsAuth = false) {
+  if (isDemoMode()) {
+    return demoApiFetch(path, options, needsAuth);
+  }
+
   const headers = {
     ...(options.headers || {}),
   };
@@ -65,6 +75,7 @@ function clearAuthSession() {
   localStorage.removeItem("trimly_token");
   localStorage.removeItem("trimly_role");
   localStorage.removeItem("trimly_email");
+  clearDemoSession();
 }
 
 function normalizeRole(value) {

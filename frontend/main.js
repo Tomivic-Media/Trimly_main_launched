@@ -66,6 +66,10 @@ import {
   verifyPayment,
   verifyPaymentPublic,
 } from "./api.js?v=20260411a";
+import {
+  enterDemoMode,
+  getDemoSessionInfo,
+} from "./demo-data.js";
 
 const DAY_ORDER = [
   "monday",
@@ -153,6 +157,9 @@ function routePage() {
     case "payment-status":
       initPaymentStatusPage();
       break;
+    case "demo":
+      initDemoPage();
+      break;
     default:
       break;
   }
@@ -184,17 +191,20 @@ function hydrateAuthActions() {
   if (!wrappers.length) return;
 
   const token = getToken();
+  const demoSession = getDemoSessionInfo();
   wrappers.forEach((wrapper) => {
     if (!token) {
       wrapper.innerHTML = `
         <a class="btn btn-ghost" href="/static/login.html">Login</a>
         <a class="btn btn-primary" href="/static/register.html">Register</a>
+        <a class="btn btn-ghost" href="/static/demo.html">Demo</a>
         <a class="auth-admin-link" href="/static/admin-login.html">Admin Login</a>
       `;
       return;
     }
 
     wrapper.innerHTML = `
+      ${demoSession.active ? `<span class="pill pill-chat demo-auth-pill">${escapeHtml(demoSession.label)}</span>` : ""}
       <div class="notification-shell" data-notification-shell>
         <button class="notification-bell" type="button" data-notification-toggle aria-label="Open notifications">
           <span class="notification-bell-icon">&#128276;</span>
@@ -213,7 +223,7 @@ function hydrateAuthActions() {
       </div>
       <a class="btn btn-icon" href="/static/settings.html" aria-label="Open settings" title="Settings">&#9881;</a>
       <a class="btn btn-ghost" href="${["admin", "super_admin"].includes(normalizeRole(localStorage.getItem("trimly_role") || "")) ? "/admin" : "/static/dashboard.html"}">Dashboard</a>
-      <button class="btn btn-primary" data-logout-btn>Logout</button>
+      <button class="btn btn-primary" data-logout-btn>${demoSession.active ? "Exit Demo" : "Logout"}</button>
     `;
 
     const logoutBtn = wrapper.querySelector("[data-logout-btn]");
@@ -1275,6 +1285,44 @@ function initLoginPage() {
     event.preventDefault();
     void handleLogin();
   });
+}
+
+function initDemoPage() {
+  const launcher = document.getElementById("demoLauncher");
+  const activeRoleEl = document.getElementById("demoActiveRole");
+  const resetBtn = document.getElementById("demoResetBtn");
+
+  if (!launcher) return;
+
+  const updateDemoSummary = () => {
+    const session = getDemoSessionInfo();
+    if (!activeRoleEl) return;
+    activeRoleEl.textContent = session.active
+      ? `${session.label} active${session.email ? ` - ${session.email}` : ""}`
+      : "No demo session started yet.";
+  };
+
+  launcher.querySelectorAll("[data-demo-role]").forEach((button) => {
+    if (button.dataset.bound === "true") return;
+    button.dataset.bound = "true";
+    button.addEventListener("click", () => {
+      const role = button.dataset.demoRole || "customer";
+      const target = button.dataset.demoTarget || "/static/dashboard.html";
+      enterDemoMode(role);
+      window.location.href = target;
+    });
+  });
+
+  if (resetBtn && resetBtn.dataset.bound !== "true") {
+    resetBtn.dataset.bound = "true";
+    resetBtn.addEventListener("click", () => {
+      clearAuthSession();
+      updateDemoSummary();
+      toast("Demo session cleared");
+    });
+  }
+
+  updateDemoSummary();
 }
 
 function initAdminLoginPage() {
