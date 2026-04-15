@@ -5448,6 +5448,79 @@ function normalizeAvailability(availability) {
   return [...unique].sort();
 }
 
+function resolveBookingMode(booking) {
+  const services = Array.isArray(booking?.selected_services) ? booking.selected_services : [];
+  return services.some((service) => Boolean(service?.is_home_service)) ? "Home service" : "Shop visit";
+}
+
+function renderPaymentTimeline(statusValue, paymentStatus) {
+  const steps = [
+    {
+      label: "Request sent",
+      state: "done",
+    },
+    {
+      label: "Barber approval",
+      state: ["approved", "accepted", "completed"].includes(statusValue) || paymentStatus === "paid" ? "done" : ["rejected", "cancelled"].includes(statusValue) ? "blocked" : "active",
+    },
+    {
+      label: "Payment",
+      state: paymentStatus === "paid" ? "done" : ["approved", "accepted"].includes(statusValue) ? "active" : ["rejected", "cancelled"].includes(statusValue) ? "blocked" : "pending",
+    },
+  ];
+
+  return `
+    <div class="payment-timeline">
+      ${steps
+        .map(
+          (step) => `
+            <div class="payment-timeline-step payment-timeline-step-${step.state}">
+              <span class="payment-timeline-dot"></span>
+              <span>${escapeHtml(step.label)}</span>
+            </div>
+          `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+function renderPaymentSummary(booking) {
+  const services = Array.isArray(booking?.selected_services) ? booking.selected_services : [];
+  const serviceChips = services.length
+    ? services.map((service) => `<span class="pill">${escapeHtml(serviceLabel({
+      name: service.name,
+      price: service.price,
+      isHomeService: service.is_home_service,
+    }))}</span>`).join("")
+    : `<span class="pill">${escapeHtml(booking?.service_name || "Haircut")}</span>`;
+
+  return `
+    <div class="payment-summary-grid">
+      <div class="payment-summary-row">
+        <span class="muted">Appointment</span>
+        <strong>${escapeHtml(formatDateTime(booking?.scheduled_time))}</strong>
+      </div>
+      <div class="payment-summary-row">
+        <span class="muted">Service mode</span>
+        <strong>${escapeHtml(resolveBookingMode(booking))}</strong>
+      </div>
+      <div class="payment-summary-row">
+        <span class="muted">Total amount</span>
+        <strong>${escapeHtml(priceText(booking?.price || 0))}</strong>
+      </div>
+    </div>
+    <div class="pill-row payment-service-pill-row">
+      ${serviceChips}
+    </div>
+    <div class="booking-trust-list payment-trust-list">
+      <div class="booking-trust-item">Only approved bookings unlock payment.</div>
+      <div class="booking-trust-item">Your payment status stays visible in your dashboard.</div>
+      <div class="booking-trust-item">Need to change plans? Rebook quickly from this screen.</div>
+    </div>
+  `;
+}
+
 async function renderBookingPaymentActions(bookingId, container) {
   if (!container) return;
 
@@ -5469,6 +5542,7 @@ async function renderBookingPaymentActions(bookingId, container) {
             </div>
             <span class="status-badge status-pending">Pending</span>
           </div>
+          ${renderPaymentTimeline("pending", "unpaid")}
           <div class="payment-action-row">
             <a class="btn btn-ghost" href="/static/dashboard.html">Open Dashboard</a>
           </div>
@@ -5490,6 +5564,8 @@ async function renderBookingPaymentActions(bookingId, container) {
             </div>
             <span class="status-badge status-completed">Paid</span>
           </div>
+          ${renderPaymentTimeline(statusValue, paymentStatus)}
+          ${renderPaymentSummary(booking)}
           <div class="payment-action-row">
             <a class="btn btn-ghost" href="/static/dashboard.html">View Booking</a>
           </div>
@@ -5508,6 +5584,8 @@ async function renderBookingPaymentActions(bookingId, container) {
             </div>
             <span class="status-badge status-${escapeHtml(statusValue)}">${escapeHtml(statusValue)}</span>
           </div>
+          ${renderPaymentTimeline(statusValue, paymentStatus)}
+          ${renderPaymentSummary(booking)}
           <div class="payment-action-row">
             <a class="btn btn-ghost" href="/static/barber-profile.html?id=${Number(booking.barber_id)}">Choose Another Slot</a>
           </div>
@@ -5526,6 +5604,8 @@ async function renderBookingPaymentActions(bookingId, container) {
             </div>
             <span class="status-badge status-approved">Approved</span>
           </div>
+          ${renderPaymentTimeline(statusValue, paymentStatus)}
+          ${renderPaymentSummary(booking)}
           <div class="payment-action-row">
             <button class="btn btn-primary" type="button" data-pay-booking-id="${Number(booking.id)}">Pay Now</button>
             <button class="btn btn-ghost" type="button" data-refresh-booking-id="${Number(booking.id)}">Refresh Status</button>
@@ -5560,6 +5640,8 @@ async function renderBookingPaymentActions(bookingId, container) {
             </div>
             <span class="status-badge status-pending">Pending</span>
           </div>
+          ${renderPaymentTimeline(statusValue, paymentStatus)}
+          ${renderPaymentSummary(booking)}
           <div class="payment-action-row">
             <button class="btn btn-ghost" type="button" data-refresh-booking-id="${Number(booking.id)}">Check Approval</button>
             <a class="btn btn-ghost" href="/static/dashboard.html">View Dashboard</a>

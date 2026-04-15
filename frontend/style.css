@@ -907,10 +907,12 @@ label {
 
 .payment-status-card {
   display: grid;
-  gap: 12px;
+  gap: 16px;
   border-radius: 18px;
+  border: 1px solid rgba(201, 169, 107, 0.24);
+  padding: 18px;
   background:
-    radial-gradient(circle at top right, rgba(201, 169, 107, 0.12), transparent 34%),
+    radial-gradient(circle at top right, rgba(201, 169, 107, 0.16), transparent 34%),
     rgba(255, 250, 242, 0.96);
   box-shadow: 0 10px 26px rgba(24, 57, 43, 0.05);
 }
@@ -941,6 +943,78 @@ label {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.payment-timeline {
+  display: grid;
+  gap: 10px;
+}
+
+.payment-timeline-step {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: 10px;
+  align-items: center;
+  color: var(--muted);
+}
+
+.payment-timeline-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 2px solid rgba(46, 106, 79, 0.2);
+  background: rgba(255, 250, 242, 0.9);
+}
+
+.payment-timeline-step-done {
+  color: var(--primary-strong);
+  font-weight: 600;
+}
+
+.payment-timeline-step-done .payment-timeline-dot {
+  border-color: rgba(46, 106, 79, 0.7);
+  background: rgba(46, 106, 79, 0.9);
+}
+
+.payment-timeline-step-active {
+  color: #33463e;
+  font-weight: 600;
+}
+
+.payment-timeline-step-active .payment-timeline-dot {
+  border-color: rgba(201, 169, 107, 0.7);
+  background: rgba(201, 169, 107, 0.88);
+  box-shadow: 0 0 0 4px rgba(201, 169, 107, 0.12);
+}
+
+.payment-timeline-step-blocked .payment-timeline-dot {
+  border-color: rgba(182, 84, 75, 0.45);
+  background: rgba(182, 84, 75, 0.72);
+}
+
+.payment-summary-grid {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 250, 242, 0.7);
+}
+
+.payment-summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.payment-service-pill-row {
+  margin-top: -2px;
+}
+
+.payment-trust-list {
+  gap: 8px;
 }
 
 .profile-page-shell {
@@ -976,6 +1050,18 @@ label {
 .booking-payment-panel,
 .booking-trust-panel {
   box-shadow: var(--shadow);
+}
+
+.booking-primary-panel {
+  background:
+    radial-gradient(circle at top right, rgba(201, 169, 107, 0.1), transparent 30%),
+    rgba(255, 250, 242, 0.92);
+}
+
+.booking-payment-panel-featured {
+  background:
+    radial-gradient(circle at top right, rgba(201, 169, 107, 0.18), transparent 34%),
+    linear-gradient(165deg, rgba(255, 251, 244, 0.98), rgba(244, 235, 223, 0.98));
 }
 
 .booking-sidebar-stack {
