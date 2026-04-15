@@ -1867,6 +1867,16 @@ async function hydrateCustomerDashboard() {
   const statFavoriteBarbers = document.getElementById("statFavoriteBarbers");
   const statCompletedHaircuts = document.getElementById("statCompletedHaircuts");
   const statLoyaltyPoints = document.getElementById("statLoyaltyPoints");
+  const overviewNextBookingEl = document.getElementById("customerOverviewNextBooking");
+  const overviewPaymentCountEl = document.getElementById("customerOverviewPaymentCount");
+  const overviewSavedCountEl = document.getElementById("customerOverviewSavedCount");
+  const snapshotCountEl = document.getElementById("customerSnapshotCount");
+  const nextBarberSummaryEl = document.getElementById("customerNextBarberSummary");
+  const lastBookingSummaryEl = document.getElementById("customerLastBookingSummary");
+  const fastActionSummaryEl = document.getElementById("customerFastActionSummary");
+  const trendingCountEl = document.getElementById("customerTrendingCount");
+  const nearbyCountEl = document.getElementById("customerNearbyCount");
+  const bookAgainCountEl = document.getElementById("customerBookAgainCount");
 
   if (!upcomingCardEl || !trendingEl || !nearbyEl || !bookAgainEl) {
     return;
@@ -1929,6 +1939,12 @@ async function hydrateCustomerDashboard() {
       })
       .sort((a, b) => new Date(b.scheduled_time) - new Date(a.scheduled_time));
 
+    const readyToPayBookings = bookings.filter((booking) => {
+      const statusValue = String(booking.status || "").toLowerCase();
+      const paymentStatus = String(booking.payment_status || "").toLowerCase();
+      return ["approved", "accepted", "paid"].includes(statusValue) && paymentStatus !== "paid";
+    });
+
     const favorites = (() => {
       try {
         const raw = JSON.parse(localStorage.getItem("favourites") || "[]");
@@ -1970,6 +1986,49 @@ async function hydrateCustomerDashboard() {
 
     const lastBooking = past[0] || upcoming[0];
     bookAgainEl.innerHTML = renderBookAgainCard(lastBooking, barberMap);
+
+    if (overviewNextBookingEl) {
+      overviewNextBookingEl.textContent = upcoming[0]
+        ? formatDateTime(upcoming[0].scheduled_time)
+        : "No upcoming booking";
+    }
+    if (overviewPaymentCountEl) {
+      overviewPaymentCountEl.textContent = `${readyToPayBookings.length} booking${readyToPayBookings.length === 1 ? "" : "s"}`;
+    }
+    if (overviewSavedCountEl) {
+      overviewSavedCountEl.textContent = `${favorites.length} saved`;
+    }
+    if (snapshotCountEl) {
+      snapshotCountEl.textContent = `${upcoming.length} active`;
+    }
+    if (nextBarberSummaryEl) {
+      const nextBarber = upcoming[0] ? barberMap.get(Number(upcoming[0].barber_id)) : null;
+      nextBarberSummaryEl.textContent = nextBarber
+        ? `${nextBarber.shopName} · ${formatTime(upcoming[0].scheduled_time)}`
+        : "Pick your next barber";
+    }
+    if (lastBookingSummaryEl) {
+      const lastBarber = lastBooking ? barberMap.get(Number(lastBooking.barber_id)) : null;
+      lastBookingSummaryEl.textContent = lastBooking
+        ? `${lastBarber?.shopName || "Recent barber"} · ${formatDateTime(lastBooking.scheduled_time)}`
+        : "No recent booking yet";
+    }
+    if (fastActionSummaryEl) {
+      fastActionSummaryEl.textContent = readyToPayBookings.length
+        ? "Complete payment for your approved booking"
+        : favorites.length
+        ? "Rebook from your saved barbers"
+        : "Browse barbers near you";
+    }
+    if (trendingCountEl) {
+      trendingCountEl.textContent = `${Math.min(mappedBarbers.length, 4)} trending`;
+    }
+    if (nearbyCountEl) {
+      nearbyCountEl.textContent = `${Math.min(mappedBarbers.length, 5)} nearby`;
+    }
+    if (bookAgainCountEl) {
+      bookAgainCountEl.textContent = lastBooking ? "1 ready" : "0 ready";
+    }
 
     if (quickBookAgain) {
       quickBookAgain.href = lastBooking
@@ -4442,19 +4501,24 @@ function renderBarberRequestList(bookings) {
   return bookings
     .map((booking) => {
       const customerName = booking.customer_name || `Customer #${booking.customer_id}`;
+      const modeLabel = bookingModeLabel(booking);
       return `
         <article class="booking-item${urgentClass}" data-booking-card-id="${Number(booking.id)}">
-          <div>
+          <div class="booking-item-copy">
             ${urgentChip}
             <strong>${escapeHtml(customerName)}</strong>
             <p class="muted">${formatDateTime(booking.scheduled_time)}</p>
-            <p class="request-service">${escapeHtml(booking.service_name || "Haircut")} - ${priceText(
-        booking.price
-      )}</p>
+            <p class="request-service">${escapeHtml(booking.service_name || "Haircut")}</p>
+            <div class="booking-meta-row">
+              <span class="pill">${escapeHtml(modeLabel)}</span>
+              <span class="pill">${priceText(booking.price)}</span>
+            </div>
           </div>
-          <div class="action-row">
+          <div class="booking-item-side">
+            <div class="action-row booking-action-stack">
             <button class="btn btn-primary" data-booking-id="${booking.id}" data-booking-action="approved">Accept</button>
             <button class="btn btn-ghost" data-booking-id="${booking.id}" data-booking-action="rejected">Reject</button>
+            </div>
           </div>
         </article>
       `;
@@ -4471,18 +4535,23 @@ function renderTodayAppointmentList(bookings) {
     .map((booking) => {
       const customerName = booking.customer_name || `Customer #${booking.customer_id}`;
       const statusValue = String(booking.status || "pending").toLowerCase();
+      const modeLabel = bookingModeLabel(booking);
       return `
         <article class="booking-item" data-booking-card-id="${Number(booking.id)}">
-          <div>
+          <div class="booking-item-copy">
             <strong>${escapeHtml(customerName)}</strong>
-            <p class="muted">${escapeHtml(formatTime(booking.scheduled_time))} - ${escapeHtml(
-        booking.service_name || "Haircut"
-      )}</p>
+            <p class="muted">${escapeHtml(formatTime(booking.scheduled_time))}</p>
+            <p class="request-service">${escapeHtml(booking.service_name || "Haircut")}</p>
+            <div class="booking-meta-row">
+              <span class="pill">${escapeHtml(modeLabel)}</span>
+              <span class="pill">${priceText(booking.price)}</span>
+            </div>
           </div>
-          <div class="booking-tags booking-tags-expanded">
+          <div class="booking-item-side">
+            <div class="booking-tags booking-tags-expanded">
             <span class="status-badge status-${escapeHtml(statusValue)}">${escapeHtml(statusValue)}</span>
-            <span class="pill">${priceText(booking.price)}</span>
             ${renderMessageAction(booking)}
+            </div>
           </div>
         </article>
       `;
@@ -4513,15 +4582,18 @@ function renderRecentClientsList(completedBookings) {
     .slice(0, 6)
     .map((booking) => {
       const customerName = booking.customer_name || `Customer #${booking.customer_id}`;
+      const modeLabel = bookingModeLabel(booking);
       return `
         <article class="client-row">
-          <div>
+          <div class="client-row-copy">
             <strong>${escapeHtml(customerName)}</strong>
-            <p class="muted">${escapeHtml(booking.customer_phone || "No phone")} - ${escapeHtml(
-        booking.service_name || "Haircut"
-      )}</p>
+            <p class="muted">${escapeHtml(booking.customer_phone || "No phone")}</p>
+            <p class="request-service">${escapeHtml(booking.service_name || "Haircut")}</p>
+            <div class="booking-meta-row">
+              <span class="pill">${escapeHtml(modeLabel)}</span>
+              <span class="pill">${escapeHtml(formatDateTime(booking.scheduled_time))}</span>
+            </div>
           </div>
-          <span class="pill">${escapeHtml(formatDateTime(booking.scheduled_time))}</span>
         </article>
       `;
     })
@@ -4539,23 +4611,33 @@ function renderBookingList(bookings, emptyText, disputes = []) {
     .map((booking) => {
       const customerName = booking.customer_name || `Customer #${booking.customer_id}`;
       const statusValue = String(booking.status || "pending").toLowerCase();
+      const modeLabel = bookingModeLabel(booking);
       return `
         <article class="booking-item" data-booking-card-id="${Number(booking.id)}">
-          <div>
+          <div class="booking-item-copy">
             <strong>${escapeHtml(customerName)}</strong>
             <p class="muted">${formatDateTime(booking.scheduled_time)}</p>
             <p class="request-service">${escapeHtml(booking.service_name || "Haircut")}</p>
+            <div class="booking-meta-row">
+              <span class="pill">${escapeHtml(modeLabel)}</span>
+              <span class="pill">${priceText(booking.price)}</span>
+            </div>
           </div>
-          <div class="booking-tags booking-tags-expanded">
-            <span class="status-badge status-${escapeHtml(statusValue)}">${escapeHtml(statusValue)}</span>
-            <span class="pill">${priceText(booking.price)}</span>
-            ${renderMessageAction(booking)}
-            ${state.currentRole === "barber" ? renderBarberBookingActions(booking, disputes) : ""}
+          <div class="booking-item-side">
+            <div class="booking-tags booking-tags-expanded">
+              <span class="status-badge status-${escapeHtml(statusValue)}">${escapeHtml(statusValue)}</span>
+              ${renderMessageAction(booking)}
+              ${state.currentRole === "barber" ? renderBarberBookingActions(booking, disputes) : ""}
+            </div>
           </div>
         </article>
       `;
     })
     .join("");
+}
+
+function bookingModeLabel(booking) {
+  return Boolean(booking?.is_home_service) ? "Home service" : "Shop visit";
 }
 
 function renderCustomerBookingActions(booking, disputes = []) {
