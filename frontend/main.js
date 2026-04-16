@@ -503,6 +503,7 @@ function normalizeBarberServices(barber) {
       price: Number(service.price || 0),
       isHomeService: Boolean(service.is_home_service),
       isActive: service.is_active !== false,
+      durationMinutes: Math.max(Number(service.duration_minutes || service.durationMinutes || 60), 15),
     }))
     .filter((service) => service.name);
 
@@ -518,6 +519,7 @@ function normalizeBarberServices(barber) {
       price: Number(barber.haircut_price || 0),
       isHomeService: false,
       isActive: true,
+      durationMinutes: 60,
     });
   }
   if (Number(barber?.beard_trim_price || 0) > 0) {
@@ -527,6 +529,7 @@ function normalizeBarberServices(barber) {
       price: Number(barber.beard_trim_price || 0),
       isHomeService: false,
       isActive: true,
+      durationMinutes: 45,
     });
   }
   splitServiceList(barber?.other_services).forEach((name) => {
@@ -536,6 +539,7 @@ function normalizeBarberServices(barber) {
       price: 0,
       isHomeService: /home/i.test(name),
       isActive: true,
+      durationMinutes: /home/i.test(name) ? 90 : 60,
     });
   });
   return fallback;
@@ -543,8 +547,14 @@ function normalizeBarberServices(barber) {
 
 function serviceLabel(service) {
   const base = service?.price > 0 ? `${priceText(service.price)} ${service.name}` : String(service?.name || "Service");
-  return service?.isHomeService ? `${base} • Home service` : base;
+  const details = [];
+  if (service?.isHomeService) details.push("Home service");
+  if (Number(service?.durationMinutes || service?.duration_minutes || 0) > 0) {
+    details.push(`${Math.max(Number(service.durationMinutes || service.duration_minutes || 60), 15)} mins`);
+  }
+  return details.length ? `${base} | ${details.join(" | ")}` : base;
 }
+
 
 function barberCardTemplate(barber, ctaLabel = "View Profile") {
   const ctaHref =
@@ -745,7 +755,7 @@ async function initBarberProfilePage() {
     ]);
     const barber = mapBarber(barberResponse, Number(barberId));
     const today = toDateInput(new Date());
-    const availability = await getBarberAvailability(barberId, today).catch(() => []);
+    const availability = await getBarberAvailability(barberId, today, 60).catch(() => []);
     const availableTimes = normalizeAvailability(availability);
     const reviews = Array.isArray(reviewResponse?.items) ? reviewResponse.items : [];
     const reviewAverage = Number(reviewResponse?.average_rating || barber.rating || 0);
@@ -844,7 +854,7 @@ async function initBarberProfilePage() {
                         <article class="profile-service-card">
                           <div>
                             <strong>${escapeHtml(service.name)}</strong>
-                            <p class="muted">${service.isHomeService ? "Available for home service" : "Shop visit available"}</p>
+                            <p class="muted">${service.isHomeService ? "Available for home service" : "Shop visit available"} - ${Math.max(Number(service.durationMinutes || 60), 15)} mins</p>
                           </div>
                           <span class="pill">${escapeHtml(priceText(service.price))}</span>
                         </article>
@@ -961,10 +971,27 @@ async function initBookingPage() {
 
   let selectedServiceIds = [];
   let bookingServices = [];
+  let slotRequestId = 0;
+
+  function getSelectedBookingServices() {
+    return bookingServices.filter((service) => selectedServiceIds.includes(Number(service.id)));
+  }
+
+  function getSelectedBookingDurationMinutes() {
+    const selectedServices = getSelectedBookingServices();
+    if (!selectedServices.length) return 60;
+    return Math.max(
+      selectedServices.reduce(
+        (sum, service) => sum + Math.max(Number(service.durationMinutes || service.duration_minutes || 60), 15),
+        0
+      ),
+      15
+    );
+  }
 
   function renderBookingServiceSummary() {
     if (!bookingServiceSummary) return;
-    const selectedServices = bookingServices.filter((service) => selectedServiceIds.includes(Number(service.id)));
+    const selectedServices = getSelectedBookingServices();
     if (!selectedServices.length) {
       bookingServiceSummary.classList.add("hidden");
       bookingServiceSummary.innerHTML = "";
@@ -972,12 +999,14 @@ async function initBookingPage() {
     }
 
     const total = selectedServices.reduce((sum, service) => sum + Number(service.price || 0), 0);
+    const totalDuration = getSelectedBookingDurationMinutes();
     bookingServiceSummary.classList.remove("hidden");
     bookingServiceSummary.innerHTML = `
       <div class="booking-service-summary-head">
         <strong>${selectedServices.length} service${selectedServices.length === 1 ? "" : "s"} selected</strong>
         <span class="pill">${escapeHtml(priceText(total))}</span>
       </div>
+      <p class="muted">Estimated session length: ${escapeHtml(String(totalDuration))} mins</p>
       <div class="pill-row">
         ${selectedServices.map((service) => `<span class="pill">${escapeHtml(serviceLabel(service))}</span>`).join("")}
       </div>
@@ -1000,7 +1029,7 @@ async function initBookingPage() {
             <input type="checkbox" value="${Number(service.id || 0)}" ${selectedServiceIds.includes(Number(service.id)) ? "checked" : ""} />
             <div class="booking-service-option-copy">
               <strong>${escapeHtml(service.name)}</strong>
-              <span class="muted">${service.isHomeService ? "Home service available" : "Shop visit available"}</span>
+              <span class="muted">${service.isHomeService ? "Home service available" : "Shop visit available"} - ${Math.max(Number(service.durationMinutes || service.duration_minutes || 60), 15)} mins</span>
             </div>
             <span class="pill">${escapeHtml(priceText(service.price))}</span>
           </label>
@@ -1016,6 +1045,7 @@ async function initBookingPage() {
               .filter((value) => Number.isFinite(value) && value > 0)
           : [];
         renderBookingServiceSummary();
+        loadTimeSlots();
       });
     });
 
@@ -1030,12 +1060,15 @@ async function initBookingPage() {
     bookingNotice.textContent = "";
     const selectedDate = dateInput.value;
     if (!selectedDate) return;
+    const requestId = ++slotRequestId;
+    const selectedDurationMinutes = getSelectedBookingDurationMinutes();
 
     timeSelect.disabled = true;
     timeSelect.innerHTML = `<option>Loading...</option>`;
 
     try {
-      const availability = await getBarberAvailability(barberId, selectedDate).catch(() => []);
+      const availability = await getBarberAvailability(barberId, selectedDate, selectedDurationMinutes).catch(() => []);
+      if (requestId !== slotRequestId) return;
       const times = normalizeAvailability(availability);
       hydrateTimeSelect(timeSelect, times);
 
@@ -1044,11 +1077,14 @@ async function initBookingPage() {
         bookingNotice.className = "notice";
       }
     } catch (error) {
+      if (requestId !== slotRequestId) return;
       timeSelect.innerHTML = `<option value="">Unavailable</option>`;
       bookingNotice.textContent = error.message;
       bookingNotice.className = "notice error";
     } finally {
-      timeSelect.disabled = false;
+      if (requestId === slotRequestId) {
+        timeSelect.disabled = false;
+      }
     }
   }
 
@@ -1122,9 +1158,8 @@ async function initBookingPage() {
       return;
     }
 
-    const localDate = new Date(`${selectedDate}T${selectedTime}:00`);
-    const scheduledTime = localDate.toISOString();
-    const selectedServices = bookingServices.filter((service) => selectedServiceIds.includes(Number(service.id)));
+    const scheduledTime = `${selectedDate}T${selectedTime}:00`;
+    const selectedServices = getSelectedBookingServices();
     const serviceName = selectedServices.map((service) => service.name).join(", ") || "Haircut";
 
     const submitBtn = bookingForm.querySelector("button[type='submit']");
@@ -1938,7 +1973,7 @@ async function hydrateCustomerDashboard() {
     const upcoming = bookings
       .filter((booking) => {
         const when = new Date(booking.scheduled_time);
-        return when >= now && ["pending", "approved", "accepted"].includes(String(booking.status));
+        return when >= now && ["pending", "approved", "accepted", "paid"].includes(String(booking.status));
       })
       .sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time));
 
@@ -3046,6 +3081,7 @@ function renderBarberServicesList(services = []) {
             <strong>${escapeHtml(service.name || "Service")}</strong>
             <div class="service-editor-pills">
               ${service.is_home_service ? `<span class="pill pill-chat">Home Service</span>` : ""}
+              <span class="pill">${Math.max(Number(service.duration_minutes || service.durationMinutes || 60), 15)} mins</span>
               <span class="pill ${service.is_active ? "pill-success" : ""}">${service.is_active ? "Active" : "Inactive"}</span>
             </div>
           </div>
@@ -3074,6 +3110,19 @@ function renderBarberServicesList(services = []) {
                   min="0"
                   step="100"
                   value="${Number(service.price || 0)}"
+                  required
+                />
+              </div>
+              <div>
+                <label for="service_duration_${Number(service.id)}">Duration (minutes)</label>
+                <input
+                  id="service_duration_${Number(service.id)}"
+                  name="duration_minutes"
+                  class="input"
+                  type="number"
+                  min="15"
+                  step="15"
+                  value="${Math.max(Number(service.duration_minutes || service.durationMinutes || 60), 15)}"
                   required
                 />
               </div>
@@ -3336,6 +3385,7 @@ function hydrateSettingsPanel() {
             await updateBarberService(serviceId, {
               name: String(form.elements.name.value || "").trim(),
               price: Number(form.elements.price.value || 0),
+              duration_minutes: Number(form.elements.duration_minutes.value || 60),
               is_active: Boolean(form.elements.is_active.checked),
             });
             await refreshBarberSettingsState();
@@ -3399,6 +3449,7 @@ function hydrateSettingsPanel() {
         await createBarberService({
           name: String(barberServiceForm.elements.name.value || "").trim(),
           price: Number(barberServiceForm.elements.price.value || 0),
+          duration_minutes: Number(barberServiceForm.elements.duration_minutes.value || 60),
           is_home_service: Boolean(barberServiceForm.elements.is_home_service.checked),
           is_active: true,
         });
@@ -5716,11 +5767,16 @@ function normalizeAvailability(availability) {
 
   const unique = new Set();
   availability.forEach((slot) => {
-    const date = new Date(slot);
-    if (Number.isNaN(date.getTime())) return;
-    const hh = String(date.getHours()).padStart(2, "0");
-    const mm = String(date.getMinutes()).padStart(2, "0");
-    unique.add(`${hh}:${mm}`);
+    const normalized = String(slot || "").trim();
+    if (!normalized) return;
+    const timePart = normalized.includes("T")
+      ? normalized.split("T")[1]
+      : normalized.includes(" ")
+        ? normalized.split(" ")[1]
+        : normalized;
+    const cleanTime = timePart.slice(0, 5);
+    if (!/^\d{2}:\d{2}$/.test(cleanTime)) return;
+    unique.add(cleanTime);
   });
 
   return [...unique].sort();

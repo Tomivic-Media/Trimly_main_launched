@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class BarberServiceCreate(BaseModel):
     name: str
     price: float
+    duration_minutes: int = 60
     is_home_service: bool = False
     is_active: bool = True
 
@@ -14,6 +15,7 @@ class BarberServiceCreate(BaseModel):
 class BarberServiceUpdate(BaseModel):
     name: Optional[str] = None
     price: Optional[float] = None
+    duration_minutes: Optional[int] = None
     is_active: Optional[bool] = None
 
 
@@ -24,6 +26,7 @@ class BarberServiceResponse(BaseModel):
     barber_id: int
     name: str
     price: float
+    duration_minutes: int = 60
     is_home_service: bool = False
     is_active: bool = True
 

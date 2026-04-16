@@ -42,6 +42,10 @@ from app.routes.barber import (
 
 router = APIRouter()
 
+DEFAULT_SERVICE_DURATION_MINUTES = 60
+MINIMUM_SERVICE_DURATION_MINUTES = 15
+BOOKING_SLOT_STEP_MINUTES = 30
+
 
 def _ensure_booking_status_schema(db: Session) -> None:
     statement = (
@@ -83,6 +87,14 @@ def _normalize_datetime(value: datetime) -> datetime:
     return value
 
 
+def _normalize_duration_minutes(value: int | float | None) -> int:
+    try:
+        normalized = int(value or DEFAULT_SERVICE_DURATION_MINUTES)
+    except (TypeError, ValueError):
+        normalized = DEFAULT_SERVICE_DURATION_MINUTES
+    return max(normalized, MINIMUM_SERVICE_DURATION_MINUTES)
+
+
 def _parse_available_days(raw_days: str | None) -> list[str]:
     if not raw_days:
         return []
@@ -93,6 +105,34 @@ def _booking_window_for_barber(barber: Barber, barber_user: User) -> tuple[time 
     start_time = barber.available_start_time or barber_user.work_start
     end_time = barber.available_end_time or barber_user.work_end
     return start_time, end_time
+
+
+def _selected_services_duration_minutes(services: list[BarberService]) -> int:
+    if not services:
+        return DEFAULT_SERVICE_DURATION_MINUTES
+    return sum(_normalize_duration_minutes(getattr(service, "duration_minutes", DEFAULT_SERVICE_DURATION_MINUTES)) for service in services)
+
+
+def _booking_duration_minutes(booking: Booking) -> int:
+    booking_services = list(getattr(booking, "booking_services", []) or [])
+    if booking_services:
+        return sum(
+            _normalize_duration_minutes(
+                getattr(getattr(item, "service", None), "duration_minutes", DEFAULT_SERVICE_DURATION_MINUTES)
+            )
+            for item in booking_services
+        )
+    return DEFAULT_SERVICE_DURATION_MINUTES
+
+
+def _booking_time_bounds(booking: Booking) -> tuple[datetime, datetime]:
+    start = _normalize_datetime(booking.scheduled_time)
+    end = start + timedelta(minutes=_booking_duration_minutes(booking))
+    return start, end
+
+
+def _time_windows_overlap(start_a: datetime, end_a: datetime, start_b: datetime, end_b: datetime) -> bool:
+    return start_a < end_b and start_b < end_a
 
 
 def _logic_status(status: BookingStatus | str | None) -> str:
@@ -168,6 +208,7 @@ def _booking_to_response(booking: Booking) -> BookingResponse:
             service_id=item.service_id,
             name=item.service.name if item.service else f"Service #{item.service_id}",
             price=float(item.price or 0),
+            duration_minutes=_normalize_duration_minutes(item.service.duration_minutes if item.service else DEFAULT_SERVICE_DURATION_MINUTES),
             is_home_service=bool(item.service.is_home_service) if item.service else False,
         )
         for item in getattr(booking, "booking_services", []) or []
@@ -513,17 +554,23 @@ def create_booking(
     _assert_within_availability(barber, barber_user, scheduled_time)
     selected_services = _resolve_selected_services(db, barber, booking_data.service_ids)
 
-    existing_booking = (
+    day_start = datetime.combine(scheduled_time.date(), time.min)
+    day_end = datetime.combine(scheduled_time.date(), time.max)
+    candidate_bookings = (
         db.query(Booking)
         .filter(
             Booking.barber_id == barber.id,
-            Booking.scheduled_time == scheduled_time,
-            Booking.status.notin_([BookingStatus.cancelled, BookingStatus.rejected, BookingStatus.refunded]),
+            Booking.scheduled_time >= day_start,
+            Booking.scheduled_time <= day_end,
+            Booking.status.notin_([BookingStatus.cancelled, BookingStatus.rejected, BookingStatus.refunded, BookingStatus.completed, BookingStatus.no_show]),
         )
-        .first()
+        .all()
     )
-    if existing_booking:
-        raise HTTPException(status_code=400, detail="This time slot is already booked")
+    requested_end = scheduled_time + timedelta(minutes=_selected_services_duration_minutes(selected_services))
+    for existing_booking in candidate_bookings:
+        existing_start, existing_end = _booking_time_bounds(existing_booking)
+        if _time_windows_overlap(scheduled_time, requested_end, existing_start, existing_end):
+            raise HTTPException(status_code=400, detail="This time slot is already booked")
 
     price = round(sum(float(service.price or 0) for service in selected_services), 2)
     commission, barber_earnings = calculate_split_amounts(price)
@@ -861,6 +908,7 @@ def mark_booking_completed_for_admin(
 def get_availability(
     barber_id: int,
     selected_date: date | None = Query(default=None, alias="date"),
+    duration_minutes: int = Query(default=DEFAULT_SERVICE_DURATION_MINUTES, ge=MINIMUM_SERVICE_DURATION_MINUTES, le=480),
     db: Session = Depends(get_db),
 ):
     barber_profile = db.query(Barber).filter(Barber.id == barber_id).first()
@@ -895,23 +943,26 @@ def get_availability(
             Booking.barber_id == barber_profile.id,
             Booking.scheduled_time >= start_dt,
             Booking.scheduled_time < end_dt,
-            Booking.status.notin_([BookingStatus.cancelled, BookingStatus.rejected, BookingStatus.refunded]),
+            Booking.status.notin_([BookingStatus.cancelled, BookingStatus.rejected, BookingStatus.refunded, BookingStatus.completed, BookingStatus.no_show]),
         )
         .all()
     )
-    booked_times = {
-        _normalize_datetime(booking.scheduled_time).replace(second=0, microsecond=0)
-        for booking in booked_slots
-    }
 
     now = datetime.now()
     available_slots = []
     current_slot = start_dt
-    while current_slot < end_dt:
+    service_duration = _normalize_duration_minutes(duration_minutes)
+    slot_step = timedelta(minutes=BOOKING_SLOT_STEP_MINUTES)
+    while current_slot + timedelta(minutes=service_duration) <= end_dt:
         slot_key = current_slot.replace(second=0, microsecond=0)
-        if slot_key not in booked_times and (target_date > now.date() or current_slot > now):
+        slot_end = slot_key + timedelta(minutes=service_duration)
+        is_overlapping = any(
+            _time_windows_overlap(slot_key, slot_end, *_booking_time_bounds(booking))
+            for booking in booked_slots
+        )
+        if not is_overlapping and (target_date > now.date() or current_slot > now):
             available_slots.append(slot_key)
-        current_slot += timedelta(hours=1)
+        current_slot += slot_step
 
     return available_slots
 

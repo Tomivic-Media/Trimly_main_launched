@@ -18,6 +18,7 @@ class BookingServiceSelection(BaseModel):
     service_id: int
     name: str
     price: float
+    duration_minutes: int = 60
     is_home_service: bool = False
 
 

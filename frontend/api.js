@@ -383,9 +383,9 @@ async function deactivateBarberService(serviceId) {
   return apiFetch(`/barber/services/${serviceId}`, { method: "DELETE" }, true);
 }
 
-async function getBarberAvailability(barberId, selectedDate = "") {
+async function getBarberAvailability(barberId, selectedDate = "", durationMinutes = "") {
   return apiFetch(
-    `/barber/${barberId}/availability${toQuery({ date: selectedDate })}`,
+    `/barber/${barberId}/availability${toQuery({ date: selectedDate, duration_minutes: durationMinutes })}`,
     { method: "GET" }
   );
 }

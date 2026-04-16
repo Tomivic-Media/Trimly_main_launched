@@ -138,6 +138,8 @@ def ensure_runtime_schema() -> None:
         "UPDATE users SET admin_approved = FALSE WHERE admin_approved IS NULL",
         "UPDATE users SET loyalty_points = 0 WHERE loyalty_points IS NULL",
         "UPDATE users SET referral_reward_granted = FALSE WHERE referral_reward_granted IS NULL",
+        "ALTER TABLE barber_services ADD COLUMN IF NOT EXISTS duration_minutes INTEGER",
+        "UPDATE barber_services SET duration_minutes = 60 WHERE duration_minutes IS NULL OR duration_minutes <= 0",
         "ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS receiver_id INTEGER",
         (
             "UPDATE chat_messages SET receiver_id = bookings.customer_id "

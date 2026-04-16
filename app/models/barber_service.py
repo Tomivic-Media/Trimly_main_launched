@@ -11,6 +11,7 @@ class BarberService(Base):
     barber_id = Column(Integer, ForeignKey("barbers.id"), nullable=False, index=True)
     name = Column(String, nullable=False)
     price = Column(Float, nullable=False, default=0)
+    duration_minutes = Column(Integer, nullable=False, default=60)
     is_home_service = Column(Boolean, nullable=False, default=False)
     is_active = Column(Boolean, nullable=False, default=True)
 

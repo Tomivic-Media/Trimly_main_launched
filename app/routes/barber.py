@@ -160,6 +160,7 @@ def _serialize_service(service: BarberService) -> BarberServiceResponse:
         barber_id=service.barber_id,
         name=str(service.name or "").strip(),
         price=float(service.price or 0),
+        duration_minutes=max(int(service.duration_minutes or 60), 15),
         is_home_service=bool(service.is_home_service),
         is_active=bool(service.is_active),
     )
@@ -199,12 +200,14 @@ def _upsert_default_service(
     *,
     name: str,
     price: float,
+    duration_minutes: int = 60,
     is_home_service: bool = False,
     default_active: bool = True,
 ) -> BarberService:
     existing = _find_service(barber, name, is_home_service=is_home_service)
     if existing:
         existing.price = float(price or 0)
+        existing.duration_minutes = max(int(duration_minutes or 60), 15)
         if existing.is_active is None:
             existing.is_active = bool(default_active)
         return existing
@@ -213,6 +216,7 @@ def _upsert_default_service(
         barber_id=barber.id,
         name=name,
         price=float(price or 0),
+        duration_minutes=max(int(duration_minutes or 60), 15),
         is_home_service=bool(is_home_service),
         is_active=bool(default_active),
     )
@@ -227,6 +231,7 @@ def _sync_default_barber_services(barber: Barber, db: Session) -> None:
         db,
         name=DEFAULT_HAIRCUT_SERVICE_NAME,
         price=barber.haircut_price,
+        duration_minutes=60,
         is_home_service=False,
         default_active=True,
     )
@@ -237,6 +242,7 @@ def _sync_default_barber_services(barber: Barber, db: Session) -> None:
             db,
             name=DEFAULT_BEARD_SERVICE_NAME,
             price=barber.beard_trim_price,
+            duration_minutes=45,
             is_home_service=False,
             default_active=True,
         )
@@ -246,6 +252,7 @@ def _sync_default_barber_services(barber: Barber, db: Session) -> None:
         db,
         name=DEFAULT_HOME_SERVICE_NAME,
         price=0,
+        duration_minutes=90,
         is_home_service=True,
         default_active=False,
     )
@@ -674,6 +681,7 @@ def add_barber_service(
     if existing:
         existing.name = service_name
         existing.price = float(payload.price or 0)
+        existing.duration_minutes = max(int(payload.duration_minutes or 60), 15)
         existing.is_home_service = bool(payload.is_home_service)
         existing.is_active = bool(payload.is_active)
         service = existing
@@ -682,6 +690,7 @@ def add_barber_service(
             barber_id=barber.id,
             name=service_name,
             price=float(payload.price or 0),
+            duration_minutes=max(int(payload.duration_minutes or 60), 15),
             is_home_service=bool(payload.is_home_service),
             is_active=bool(payload.is_active),
         )
@@ -729,6 +738,9 @@ def update_barber_service(
 
     if payload.price is not None:
         service.price = float(payload.price or 0)
+
+    if payload.duration_minutes is not None:
+        service.duration_minutes = max(int(payload.duration_minutes or 60), 15)
 
     if payload.is_active is not None:
         if payload.is_active and not bool(service.is_active) and _count_active_services(barber) >= MAX_BARBER_SERVICES:
