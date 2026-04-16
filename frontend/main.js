@@ -2111,8 +2111,8 @@ function renderUpcomingAppointmentCard(booking, barberMap) {
       <div class="upcoming-meta">
         <span class="muted">${escapeHtml(barberLocation)}</span>
         <span>${formatDateTime(booking.scheduled_time)}</span>
-        <span class="status-badge status-${escapeHtml(String(booking.status).toLowerCase())}">${escapeHtml(
-      String(booking.status)
+        <span class="status-badge status-${escapeHtml(getBookingDisplayStatus(booking))}">${escapeHtml(
+      capitalize(getBookingDisplayStatus(booking))
     )}</span>
       </div>
       <div class="upcoming-actions">
@@ -2300,7 +2300,14 @@ async function hydrateBarberDashboard() {
     );
 
     const todayAppointments = state.barberBookings
-      .filter((booking) => toDateInput(new Date(booking.scheduled_time)) === todayKey)
+      .filter((booking) => toDateInput(new Date(booking.scheduled_time)) === todayKey && isBookingVisibleInSchedule(booking))
+      .sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time));
+
+    const upcomingAppointments = state.barberBookings
+      .filter((booking) => {
+        const scheduledAt = new Date(booking.scheduled_time);
+        return scheduledAt >= now && isBookingVisibleInSchedule(booking);
+      })
       .sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time));
 
     const recentClients = completed
@@ -2356,9 +2363,9 @@ async function hydrateBarberDashboard() {
       overviewPendingCountEl.textContent = String(pending.length);
     }
     if (overviewNextSlotEl) {
-      overviewNextSlotEl.textContent = todayAppointments.length
-        ? `${formatTime(todayAppointments[0].scheduled_time)} today`
-        : "No bookings";
+      overviewNextSlotEl.textContent = upcomingAppointments.length
+        ? formatDateTime(upcomingAppointments[0].scheduled_time)
+        : "No upcoming bookings";
     }
     if (overviewListingStatusEl) {
       const listingStatus = String(state.barberProfile?.kyc_status || "pending").toLowerCase();
@@ -2372,9 +2379,9 @@ async function hydrateBarberDashboard() {
           : "Pending approval";
     }
     if (nextAppointmentSummaryEl) {
-      nextAppointmentSummaryEl.textContent = todayAppointments.length
-        ? `${formatTime(todayAppointments[0].scheduled_time)} · ${todayAppointments[0].customer_name || `Customer #${todayAppointments[0].customer_id}`}`
-        : "No appointments scheduled";
+      nextAppointmentSummaryEl.textContent = upcomingAppointments.length
+        ? `${formatDateTime(upcomingAppointments[0].scheduled_time)} · ${upcomingAppointments[0].customer_name || `Customer #${upcomingAppointments[0].customer_id}`}`
+        : "No upcoming appointments";
     }
     if (queueSummaryEl) {
       queueSummaryEl.textContent = pending.length
@@ -4544,7 +4551,7 @@ function renderTodayAppointmentList(bookings) {
   return bookings
     .map((booking) => {
       const customerName = booking.customer_name || `Customer #${booking.customer_id}`;
-      const statusValue = String(booking.status || "pending").toLowerCase();
+      const statusValue = getBookingDisplayStatus(booking);
       const modeLabel = bookingModeLabel(booking);
       return `
         <article class="booking-item" data-booking-card-id="${Number(booking.id)}">
@@ -4620,7 +4627,7 @@ function renderBookingList(bookings, emptyText, disputes = []) {
     .sort((a, b) => new Date(b.scheduled_time) - new Date(a.scheduled_time))
     .map((booking) => {
       const customerName = booking.customer_name || `Customer #${booking.customer_id}`;
-      const statusValue = String(booking.status || "pending").toLowerCase();
+      const statusValue = getBookingDisplayStatus(booking);
       const modeLabel = bookingModeLabel(booking);
       return `
         <article class="booking-item" data-booking-card-id="${Number(booking.id)}">
@@ -4648,6 +4655,29 @@ function renderBookingList(bookings, emptyText, disputes = []) {
 
 function bookingModeLabel(booking) {
   return Boolean(booking?.is_home_service) ? "Home service" : "Shop visit";
+}
+
+function getBookingDisplayStatus(booking) {
+  const statusValue = String(booking?.status || "pending").toLowerCase();
+  const paymentStatus = String(booking?.payment_status || "").toLowerCase();
+
+  if (
+    paymentStatus === "paid" &&
+    !["completed", "cancelled", "rejected", "refunded", "no_show", "disputed"].includes(statusValue)
+  ) {
+    return "paid";
+  }
+
+  if (statusValue === "accepted") {
+    return "approved";
+  }
+
+  return statusValue;
+}
+
+function isBookingVisibleInSchedule(booking) {
+  const statusValue = String(booking?.status || "").toLowerCase();
+  return !["cancelled", "rejected", "refunded", "completed", "no_show"].includes(statusValue);
 }
 
 function renderCustomerBookingActions(booking, disputes = []) {
@@ -6104,7 +6134,7 @@ function bindFavoriteButtons(container = document) {
 
 function renderMessageAction(booking) {
   const statusValue = String(booking?.status || "").toLowerCase();
-  if (statusValue !== "approved") {
+  if (!["approved", "accepted", "paid", "completed"].includes(statusValue)) {
     return "";
   }
 
@@ -6448,8 +6478,8 @@ async function initMessagesPage() {
     }
 
     const statusValue = String(booking.status || "pending").toLowerCase();
-    if (statusValue !== "approved") {
-      throw new Error("Chat is only available for approved bookings.");
+    if (!["approved", "accepted", "paid", "completed"].includes(statusValue)) {
+      throw new Error("Chat is only available for approved or paid bookings.");
     }
 
     state.currentUserId = state.currentRole === "barber"
