@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trimly | Discover Barbers</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Sora:wght@100..800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./style.css?v=20260402h" />
+  </head>
+  <body data-page="dashboard" data-dashboard-role="customer">
+    <header class="site-header">
+      <div class="container nav-shell">
+        <a class="brand" href="/">
+          <span class="brand-badge">T</span>
+          <span>Trimly</span>
+        </a>
+        <button class="nav-toggle" data-nav-toggle aria-label="Toggle menu">Menu</button>
+        <nav class="nav-main" data-nav-menu>
+          <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="./barbers.html">Barbers</a>
+            <a class="active" href="./dashboard.html">Dashboard</a>
+          </div>
+          <div class="auth-actions" data-auth-actions>
+            <a class="btn btn-ghost" href="./login.html">Login</a>
+            <a class="btn btn-primary" href="./register.html">Register</a>
+            <a class="auth-admin-link" href="./admin-login.html">Admin Login</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main class="section">
+      <div class="container dashboard-container">
+        <h1 class="section-title" id="customerGreeting">Welcome back. Ready for your next cut?</h1>
+        <p class="section-subtitle">
+          Signed in as <strong id="dashboardEmail">...</strong>
+          <span class="pill" id="dashboardRole">...</span>
+        </p>
+
+        <nav id="customerDashboardSubnav" class="dashboard-subnav hidden" aria-label="Customer dashboard sections">
+          <a class="dashboard-subnav-link" href="./dashboard.html">Overview</a>
+          <a class="dashboard-subnav-link" href="./dashboard-discover.html">Discover</a>
+          <a class="dashboard-subnav-link" href="./dashboard-bookings.html">Bookings</a>
+        </nav>
+
+        <section id="customerDashboard" class="customer-marketplace hidden">
+          <article class="panel customer-overview-panel">
+            <div class="customer-overview-grid">
+              <div class="customer-overview-copy">
+                <span class="dashboard-eyebrow">Discover</span>
+                <h2>Find the barber that matches your style, location, and budget.</h2>
+                <p class="muted">
+                  Search by name, area, or haircut type, then compare top-rated barbers before you book.
+                </p>
+
+                <form id="customerSearchForm" class="search-row customer-search-row">
+                  <input id="customerBarberSearch" class="input" type="text" placeholder="Search barbers, location, or style" />
+                  <button class="btn btn-primary" type="submit">Search Barbers</button>
+                </form>
+
+                <div class="style-chip-row">
+                  <button class="style-chip" type="button" data-style="Skin Fade">Skin Fade</button>
+                  <button class="style-chip" type="button" data-style="Buzz Cut">Buzz Cut</button>
+                  <button class="style-chip" type="button" data-style="Beard Trim">Beard Trim</button>
+                  <button class="style-chip" type="button" data-style="Afro Shape Up">Afro Shape Up</button>
+                  <button class="style-chip" type="button" data-style="Braids">Braids</button>
+                </div>
+              </div>
+
+              <div class="customer-overview-side">
+                <article class="customer-focus-card">
+                  <div class="panel-head-row">
+                    <h3>Quick context</h3>
+                    <span class="pill">Discover</span>
+                  </div>
+                  <div class="customer-focus-list">
+                    <div class="customer-focus-item">
+                      <span class="customer-focus-label">Trending now</span>
+                      <strong id="customerTrendingCount">0 trending</strong>
+                    </div>
+                    <div class="customer-focus-item">
+                      <span class="customer-focus-label">Closest options</span>
+                      <strong id="customerNearbyCount">0 nearby</strong>
+                    </div>
+                    <div class="customer-focus-item">
+                      <span class="customer-focus-label">Rebook ready</span>
+                      <strong id="customerBookAgainCount">0 ready</strong>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </div>
+          </article>
+
+          <div id="customerDiscoverPanel" class="customer-main-grid">
+            <article class="panel customer-feature-panel">
+              <div class="panel-head-row">
+                <div>
+                  <h3>Trending Barbers Near You</h3>
+                  <p class="muted customer-panel-subtitle">Top-rated options customers are booking right now.</p>
+                </div>
+                <div class="panel-head-actions">
+                  <span class="pill" id="customerTrendingCountSecondary">Top picks</span>
+                  <a href="./barbers.html" class="muted">See all</a>
+                </div>
+              </div>
+              <div id="customerTrending" class="grid grid-4"></div>
+            </article>
+
+            <div class="customer-side-stack">
+              <article class="panel">
+                <div class="panel-head-row">
+                  <div>
+                    <h3>Nearby Barbers</h3>
+                    <p class="muted customer-panel-subtitle">Closest options when you need a quick booking.</p>
+                  </div>
+                  <span class="pill" id="customerNearbyCountSecondary">Nearby</span>
+                </div>
+                <div id="customerNearby" class="nearby-grid"></div>
+              </article>
+
+              <article class="panel">
+                <div class="panel-head-row">
+                  <div>
+                    <h3>Book Again</h3>
+                    <p class="muted customer-panel-subtitle">Jump straight back to barbers you already trust.</p>
+                  </div>
+                  <span class="pill" id="customerBookAgainCountSecondary">Rebook</span>
+                </div>
+                <div id="customerBookAgain" class="book-again-wrap"></div>
+              </article>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-row">
+        <span>&copy; <span data-current-year></span> Trimly</span>
+        <span>Manage appointments, trust, and payouts from one place</span>
+      </div>
+    </footer>
+
+    <div id="toast" class="toast"></div>
+    <script type="module" src="./main.js?v=20260411a"></script>
+  </body>
+</html>

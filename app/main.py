@@ -84,6 +84,9 @@ def ensure_runtime_schema() -> None:
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS service_name VARCHAR",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS payment_reference VARCHAR",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS payment_status VARCHAR(20)",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS payment_due_at TIMESTAMP",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS payment_reminder_count INTEGER DEFAULT 0",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS payout_status VARCHAR(64)",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS transfer_reference VARCHAR",
@@ -99,6 +102,7 @@ def ensure_runtime_schema() -> None:
         "ALTER TABLE bookings ALTER COLUMN payout_status SET DEFAULT 'pending'",
         "UPDATE bookings SET service_name = 'Haircut' WHERE service_name IS NULL",
         "UPDATE bookings SET payment_status = 'unpaid' WHERE payment_status IS NULL",
+        "UPDATE bookings SET payment_reminder_count = 0 WHERE payment_reminder_count IS NULL",
         "UPDATE bookings SET payout_status = 'pending' WHERE payout_status IS NULL",
         "UPDATE bookings SET escrow_released = FALSE WHERE escrow_released IS NULL",
         "UPDATE bookings SET refund_requested = FALSE WHERE refund_requested IS NULL",
@@ -160,6 +164,7 @@ def ensure_runtime_schema() -> None:
             "IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'bookingstatus') THEN "
             "ALTER TYPE bookingstatus ADD VALUE IF NOT EXISTS 'approved'; "
             "ALTER TYPE bookingstatus ADD VALUE IF NOT EXISTS 'paid'; "
+            "ALTER TYPE bookingstatus ADD VALUE IF NOT EXISTS 'expired'; "
             "ALTER TYPE bookingstatus ADD VALUE IF NOT EXISTS 'disputed'; "
             "ALTER TYPE bookingstatus ADD VALUE IF NOT EXISTS 'refunded'; "
             "ALTER TYPE bookingstatus ADD VALUE IF NOT EXISTS 'no_show'; "

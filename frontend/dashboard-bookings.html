@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trimly | My Bookings</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Sora:wght@100..800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./style.css?v=20260402h" />
+  </head>
+  <body data-page="dashboard" data-dashboard-role="customer">
+    <header class="site-header">
+      <div class="container nav-shell">
+        <a class="brand" href="/">
+          <span class="brand-badge">T</span>
+          <span>Trimly</span>
+        </a>
+        <button class="nav-toggle" data-nav-toggle aria-label="Toggle menu">Menu</button>
+        <nav class="nav-main" data-nav-menu>
+          <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="./barbers.html">Barbers</a>
+            <a class="active" href="./dashboard.html">Dashboard</a>
+          </div>
+          <div class="auth-actions" data-auth-actions>
+            <a class="btn btn-ghost" href="./login.html">Login</a>
+            <a class="btn btn-primary" href="./register.html">Register</a>
+            <a class="auth-admin-link" href="./admin-login.html">Admin Login</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main class="section">
+      <div class="container dashboard-container">
+        <h1 class="section-title" id="customerGreeting">Welcome back. Ready for your next cut?</h1>
+        <p class="section-subtitle">
+          Signed in as <strong id="dashboardEmail">...</strong>
+          <span class="pill" id="dashboardRole">...</span>
+        </p>
+
+        <nav id="customerDashboardSubnav" class="dashboard-subnav hidden" aria-label="Customer dashboard sections">
+          <a class="dashboard-subnav-link" href="./dashboard.html">Overview</a>
+          <a class="dashboard-subnav-link" href="./dashboard-discover.html">Discover</a>
+          <a class="dashboard-subnav-link" href="./dashboard-bookings.html">Bookings</a>
+        </nav>
+
+        <section id="customerDashboard" class="customer-marketplace hidden">
+          <div class="customer-main-grid">
+            <article class="panel customer-feature-panel">
+              <div class="panel-head-row">
+                <div>
+                  <h3>Booking summary</h3>
+                  <p class="muted customer-panel-subtitle">Your next appointment, payment state, and booking actions in one place.</p>
+                </div>
+                <span class="pill" id="customerSnapshotCount">0 active</span>
+              </div>
+
+              <div class="customer-overview-highlights" style="margin-bottom: 20px;">
+                <article class="customer-highlight-card">
+                  <small>Next booking</small>
+                  <strong id="customerOverviewNextBooking">No upcoming booking</strong>
+                  <span class="muted">The next appointment currently on your calendar.</span>
+                </article>
+                <article class="customer-highlight-card">
+                  <small>Ready to pay</small>
+                  <strong id="customerOverviewPaymentCount">0 bookings</strong>
+                  <span class="muted">Approved bookings still waiting for payment.</span>
+                </article>
+                <article class="customer-highlight-card">
+                  <small>Saved barbers</small>
+                  <strong id="customerOverviewSavedCount">0 saved</strong>
+                  <span class="muted">Favorites ready whenever you need a quick rebook.</span>
+                </article>
+              </div>
+
+              <div id="customerUpcomingCard" class="upcoming-appointment-card customer-upcoming-card"></div>
+            </article>
+
+            <div class="customer-side-stack">
+              <article class="panel" id="customerRecentActivitySection">
+                <div class="panel-head-row">
+                  <div>
+                    <h3>Recent booking activity</h3>
+                    <p class="muted customer-panel-subtitle">Approved, paid, completed, cancelled, and rebooking actions live here.</p>
+                  </div>
+                </div>
+                <div id="customerRecentActivity" class="booking-list"></div>
+              </article>
+
+              <article class="panel">
+                <div class="panel-head-row">
+                  <div>
+                    <h3>Disputes and support</h3>
+                    <p class="muted customer-panel-subtitle">Anything you have raised with Trimly support.</p>
+                  </div>
+                  <span class="pill" id="customerDisputeCount">0 open</span>
+                </div>
+                <div id="customerDisputesList" class="booking-list"></div>
+              </article>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-row">
+        <span>&copy; <span data-current-year></span> Trimly</span>
+        <span>Manage appointments, trust, and payouts from one place</span>
+      </div>
+    </footer>
+
+    <div class="modal-backdrop hidden" id="reviewModalBackdrop"></div>
+    <section class="modal-shell hidden" id="reviewModal" aria-hidden="true">
+      <article class="modal-card">
+        <div class="panel-head-row">
+          <div>
+            <h3>Rate your haircut</h3>
+            <p class="muted" id="reviewModalSubtitle">Share a quick review after your completed booking.</p>
+          </div>
+          <button class="btn btn-ghost btn-sm" type="button" id="reviewModalClose">Close</button>
+        </div>
+        <form id="reviewForm" class="form-grid">
+          <input id="reviewBookingId" type="hidden" />
+          <div>
+            <label>Star Rating</label>
+            <div class="review-rating-picker" id="reviewRatingPicker">
+              <button class="btn btn-ghost" type="button" data-review-rating="1">1</button>
+              <button class="btn btn-ghost" type="button" data-review-rating="2">2</button>
+              <button class="btn btn-ghost" type="button" data-review-rating="3">3</button>
+              <button class="btn btn-ghost" type="button" data-review-rating="4">4</button>
+              <button class="btn btn-ghost" type="button" data-review-rating="5">5</button>
+            </div>
+          </div>
+          <div>
+            <label for="reviewText">Review</label>
+            <textarea id="reviewText" class="input textarea" rows="4" placeholder="Tell other customers how the experience went."></textarea>
+          </div>
+          <div class="settings-action-row">
+            <button class="btn btn-primary" type="submit">Submit Review</button>
+            <button class="btn btn-ghost" type="button" id="reviewModalCancel">Cancel</button>
+          </div>
+        </form>
+        <p id="reviewNotice" class="notice"></p>
+      </article>
+    </section>
+
+    <div id="toast" class="toast"></div>
+    <script type="module" src="./main.js?v=20260411a"></script>
+  </body>
+</html>

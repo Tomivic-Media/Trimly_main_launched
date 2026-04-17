@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trimly | Barber Overview</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Sora:wght@100..800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./style.css?v=20260402h" />
+  </head>
+  <body data-page="dashboard" data-dashboard-role="barber">
+    <header class="site-header">
+      <div class="container nav-shell">
+        <a class="brand" href="/">
+          <span class="brand-badge">T</span>
+          <span>Trimly</span>
+        </a>
+        <button class="nav-toggle" data-nav-toggle aria-label="Toggle menu">Menu</button>
+        <nav class="nav-main" data-nav-menu>
+          <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="./barbers.html">Barbers</a>
+            <a class="active" href="./barber-dashboard.html">Dashboard</a>
+          </div>
+          <div class="auth-actions" data-auth-actions>
+            <a class="btn btn-ghost" href="./login.html">Login</a>
+            <a class="btn btn-primary" href="./register.html">Register</a>
+            <a class="auth-admin-link" href="./admin-login.html">Admin Login</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main class="section">
+      <div class="container dashboard-container">
+        <h1 class="section-title" id="customerGreeting">Good to see you. Your chair is ready for the week.</h1>
+        <p class="section-subtitle">
+          Signed in as <strong id="dashboardEmail">...</strong>
+          <span class="pill" id="dashboardRole">...</span>
+        </p>
+
+        <nav id="barberDashboardSubnav" class="dashboard-subnav hidden" aria-label="Barber dashboard sections">
+          <a class="dashboard-subnav-link" href="./barber-dashboard.html">Overview</a>
+          <a class="dashboard-subnav-link" href="./barber-queue.html">Queue</a>
+          <a class="dashboard-subnav-link" href="./barber-records.html">Records</a>
+        </nav>
+
+        <section id="barberDashboard" class="barber-hub hidden">
+          <article id="barberOverviewPanel" class="panel barber-overview-panel">
+            <div class="barber-overview-grid">
+              <div class="barber-overview-copy">
+                <span class="dashboard-eyebrow">Barber dashboard</span>
+                <h2>Run your bookings, earnings, and visibility from one place.</h2>
+                <p class="muted">
+                  Keep the work queue moving, stay visible to customers, and know exactly what needs attention today.
+                </p>
+                <div class="barber-overview-badges">
+                  <span class="pill" id="barberChecklistProgress">0 / 5 done</span>
+                  <span class="pill" id="barberProfileHealth">Needs work</span>
+                </div>
+                <div class="barber-overview-highlights">
+                  <article class="barber-highlight-card">
+                    <small>Requests waiting</small>
+                    <strong id="barberOverviewPendingCount">0</strong>
+                    <span class="muted">New customer requests still waiting for your response.</span>
+                  </article>
+                  <article class="barber-highlight-card">
+                    <small>Next slot</small>
+                    <strong id="barberOverviewNextSlot">No bookings</strong>
+                    <span class="muted">The next appointment currently on your live schedule.</span>
+                  </article>
+                  <article class="barber-highlight-card">
+                    <small>Listing status</small>
+                    <strong id="barberOverviewListingStatus">Pending review</strong>
+                    <span class="muted">What customers can currently see on your public profile.</span>
+                  </article>
+                </div>
+              </div>
+
+              <div class="barber-overview-side">
+                <aside class="barber-status-card">
+                  <div class="panel-head-row">
+                    <h3>Booking visibility</h3>
+                    <span class="pill">Live control</span>
+                  </div>
+                  <p class="muted">Control whether customers can find you and send new requests.</p>
+                  <label class="status-toggle" for="barberStatusToggle">
+                    <input id="barberStatusToggle" type="checkbox" />
+                    <span class="status-switch"></span>
+                    <span id="barberStatusLabel">Offline</span>
+                  </label>
+                  <p id="barberStatusNotice" class="notice"></p>
+                </aside>
+
+                <article class="barber-focus-card">
+                  <div class="panel-head-row">
+                    <h3>Today at a glance</h3>
+                    <span class="pill" id="barberTodayCount">0 today</span>
+                  </div>
+                  <div class="barber-focus-list">
+                    <div class="barber-focus-item">
+                      <span class="barber-focus-label">Next appointment</span>
+                      <strong id="barberNextAppointmentSummary">No appointments scheduled</strong>
+                    </div>
+                    <div class="barber-focus-item">
+                      <span class="barber-focus-label">Awaiting payment</span>
+                      <strong id="barberAwaitingPaymentSummary">No unpaid approvals</strong>
+                    </div>
+                    <div class="barber-focus-item">
+                      <span class="barber-focus-label">Queue pressure</span>
+                      <strong id="barberQueueSummary">No requests waiting</strong>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </div>
+
+            <section id="barberApprovalBanner" class="barber-approval-banner hidden" aria-live="polite">
+              <div class="barber-approval-banner-copy">
+                <strong id="barberApprovalBannerTitle">Profile review in progress</strong>
+                <p id="barberApprovalBannerText" class="muted">
+                  Your barber page is currently under review. Customers will not see your public listing until approval is complete.
+                </p>
+              </div>
+              <a class="btn btn-ghost" href="./settings.html?tab=operations">Open Operations</a>
+            </section>
+
+            <section class="barber-stat-grid">
+              <article class="barber-stat-card barber-stat-card-primary">
+                <small>This week earnings</small>
+                <strong id="earningsWeekValue">NGN 0</strong>
+                <span class="muted">Revenue already locked in this week</span>
+              </article>
+              <article class="barber-stat-card">
+                <small>Today earnings</small>
+                <strong id="earningsTodayValue">NGN 0</strong>
+                <span class="muted">What you have earned so far today</span>
+              </article>
+              <article class="barber-stat-card">
+                <small>Awaiting payout review</small>
+                <strong id="earningsPendingEscrowValue">NGN 0</strong>
+                <span class="muted">Jobs that still need payout completion</span>
+              </article>
+              <article class="barber-stat-card">
+                <small>Total jobs completed</small>
+                <strong id="jobsValue">0</strong>
+                <span class="muted">Completed bookings on your account</span>
+              </article>
+            </section>
+          </article>
+        </section>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-row">
+        <span>&copy; <span data-current-year></span> Trimly</span>
+        <span>Manage appointments, trust, and payouts from one place</span>
+      </div>
+    </footer>
+
+    <div id="toast" class="toast"></div>
+    <script type="module" src="./main.js?v=20260411a"></script>
+  </body>
+</html>

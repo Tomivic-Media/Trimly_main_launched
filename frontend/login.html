@@ -179,7 +179,9 @@
             localStorage.setItem("trimly_email", mePayload.logged_in_as || email);
 
             const urlParams = new URLSearchParams(window.location.search);
-            const next = urlParams.get("next") || "/static/dashboard.html";
+            const next =
+              urlParams.get("next") ||
+              (role === "barber" ? "/static/barber-dashboard.html" : "/static/dashboard.html");
             window.location.href = next;
           } catch (error) {
             notice.textContent = error.message || "Login failed";

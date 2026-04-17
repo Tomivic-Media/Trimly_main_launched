@@ -6,6 +6,7 @@ class BookingStatus(str, Enum):
     approved = "approved"
     paid = "paid"
     accepted = "accepted"
+    expired = "expired"
     rejected = "rejected"
     completed = "completed"
     cancelled = "cancelled"

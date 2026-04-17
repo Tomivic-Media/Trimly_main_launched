@@ -54,6 +54,9 @@ class BookingResponse(BaseModel):
 
     payment_status: PaymentStatus = PaymentStatus.unpaid
     payment_reference: Optional[str] = None
+    approved_at: Optional[datetime] = None
+    payment_due_at: Optional[datetime] = None
+    payment_reminder_count: int = 0
     paid_at: Optional[datetime] = None
 
     payout_status: Optional[str] = None

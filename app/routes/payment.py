@@ -45,9 +45,10 @@ def _get_booking_or_404(db: Session, booking_id: int) -> Booking:
     return booking
 
 
-def _dashboard_link(**params) -> str:
+def _dashboard_link(section: str = "bookings", **params) -> str:
     query = urlencode({key: value for key, value in params.items() if value is not None})
-    return f"/static/dashboard.html{f'?{query}' if query else ''}"
+    target = "/static/barber-queue.html" if section == "barber_queue" else "/static/dashboard-bookings.html"
+    return f"{target}{f'?{query}' if query else ''}"
 
 
 @router.post("/payment/webhook")
@@ -95,7 +96,7 @@ async def paystack_webhook(request: Request, db: Session = Depends(get_db)):
                         f"Payment for {booking.service_name} on "
                         f"{format_notification_time(booking.scheduled_time)} has been confirmed."
                     ),
-                    link=_dashboard_link(booking=booking.id, focus="booking"),
+                    link=_dashboard_link(section="bookings", booking=booking.id, focus="booking"),
                     booking_id=booking.id,
                 )
             db.commit()
@@ -171,7 +172,7 @@ def admin_refund_booking(
         message=(
             f"Booking #{booking.id} for {booking.service_name} has been marked as refunded."
         ),
-        link=_dashboard_link(booking=booking.id, focus="booking"),
+        link=_dashboard_link(section="barber_queue", booking=booking.id, focus="booking"),
         booking_id=booking.id,
     )
     notify_admins(

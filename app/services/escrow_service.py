@@ -28,6 +28,7 @@ def apply_paid_booking_state(booking: Booking) -> None:
     booking.status = BookingStatus.paid
     booking.payment_status = PaymentStatus.paid
     booking.paid_at = booking.paid_at or datetime.utcnow()
+    booking.payment_due_at = None
     booking.escrow_amount = 0
     booking.commission_amount = commission_amount
     booking.barber_payout_amount = barber_payout_amount

@@ -26,6 +26,7 @@ from app.services.escrow_service import (
     mark_booking_completed,
 )
 from app.services.notification_service import create_notifications, format_notification_time, notify_admins
+from app.services.booking_email_service import send_booking_approved_payment_email
 from app.services.referral_service import award_completion_points, maybe_award_referral_bonus
 from app.services.reminder_service import dispatch_due_booking_reminders
 from app.services.paystack_subaccount_service import ensure_barber_subaccount
@@ -45,6 +46,7 @@ router = APIRouter()
 DEFAULT_SERVICE_DURATION_MINUTES = 60
 MINIMUM_SERVICE_DURATION_MINUTES = 15
 BOOKING_SLOT_STEP_MINUTES = 30
+APPROVED_PAYMENT_WINDOW_MINUTES = 120
 
 
 def _ensure_booking_status_schema(db: Session) -> None:
@@ -53,6 +55,7 @@ def _ensure_booking_status_schema(db: Session) -> None:
         "IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'bookingstatus') THEN "
         "ALTER TYPE bookingstatus ADD VALUE IF NOT EXISTS 'approved'; "
         "ALTER TYPE bookingstatus ADD VALUE IF NOT EXISTS 'paid'; "
+        "ALTER TYPE bookingstatus ADD VALUE IF NOT EXISTS 'expired'; "
         "ALTER TYPE bookingstatus ADD VALUE IF NOT EXISTS 'disputed'; "
         "ALTER TYPE bookingstatus ADD VALUE IF NOT EXISTS 'refunded'; "
         "ALTER TYPE bookingstatus ADD VALUE IF NOT EXISTS 'no_show'; "
@@ -240,12 +243,22 @@ def _booking_to_response(booking: Booking) -> BookingResponse:
         status=booking.status,
         payment_status=booking.payment_status,
         payment_reference=booking.payment_reference,
+        approved_at=booking.approved_at,
+        payment_due_at=booking.payment_due_at,
+        payment_reminder_count=int(booking.payment_reminder_count or 0),
         paid_at=booking.paid_at,
         payout_status=booking.payout_status,
         transfer_reference=booking.transfer_reference,
         transferred_at=booking.transferred_at,
         created_at=booking.created_at,
     )
+
+
+def _set_payment_window_on_approval(booking: Booking) -> None:
+    now = datetime.utcnow()
+    booking.approved_at = now
+    booking.payment_due_at = now + timedelta(minutes=APPROVED_PAYMENT_WINDOW_MINUTES)
+    booking.payment_reminder_count = 0
 
 
 def _resolve_selected_services(db: Session, barber: Barber, service_ids: list[int]) -> list[BarberService]:
@@ -291,9 +304,17 @@ def _resolve_selected_services(db: Session, barber: Barber, service_ids: list[in
     return ordered_services
 
 
-def _dashboard_link(**params) -> str:
+def _dashboard_link(section: str = "bookings", **params) -> str:
     query = urlencode({key: value for key, value in params.items() if value is not None})
-    return f"/static/dashboard.html{f'?{query}' if query else ''}"
+    target = {
+        "overview": "/static/dashboard.html",
+        "discover": "/static/dashboard-discover.html",
+        "bookings": "/static/dashboard-bookings.html",
+        "barber_overview": "/static/barber-dashboard.html",
+        "barber_queue": "/static/barber-queue.html",
+        "barber_records": "/static/barber-records.html",
+    }.get(section, "/static/dashboard-bookings.html")
+    return f"{target}{f'?{query}' if query else ''}"
 
 
 def _chat_link(booking_id: int) -> str:
@@ -322,12 +343,17 @@ def _notify_booking_created(db: Session, booking: Booking, customer: User, barbe
             f"{customer.full_name} requested {booking.service_name} for "
             f"{format_notification_time(booking.scheduled_time)}."
         ),
-        link=_dashboard_link(booking=booking.id, focus="booking"),
+        link=_dashboard_link(section="barber_queue", booking=booking.id, focus="booking"),
         booking_id=booking.id,
     )
 
 
 def _notify_booking_approved(db: Session, booking: Booking) -> None:
+    payment_due_copy = (
+        f" Pay now to secure your slot by {format_notification_time(booking.payment_due_at)}."
+        if booking.payment_due_at
+        else " Pay now to secure your slot."
+    )
     create_notifications(
         db,
         user_ids=[booking.customer_id],
@@ -336,10 +362,23 @@ def _notify_booking_approved(db: Session, booking: Booking) -> None:
         message=(
             f"Your booking for {booking.service_name} on "
             f"{format_notification_time(booking.scheduled_time)} has been approved."
+            f"{payment_due_copy}"
         ),
-        link=_dashboard_link(booking=booking.id, focus="booking"),
+        link=_dashboard_link(section="bookings", booking=booking.id, focus="booking"),
         booking_id=booking.id,
     )
+    if booking.customer and booking.customer.email:
+        try:
+            send_booking_approved_payment_email(
+                booking.customer.email,
+                booking.customer.full_name or "there",
+                booking.service_name,
+                booking.scheduled_time,
+                booking.payment_due_at,
+                _dashboard_link(section="bookings", booking=booking.id, focus="payment"),
+            )
+        except Exception:
+            pass
 
 
 def _notify_chat_available(db: Session, booking: Booking) -> None:
@@ -355,7 +394,7 @@ def _notify_chat_available(db: Session, booking: Booking) -> None:
         message=(
             f"Your {booking.service_name} booking for "
             f"{format_notification_time(booking.scheduled_time)} is approved. "
-            "You can now chat directly inside Trimly."
+            "You can now chat directly inside Trimly while payment is being completed."
         ),
         link=_chat_link(booking.id),
         booking_id=booking.id,
@@ -372,7 +411,7 @@ def _notify_booking_rejected(db: Session, booking: Booking) -> None:
             f"Your booking for {booking.service_name} on "
             f"{format_notification_time(booking.scheduled_time)} was declined by the barber."
         ),
-        link=_dashboard_link(booking=booking.id, focus="booking"),
+        link=_dashboard_link(section="bookings", booking=booking.id, focus="booking"),
         booking_id=booking.id,
     )
 
@@ -401,7 +440,7 @@ def _notify_booking_cancelled(db: Session, booking: Booking, actor_role: str) ->
             f"The {booking.service_name} booking scheduled for "
             f"{format_notification_time(booking.scheduled_time)} was cancelled by the {actor_label}."
         ),
-        link=_dashboard_link(booking=booking.id, focus="booking"),
+        link=_dashboard_link(section="barber_queue", booking=booking.id, focus="booking"),
         booking_id=booking.id,
     )
 
@@ -418,9 +457,9 @@ def _notify_payment_confirmed(db: Session, booking: Booking) -> None:
         title="Payment confirmed",
         message=(
             f"Payment for {booking.service_name} on "
-            f"{format_notification_time(booking.scheduled_time)} has been confirmed."
+            f"{format_notification_time(booking.scheduled_time)} has been confirmed and your slot is now locked."
         ),
-        link=_dashboard_link(booking=booking.id, focus="booking"),
+        link=_dashboard_link(section="bookings", booking=booking.id, focus="booking"),
         booking_id=booking.id,
     )
 
@@ -488,7 +527,7 @@ def _notify_booking_completed(db: Session, booking: Booking) -> None:
             f"The {booking.service_name} booking on "
             f"{format_notification_time(booking.scheduled_time)}."
         ),
-        link=_dashboard_link(booking=booking.id, focus="booking"),
+        link=_dashboard_link(section="bookings", booking=booking.id, focus="booking"),
         booking_id=booking.id,
     )
     notify_admins(
@@ -513,8 +552,12 @@ def _ensure_can_cancel(booking: Booking, current_user: User) -> None:
     if role == UserRole.customer.value:
         if booking.customer_id != current_user.id:
             raise HTTPException(status_code=403, detail="Not allowed")
-        if logic_status in {BookingStatus.completed.value, BookingStatus.refunded.value}:
-            raise HTTPException(status_code=400, detail="Completed or refunded bookings cannot be cancelled")
+        if logic_status in {
+            BookingStatus.completed.value,
+            BookingStatus.refunded.value,
+            BookingStatus.expired.value,
+        }:
+            raise HTTPException(status_code=400, detail="Completed, refunded, or expired bookings cannot be cancelled")
         return
 
     if role == UserRole.barber.value:
@@ -529,6 +572,7 @@ def _cancel_booking(booking: Booking) -> None:
         raise HTTPException(status_code=400, detail="Refunded bookings cannot be cancelled")
 
     booking.status = BookingStatus.cancelled
+    booking.payment_due_at = None
     if booking.payment_status == PaymentStatus.paid:
         booking.refund_requested = True
 
@@ -541,6 +585,7 @@ def create_booking(
 ):
     if _normalize_role(current_user.role) != UserRole.customer.value:
         raise HTTPException(status_code=403, detail="Only customers can create bookings")
+    dispatch_due_booking_reminders(db)
 
     barber = db.query(Barber).filter(Barber.id == booking_data.barber_id).first()
     if not barber:
@@ -562,7 +607,14 @@ def create_booking(
             Booking.barber_id == barber.id,
             Booking.scheduled_time >= day_start,
             Booking.scheduled_time <= day_end,
-            Booking.status.notin_([BookingStatus.cancelled, BookingStatus.rejected, BookingStatus.refunded, BookingStatus.completed, BookingStatus.no_show]),
+            Booking.status.notin_([
+                BookingStatus.cancelled,
+                BookingStatus.rejected,
+                BookingStatus.refunded,
+                BookingStatus.completed,
+                BookingStatus.no_show,
+                BookingStatus.expired,
+            ]),
         )
         .all()
     )
@@ -613,6 +665,7 @@ def approve_booking(
     db: Session = Depends(get_db),
 ):
     _ensure_booking_status_schema(db)
+    dispatch_due_booking_reminders(db)
     booking = _get_booking_or_404(db, booking_id)
     _assert_barber_owns_booking(booking, current_user)
     _assert_verified_barber(booking.barber)
@@ -621,6 +674,7 @@ def approve_booking(
         raise HTTPException(status_code=400, detail="Only pending bookings can be approved")
 
     booking.status = BookingStatus.approved
+    _set_payment_window_on_approval(booking)
     _notify_booking_approved(db, booking)
     _notify_chat_available(db, booking)
     db.commit()
@@ -673,6 +727,7 @@ def update_booking_status(
     db: Session = Depends(get_db),
 ):
     _ensure_booking_status_schema(db)
+    dispatch_due_booking_reminders(db)
     booking = _get_booking_or_404(db, booking_id)
     normalized_target = BookingStatus.approved if new_status == BookingStatus.accepted else new_status
 
@@ -687,6 +742,7 @@ def update_booking_status(
         if _logic_status(booking.status) != BookingStatus.pending.value:
             raise HTTPException(status_code=400, detail="Only pending bookings can be approved")
         booking.status = BookingStatus.approved
+        _set_payment_window_on_approval(booking)
         _notify_booking_approved(db, booking)
         _notify_chat_available(db, booking)
     elif normalized_target == BookingStatus.rejected:
@@ -702,8 +758,8 @@ def update_booking_status(
             raise HTTPException(status_code=403, detail="Not allowed")
         if role == UserRole.barber.value:
             _assert_barber_owns_booking(booking, current_user)
-        if _logic_status(booking.status) not in {BookingStatus.approved.value, BookingStatus.paid.value}:
-            raise HTTPException(status_code=400, detail="Only approved or paid bookings can be marked no_show")
+        if _logic_status(booking.status) != BookingStatus.paid.value:
+            raise HTTPException(status_code=400, detail="Only paid bookings can be marked no_show")
         booking.status = BookingStatus.no_show
     else:
         raise HTTPException(status_code=400, detail="Use dedicated endpoints for this status change")
@@ -721,6 +777,7 @@ def pay_for_booking(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    dispatch_due_booking_reminders(db)
     booking = _get_booking_or_404(db, booking_id)
 
     if booking.customer_id != current_user.id:
@@ -734,6 +791,8 @@ def pay_for_booking(
     logic_status = _logic_status(booking.status)
     if logic_status == BookingStatus.pending.value:
         raise HTTPException(status_code=400, detail="Booking not yet approved")
+    if logic_status == BookingStatus.expired.value:
+        raise HTTPException(status_code=400, detail="This approved booking expired before payment was completed")
     if logic_status != BookingStatus.approved.value:
         raise HTTPException(status_code=400, detail="Booking cannot be paid for")
 
@@ -911,6 +970,7 @@ def get_availability(
     duration_minutes: int = Query(default=DEFAULT_SERVICE_DURATION_MINUTES, ge=MINIMUM_SERVICE_DURATION_MINUTES, le=480),
     db: Session = Depends(get_db),
 ):
+    dispatch_due_booking_reminders(db)
     barber_profile = db.query(Barber).filter(Barber.id == barber_id).first()
     if not barber_profile:
         raise HTTPException(status_code=404, detail="Barber not found")
@@ -943,7 +1003,14 @@ def get_availability(
             Booking.barber_id == barber_profile.id,
             Booking.scheduled_time >= start_dt,
             Booking.scheduled_time < end_dt,
-            Booking.status.notin_([BookingStatus.cancelled, BookingStatus.rejected, BookingStatus.refunded, BookingStatus.completed, BookingStatus.no_show]),
+            Booking.status.notin_([
+                BookingStatus.cancelled,
+                BookingStatus.rejected,
+                BookingStatus.refunded,
+                BookingStatus.completed,
+                BookingStatus.no_show,
+                BookingStatus.expired,
+            ]),
         )
         .all()
     )

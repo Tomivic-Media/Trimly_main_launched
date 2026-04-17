@@ -111,9 +111,14 @@ def _normalize_days(values: list[str]) -> list[str]:
     return ordered
 
 
-def _dashboard_link(**params) -> str:
+def _dashboard_link(section: str = "overview", **params) -> str:
     query = urlencode({key: value for key, value in params.items() if value is not None})
-    return f"/static/dashboard.html{f'?{query}' if query else ''}"
+    target = {
+        "overview": "/static/barber-dashboard.html",
+        "queue": "/static/barber-queue.html",
+        "records": "/static/barber-records.html",
+    }.get(section, "/static/barber-dashboard.html")
+    return f"{target}{f'?{query}' if query else ''}"
 
 
 def _parse_days(raw_days: Optional[str]) -> list[str]:
@@ -558,7 +563,7 @@ def verify_barber_kyc(
             notification_type="barber_verified",
             title="Barber profile approved",
             message="Your barber profile has been approved. You can now appear in search and accept bookings.",
-            link=_dashboard_link(focus="kyc"),
+            link=_dashboard_link(section="overview", focus="kyc"),
         )
         notify_admins(
             db,
@@ -577,7 +582,7 @@ def verify_barber_kyc(
             notification_type="barber_rejected",
             title="Barber profile rejected",
             message=payload.rejection_reason or "Your barber verification was rejected. Please review the admin note and update your details.",
-            link=_dashboard_link(focus="kyc"),
+            link=_dashboard_link(section="overview", focus="kyc"),
         )
         notify_admins(
             db,
@@ -596,7 +601,7 @@ def verify_barber_kyc(
             notification_type="barber_pending_review",
             title="Barber profile moved to pending",
             message=payload.rejection_reason or "Your barber profile has been moved back to pending review.",
-            link=_dashboard_link(focus="kyc"),
+            link=_dashboard_link(section="overview", focus="kyc"),
         )
         notify_admins(
             db,
@@ -616,7 +621,7 @@ def verify_barber_kyc(
             notification_type="barber_suspended",
             title="Barber access suspended",
             message=payload.rejection_reason or "Your barber profile has been suspended pending further review.",
-            link=_dashboard_link(focus="kyc"),
+            link=_dashboard_link(section="overview", focus="kyc"),
         )
         notify_admins(
             db,

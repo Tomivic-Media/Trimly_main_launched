@@ -31,9 +31,10 @@ def _normalize_role(role_value) -> str:
 ADMIN_ROLES = {UserRole.admin.value, UserRole.super_admin.value}
 
 
-def _dashboard_link(**params) -> str:
+def _dashboard_link(section: str = "bookings", **params) -> str:
     query = urlencode({key: value for key, value in params.items() if value is not None})
-    return f"/static/dashboard.html{f'?{query}' if query else ''}"
+    target = "/static/barber-records.html" if section == "barber_records" else "/static/dashboard-bookings.html"
+    return f"{target}{f'?{query}' if query else ''}"
 
 
 def _get_booking_or_404(db: Session, booking_id: int) -> Booking:
@@ -98,7 +99,7 @@ def raise_dispute(
             f"A dispute was opened for booking #{booking.id} scheduled "
             f"{format_notification_time(booking.scheduled_time)}."
         ),
-        link=_dashboard_link(dispute=dispute.id, focus="dispute"),
+        link=_dashboard_link(section="barber_records", dispute=dispute.id, focus="dispute"),
         booking_id=booking.id,
     )
     notify_admins(
@@ -187,7 +188,7 @@ def resolve_dispute(
         message=(
             f"The dispute for booking #{booking.id} has been marked {resolution}."
         ),
-        link=_dashboard_link(dispute=dispute.id, focus="dispute"),
+        link=_dashboard_link(section="bookings", dispute=dispute.id, focus="dispute"),
         booking_id=booking.id,
     )
     notify_admins(

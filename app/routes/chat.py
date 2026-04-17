@@ -14,7 +14,7 @@ from app.schemas.chat import ChatMessageCreate, ChatMessageResponse
 
 router = APIRouter()
 
-ALLOWED_CHAT_STATUSES = {BookingStatus.approved}
+ALLOWED_CHAT_STATUSES = {BookingStatus.approved, BookingStatus.paid, BookingStatus.completed}
 
 
 class ConnectionManager:
@@ -94,7 +94,7 @@ def _assert_chat_access(booking: Booking, user) -> None:
     }
 
     if booking_status not in allowed_values:
-        raise HTTPException(status_code=400, detail="Chat is only available for approved bookings")
+        raise HTTPException(status_code=400, detail="Chat is only available for approved or paid bookings")
 
 
 def _resolve_receiver_id(booking: Booking, sender_user) -> int:

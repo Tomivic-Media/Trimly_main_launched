@@ -722,6 +722,18 @@ textarea:focus {
   color: #8c6a32;
 }
 
+.pill-warning {
+  border-color: rgba(201, 169, 107, 0.5);
+  background: rgba(201, 169, 107, 0.16);
+  color: #8c6a32;
+}
+
+.pill-danger {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.1);
+  color: #9f3b3b;
+}
+
 .pill-chat {
   border-color: rgba(46, 106, 79, 0.28);
   background: rgba(46, 106, 79, 0.08);
@@ -1050,6 +1062,34 @@ label {
 
 .payment-trust-list {
   gap: 8px;
+}
+
+.payment-deadline {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(201, 169, 107, 0.28);
+  background: rgba(201, 169, 107, 0.1);
+}
+
+.payment-deadline strong {
+  font-size: 0.98rem;
+  color: #5c4a20;
+}
+
+.payment-deadline span {
+  color: #6b6558;
+  font-size: 0.96rem;
+}
+
+.payment-deadline-expired {
+  border-color: rgba(182, 84, 75, 0.28);
+  background: rgba(182, 84, 75, 0.08);
+}
+
+.payment-deadline-expired strong {
+  color: #8b3d35;
 }
 
 .payment-next-step {
@@ -1628,6 +1668,11 @@ label {
   border-color: rgba(59, 130, 246, 0.45);
 }
 
+.status-expired {
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.45);
+}
+
 .status-refunded {
   color: #fca5a5;
   border-color: rgba(239, 68, 68, 0.45);
@@ -1831,6 +1876,45 @@ label {
 
 .dashboard-container {
   width: min(1360px, calc(100vw - 24px));
+}
+
+.dashboard-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 20px;
+}
+
+.dashboard-subnav-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 250, 242, 0.9);
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 8px 18px rgba(24, 57, 43, 0.05);
+}
+
+.dashboard-subnav-link:hover {
+  border-color: rgba(45, 122, 87, 0.32);
+  color: var(--brand);
+}
+
+.dashboard-subnav-link.active {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+  box-shadow: 0 14px 24px rgba(24, 57, 43, 0.16);
+}
+
+.dashboard-records-stack {
+  display: grid;
+  gap: 22px;
 }
 
 .customer-overview-panel {

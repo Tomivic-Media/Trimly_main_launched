@@ -1,4 +1,4 @@
-import {
+﻿import {
   adminSessionLogin,
   adminSessionLogout,
   adminRefundBooking,
@@ -100,6 +100,63 @@ const state = {
   barberAlertPollInterval: null,
   barberUrgentUnreadIds: null,
 };
+
+const DASHBOARD_ROUTES = {
+  customer: {
+    overview: "/static/dashboard.html",
+    discover: "/static/dashboard-discover.html",
+    bookings: "/static/dashboard-bookings.html",
+  },
+  barber: {
+    overview: "/static/barber-dashboard.html",
+    queue: "/static/barber-queue.html",
+    records: "/static/barber-records.html",
+  },
+};
+
+function getDashboardPath(roleValue = state.currentRole || localStorage.getItem("trimly_role") || "", section = "overview") {
+  const role = normalizeRole(roleValue || "customer");
+  if (role === "barber") {
+    return DASHBOARD_ROUTES.barber[section] || DASHBOARD_ROUTES.barber.overview;
+  }
+  return DASHBOARD_ROUTES.customer[section] || DASHBOARD_ROUTES.customer.overview;
+}
+
+function buildDashboardLink(roleValue, section = "overview", params = {}) {
+  const basePath = getDashboardPath(roleValue, section);
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      query.set(key, String(value));
+    }
+  });
+  return query.toString() ? `${basePath}?${query.toString()}` : basePath;
+}
+
+function getRoleDashboardRedirectPath(roleValue, pathname = window.location.pathname, search = window.location.search) {
+  const role = normalizeRole(roleValue || "customer");
+  const currentPath = String(pathname || "").toLowerCase();
+  const params = Object.fromEntries(new URLSearchParams(search || "").entries());
+  const isDisputeContext = Boolean(params.dispute) || String(params.focus || "").toLowerCase() === "dispute";
+
+  if (role === "barber") {
+    if (currentPath.endsWith("/dashboard-bookings.html")) {
+      return buildDashboardLink("barber", isDisputeContext ? "records" : "queue", params);
+    }
+    if (currentPath.endsWith("/dashboard-discover.html") || currentPath.endsWith("/dashboard.html")) {
+      return buildDashboardLink("barber", "overview", params);
+    }
+    return buildDashboardLink("barber", "overview", params);
+  }
+
+  if (currentPath.endsWith("/barber-queue.html") || currentPath.endsWith("/barber-records.html")) {
+    return buildDashboardLink("customer", "bookings", params);
+  }
+  if (currentPath.endsWith("/barber-dashboard.html")) {
+    return buildDashboardLink("customer", "overview", params);
+  }
+  return buildDashboardLink("customer", "overview", params);
+}
 
 const BARBER_SOUND_PREF_KEY = "trimly_barber_notification_sound";
 const BARBER_HIGHLIGHT_PREF_KEY = "trimly_barber_notification_highlight";
@@ -222,7 +279,7 @@ function hydrateAuthActions() {
         </div>
       </div>
       <a class="btn btn-icon" href="/static/settings.html" aria-label="Open settings" title="Settings">&#9881;</a>
-      <a class="btn btn-ghost" href="${["admin", "super_admin"].includes(normalizeRole(localStorage.getItem("trimly_role") || "")) ? "/admin" : "/static/dashboard.html"}">Dashboard</a>
+      <a class="btn btn-ghost" href="${["admin", "super_admin"].includes(normalizeRole(localStorage.getItem("trimly_role") || "")) ? "/admin" : getDashboardPath(normalizeRole(localStorage.getItem("trimly_role") || ""))}">Dashboard</a>
       <button class="btn btn-primary" data-logout-btn>${demoSession.active ? "Exit Demo" : "Logout"}</button>
     `;
 
@@ -1301,7 +1358,7 @@ function initLoginPage() {
       setAuthSession(data.access_token, role, authEmail);
 
       const urlParams = new URLSearchParams(window.location.search);
-      const next = urlParams.get("next") || "/static/dashboard.html";
+      const next = urlParams.get("next") || getDashboardPath(role || "customer");
 
       if (role === "barber") {
         const hasProfile = await checkBarberProfileExists();
@@ -1352,7 +1409,7 @@ function initDemoPage() {
     button.dataset.bound = "true";
     button.addEventListener("click", () => {
       const role = button.dataset.demoRole || "customer";
-      const target = button.dataset.demoTarget || "/static/dashboard.html";
+      const target = button.dataset.demoTarget || getDashboardPath(role);
       enterDemoMode(role);
       window.location.href = target;
     });
@@ -1535,21 +1592,22 @@ function initRegisterPage() {
 async function initDashboardPage() {
   const token = getToken();
   if (!token) {
-    const next = encodeURIComponent("/static/dashboard.html");
+    const next = encodeURIComponent(window.location.pathname + window.location.search);
     window.location.href = `/static/login.html?next=${next}`;
     return;
   }
 
+  const pageDashboardRole = String(document.body.dataset.dashboardRole || "").toLowerCase();
   const roleBadge = document.getElementById("dashboardRole");
   const emailEl = document.getElementById("dashboardEmail");
   const greetingEl = document.getElementById("customerGreeting");
   const customerSection = document.getElementById("customerDashboard");
   const barberSection = document.getElementById("barberDashboard");
   const adminSection = document.getElementById("adminDashboard");
-  const allBookingsPanel = document.getElementById("allBookingsPanel");
-  const sharedDisputesPanel = document.getElementById("sharedDisputesPanel");
+  const customerDashboardSubnav = document.getElementById("customerDashboardSubnav");
+  const barberDashboardSubnav = document.getElementById("barberDashboardSubnav");
 
-  if (!roleBadge || !emailEl || !customerSection || !barberSection || !adminSection) return;
+  if (!roleBadge || !emailEl) return;
 
   let role = normalizeRole(localStorage.getItem("trimly_role") || "");
   let email = localStorage.getItem("trimly_email") || "";
@@ -1583,6 +1641,15 @@ async function initDashboardPage() {
     role === "barber" ? "Barber" : role === "admin" ? "Admin" : "Customer";
   emailEl.textContent = email || "Signed in";
 
+  if (role === "barber" && pageDashboardRole && pageDashboardRole !== "barber") {
+    window.location.replace(getRoleDashboardRedirectPath("barber"));
+    return;
+  }
+  if (role !== "barber" && pageDashboardRole === "barber") {
+    window.location.replace(getRoleDashboardRedirectPath("customer"));
+    return;
+  }
+
   if (role === "barber") {
     const hasProfile = await checkBarberProfileExists();
     if (!hasProfile) {
@@ -1591,23 +1658,39 @@ async function initDashboardPage() {
       return;
     }
 
-    customerSection.classList.add("hidden");
-    barberSection.classList.remove("hidden");
-    adminSection.classList.add("hidden");
-    allBookingsPanel?.classList.remove("hidden");
+    customerSection?.classList.add("hidden");
+    barberSection?.classList.remove("hidden");
+    adminSection?.classList.add("hidden");
+    customerDashboardSubnav?.classList.add("hidden");
+    barberDashboardSubnav?.classList.remove("hidden");
     await hydrateBarberDashboard();
+    syncDashboardSubnav();
     bindBarberStatusToggle();
   } else if (["admin", "super_admin"].includes(role)) {
     stopBarberAlertPolling();
     window.location.href = "/admin";
   } else {
     stopBarberAlertPolling();
-    barberSection.classList.add("hidden");
-    adminSection.classList.add("hidden");
-    customerSection.classList.remove("hidden");
-    allBookingsPanel?.classList.add("hidden");
+    barberSection?.classList.add("hidden");
+    adminSection?.classList.add("hidden");
+    customerSection?.classList.remove("hidden");
+    barberDashboardSubnav?.classList.add("hidden");
+    customerDashboardSubnav?.classList.remove("hidden");
     await hydrateCustomerDashboard();
+    syncDashboardSubnav();
   }
+}
+
+function syncDashboardSubnav() {
+  const currentPath = window.location.pathname.toLowerCase();
+  document.querySelectorAll(".dashboard-subnav-link").forEach((link) => {
+    try {
+      const linkPath = new URL(link.href, window.location.origin).pathname.toLowerCase();
+      link.classList.toggle("active", linkPath === currentPath);
+    } catch (_error) {
+      link.classList.remove("active");
+    }
+  });
 }
 
 async function initSettingsPage() {
@@ -1746,7 +1829,7 @@ async function initSetupBarberPage() {
   }
 
   if (role !== "barber") {
-    window.location.href = "/static/dashboard.html";
+    window.location.href = getDashboardPath("customer");
     return;
   }
 
@@ -1882,7 +1965,7 @@ async function initSetupBarberPage() {
           kycStatus.className = "status-badge status-pending";
         }
         setTimeout(() => {
-          window.location.href = "/static/dashboard.html";
+          window.location.href = getDashboardPath("barber");
         }, 900);
       } catch (error) {
         kycNotice.textContent = error.message;
@@ -1923,7 +2006,16 @@ async function hydrateCustomerDashboard() {
   const nearbyCountEl = document.getElementById("customerNearbyCount");
   const bookAgainCountEl = document.getElementById("customerBookAgainCount");
 
-  if (!upcomingCardEl || !trendingEl || !nearbyEl || !bookAgainEl) {
+  if (
+    !upcomingCardEl &&
+    !trendingEl &&
+    !nearbyEl &&
+    !bookAgainEl &&
+    !recentActivityEl &&
+    !disputesEl &&
+    !statTotalAppointments &&
+    !overviewNextBookingEl
+  ) {
     return;
   }
 
@@ -1946,10 +2038,10 @@ async function hydrateCustomerDashboard() {
     });
   });
 
-  upcomingCardEl.innerHTML = `<div class="loading">Loading upcoming appointment...</div>`;
-  trendingEl.innerHTML = `<div class="loading">Loading trending barbers...</div>`;
-  nearbyEl.innerHTML = `<div class="loading">Loading nearby barbers...</div>`;
-  bookAgainEl.innerHTML = `<div class="loading">Loading last booking...</div>`;
+  if (upcomingCardEl) upcomingCardEl.innerHTML = `<div class="loading">Loading upcoming appointment...</div>`;
+  if (trendingEl) trendingEl.innerHTML = `<div class="loading">Loading trending barbers...</div>`;
+  if (nearbyEl) nearbyEl.innerHTML = `<div class="loading">Loading nearby barbers...</div>`;
+  if (bookAgainEl) bookAgainEl.innerHTML = `<div class="loading">Loading last booking...</div>`;
   if (recentActivityEl) {
     recentActivityEl.innerHTML = `<div class="loading">Loading activity...</div>`;
   }
@@ -1970,25 +2062,28 @@ async function hydrateCustomerDashboard() {
     const barberMap = new Map(mappedBarbers.map((barber) => [Number(barber.id), barber]));
 
     const now = new Date();
-    const upcoming = bookings
+    const confirmedUpcoming = bookings
       .filter((booking) => {
         const when = new Date(booking.scheduled_time);
-        return when >= now && ["pending", "approved", "accepted", "paid"].includes(String(booking.status));
+        return when >= now && isConfirmedScheduleBooking(booking);
+      })
+      .sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time));
+
+    const awaitingPayment = bookings
+      .filter((booking) => {
+        const when = new Date(booking.scheduled_time);
+        return when >= now && isAwaitingPaymentBooking(booking);
       })
       .sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time));
 
     const past = bookings
       .filter((booking) => {
         const when = new Date(booking.scheduled_time);
-        return when < now || ["completed", "cancelled", "rejected"].includes(String(booking.status));
+        return when < now || ["completed", "cancelled", "rejected", "expired"].includes(String(booking.status));
       })
       .sort((a, b) => new Date(b.scheduled_time) - new Date(a.scheduled_time));
 
-    const readyToPayBookings = bookings.filter((booking) => {
-      const statusValue = String(booking.status || "").toLowerCase();
-      const paymentStatus = String(booking.payment_status || "").toLowerCase();
-      return ["approved", "accepted", "paid"].includes(statusValue) && paymentStatus !== "paid";
-    });
+    const readyToPayBookings = awaitingPayment;
 
     const favorites = (() => {
       try {
@@ -2012,30 +2107,40 @@ async function hydrateCustomerDashboard() {
       statLoyaltyPoints.textContent = String(customerInsights?.loyalty_points ?? 0);
     }
 
-    upcomingCardEl.innerHTML = renderUpcomingAppointmentCard(upcoming[0], barberMap);
+    if (upcomingCardEl) {
+      upcomingCardEl.innerHTML = renderUpcomingAppointmentCard(awaitingPayment[0] || confirmedUpcoming[0], barberMap);
+    }
 
     const trending = [...mappedBarbers].sort((a, b) => b.rating - a.rating).slice(0, 4);
-    trendingEl.innerHTML = trending.length
-      ? trending.map((barber) => barberCardTemplate(barber, "Book Now")).join("")
-      : renderEmptyStateCard("No trending barbers yet", "We do not have any verified barbers live in this area yet. Check back soon or browse the full marketplace.", "/static/barbers.html", "Browse Barbers");
+    if (trendingEl) {
+      trendingEl.innerHTML = trending.length
+        ? trending.map((barber) => barberCardTemplate(barber, "Book Now")).join("")
+        : renderEmptyStateCard("No trending barbers yet", "We do not have any verified barbers live in this area yet. Check back soon or browse the full marketplace.", "/static/barbers.html", "Browse Barbers");
+    }
 
     const nearby = mappedBarbers.slice(0, 5);
-    nearbyEl.innerHTML = nearby.length
-      ? nearby
-          .map((barber) => {
-            const distanceKm = (0.7 + ((barber.id * 1.35) % 8)).toFixed(1);
-            return nearbyBarberTemplate(barber, distanceKm);
-          })
-          .join("")
-      : renderEmptyStateCard("No nearby barbers right now", "Once more verified barbers come online, they will appear here for quick booking.", "/static/barbers.html", "See Marketplace");
+    if (nearbyEl) {
+      nearbyEl.innerHTML = nearby.length
+        ? nearby
+            .map((barber) => {
+              const distanceKm = (0.7 + ((barber.id * 1.35) % 8)).toFixed(1);
+              return nearbyBarberTemplate(barber, distanceKm);
+            })
+            .join("")
+        : renderEmptyStateCard("No nearby barbers right now", "Once more verified barbers come online, they will appear here for quick booking.", "/static/barbers.html", "See Marketplace");
+    }
 
-    const lastBooking = past[0] || upcoming[0];
-    bookAgainEl.innerHTML = renderBookAgainCard(lastBooking, barberMap);
+    const lastBooking = past[0] || confirmedUpcoming[0] || awaitingPayment[0];
+    if (bookAgainEl) {
+      bookAgainEl.innerHTML = renderBookAgainCard(lastBooking, barberMap);
+    }
 
     if (overviewNextBookingEl) {
-      overviewNextBookingEl.textContent = upcoming[0]
-        ? formatDateTime(upcoming[0].scheduled_time)
-        : "No upcoming booking";
+      overviewNextBookingEl.textContent = confirmedUpcoming[0]
+        ? formatDateTime(confirmedUpcoming[0].scheduled_time)
+        : awaitingPayment[0]
+        ? "Pay now to lock your slot"
+        : "No confirmed booking";
     }
     if (overviewPaymentCountEl) {
       overviewPaymentCountEl.textContent = `${readyToPayBookings.length} booking${readyToPayBookings.length === 1 ? "" : "s"}`;
@@ -2044,12 +2149,15 @@ async function hydrateCustomerDashboard() {
       overviewSavedCountEl.textContent = `${favorites.length} saved`;
     }
     if (snapshotCountEl) {
-      snapshotCountEl.textContent = `${upcoming.length} active`;
+      snapshotCountEl.textContent = `${confirmedUpcoming.length} confirmed`;
     }
     if (nextBarberSummaryEl) {
-      const nextBarber = upcoming[0] ? barberMap.get(Number(upcoming[0].barber_id)) : null;
-      nextBarberSummaryEl.textContent = nextBarber
-        ? `${nextBarber.shopName} · ${formatTime(upcoming[0].scheduled_time)}`
+      const nextConfirmedBarber = confirmedUpcoming[0] ? barberMap.get(Number(confirmedUpcoming[0].barber_id)) : null;
+      const nextAwaitingBarber = awaitingPayment[0] ? barberMap.get(Number(awaitingPayment[0].barber_id)) : null;
+      nextBarberSummaryEl.textContent = nextConfirmedBarber
+        ? `${nextConfirmedBarber.shopName} · ${formatTime(confirmedUpcoming[0].scheduled_time)}`
+        : nextAwaitingBarber
+        ? `Pay ${nextAwaitingBarber.shopName} to lock ${formatTime(awaitingPayment[0].scheduled_time)}`
         : "Pick your next barber";
     }
     if (lastBookingSummaryEl) {
@@ -2097,10 +2205,10 @@ async function hydrateCustomerDashboard() {
     focusDashboardTarget();
   } catch (error) {
     const message = escapeHtml(error.message);
-    upcomingCardEl.innerHTML = `<p class="error">${message}</p>`;
-    trendingEl.innerHTML = `<p class="error">${message}</p>`;
-    nearbyEl.innerHTML = `<p class="error">${message}</p>`;
-    bookAgainEl.innerHTML = `<p class="error">${message}</p>`;
+    if (upcomingCardEl) upcomingCardEl.innerHTML = `<p class="error">${message}</p>`;
+    if (trendingEl) trendingEl.innerHTML = `<p class="error">${message}</p>`;
+    if (nearbyEl) nearbyEl.innerHTML = `<p class="error">${message}</p>`;
+    if (bookAgainEl) bookAgainEl.innerHTML = `<p class="error">${message}</p>`;
     if (recentActivityEl) {
       recentActivityEl.innerHTML = `<p class="error">${message}</p>`;
     }
@@ -2208,7 +2316,7 @@ function renderRecentActivityList(bookings, barberMap, disputes = []) {
     .map((booking) => {
       const barber = barberMap.get(Number(booking.barber_id));
       const barberName = barber ? barber.shopName : booking.barber_name || `Barber #${booking.barber_id}`;
-      const statusValue = String(booking.status || "pending").toLowerCase();
+      const statusValue = getBookingDisplayStatus(booking);
 
       return `
         <article class="activity-row" data-booking-card-id="${Number(booking.id)}">
@@ -2225,7 +2333,7 @@ function renderRecentActivityList(bookings, barberMap, disputes = []) {
             </div>
           </div>
           <div class="booking-tags booking-tags-expanded">
-            <span class="status-badge status-${escapeHtml(statusValue)}">${escapeHtml(statusValue)}</span>
+            <span class="status-badge status-${escapeHtml(statusValue)}">${escapeHtml(capitalize(statusValue))}</span>
             <span class="pill">${priceText(booking.price)}</span>
             ${renderPaymentAction(booking)}
             ${renderMessageAction(booking)}
@@ -2278,6 +2386,10 @@ async function hydrateBarberDashboard() {
   const pendingCountEl = document.getElementById("barberPendingCount");
   const todayCountEl = document.getElementById("barberTodayCount");
   const todayRunSheetCountEl = document.getElementById("barberTodayRunSheetCount");
+  const awaitingPaymentSummaryEl = document.getElementById("barberAwaitingPaymentSummary");
+  const awaitingPaymentCountEl = document.getElementById("barberAwaitingPaymentCount");
+  const awaitingPaymentEl = document.getElementById("barberAwaitingPayment");
+  const confirmedCountEl = document.getElementById("barberConfirmedCount");
   const recentClientsCountEl = document.getElementById("barberRecentClientsCount");
   const allBookingsCountEl = document.getElementById("barberAllBookingsCount");
   const overviewPendingCountEl = document.getElementById("barberOverviewPendingCount");
@@ -2287,14 +2399,24 @@ async function hydrateBarberDashboard() {
   const queueSummaryEl = document.getElementById("barberQueueSummary");
   const payoutSummaryEl = document.getElementById("barberPayoutSummary");
 
-  if (!pendingEl || !allEl || !todayEl || !recentClientsEl || !earningsTodayValue || !earningsWeekValue || !earningsTotalValue || !jobsValue) {
+  if (
+    !pendingEl &&
+    !allEl &&
+    !todayEl &&
+    !recentClientsEl &&
+    !earningsTodayValue &&
+    !earningsWeekValue &&
+    !earningsTotalValue &&
+    !jobsValue &&
+    !approvalBannerEl
+  ) {
     return;
   }
 
-  pendingEl.innerHTML = `<div class="loading">Loading requests...</div>`;
-  allEl.innerHTML = `<div class="loading">Loading bookings...</div>`;
-  todayEl.innerHTML = `<div class="loading">Loading today's appointments...</div>`;
-  recentClientsEl.innerHTML = `<div class="loading">Loading recent clients...</div>`;
+  if (pendingEl) pendingEl.innerHTML = `<div class="loading">Loading requests...</div>`;
+  if (allEl) allEl.innerHTML = `<div class="loading">Loading bookings...</div>`;
+  if (todayEl) todayEl.innerHTML = `<div class="loading">Loading today's appointments...</div>`;
+  if (recentClientsEl) recentClientsEl.innerHTML = `<div class="loading">Loading recent clients...</div>`;
   if (disputesEl) {
     disputesEl.innerHTML = `<div class="loading">Loading disputes...</div>`;
   }
@@ -2327,6 +2449,7 @@ async function hydrateBarberDashboard() {
     const weekStart = startOfWeek(now);
 
     const pending = state.barberBookings.filter((booking) => String(booking.status) === "pending");
+    const awaitingPaymentBookings = state.barberBookings.filter((booking) => isAwaitingPaymentBooking(booking));
     const completed = state.barberBookings.filter((booking) => String(booking.status) === "completed");
     const paidAwaitingRelease = state.barberBookings.filter(
       (booking) =>
@@ -2366,18 +2489,21 @@ async function hydrateBarberDashboard() {
       0
     );
 
-    earningsTodayValue.textContent = priceText(barberInsights?.today_earnings ?? todayEarnings);
-    earningsWeekValue.textContent = priceText(barberInsights?.weekly_earnings ?? weeklyEarnings);
-    earningsTotalValue.textContent = priceText(
-      barberInsights?.awaiting_payout_review ??
-        paidAwaitingRelease.reduce((sum, booking) => sum + Number(booking.barber_payout_amount || 0), 0)
-    );
-    jobsValue.textContent = String(barberInsights?.completed_jobs ?? completed.length);
+    if (earningsTodayValue) earningsTodayValue.textContent = priceText(barberInsights?.today_earnings ?? todayEarnings);
+    if (earningsWeekValue) earningsWeekValue.textContent = priceText(barberInsights?.weekly_earnings ?? weeklyEarnings);
+    if (earningsTotalValue) {
+      earningsTotalValue.textContent = priceText(
+        barberInsights?.awaiting_payout_review ??
+          paidAwaitingRelease.reduce((sum, booking) => sum + Number(booking.barber_payout_amount || 0), 0)
+      );
+    }
+    if (jobsValue) jobsValue.textContent = String(barberInsights?.completed_jobs ?? completed.length);
 
-    pendingEl.innerHTML = renderBarberRequestList(pending);
-    todayEl.innerHTML = renderTodayAppointmentList(todayAppointments);
-    allEl.innerHTML = renderBookingList(state.barberBookings, "No bookings yet.", state.disputes);
-    recentClientsEl.innerHTML = renderRecentClientsList(completed);
+    if (pendingEl) pendingEl.innerHTML = renderBarberRequestList(pending);
+    if (awaitingPaymentEl) awaitingPaymentEl.innerHTML = renderAwaitingPaymentList(awaitingPaymentBookings);
+    if (todayEl) todayEl.innerHTML = renderTodayAppointmentList(todayAppointments);
+    if (allEl) allEl.innerHTML = renderBookingList(state.barberBookings, "No bookings yet.", state.disputes);
+    if (recentClientsEl) recentClientsEl.innerHTML = renderRecentClientsList(completed);
 
     if (pendingCountEl) {
       pendingCountEl.textContent = `${pending.length} waiting`;
@@ -2387,6 +2513,12 @@ async function hydrateBarberDashboard() {
     }
     if (todayRunSheetCountEl) {
       todayRunSheetCountEl.textContent = `${todayAppointments.length} booked`;
+    }
+    if (awaitingPaymentCountEl) {
+      awaitingPaymentCountEl.textContent = `${awaitingPaymentBookings.length} waiting`;
+    }
+    if (confirmedCountEl) {
+      confirmedCountEl.textContent = `${upcomingAppointments.length} confirmed`;
     }
     if (recentClientsCountEl) {
       recentClientsCountEl.textContent = `${Math.min(recentClients.length, 6)} recent`;
@@ -2417,6 +2549,14 @@ async function hydrateBarberDashboard() {
       nextAppointmentSummaryEl.textContent = upcomingAppointments.length
         ? `${formatDateTime(upcomingAppointments[0].scheduled_time)} · ${upcomingAppointments[0].customer_name || `Customer #${upcomingAppointments[0].customer_id}`}`
         : "No upcoming appointments";
+    }
+    if (awaitingPaymentSummaryEl) {
+      const nextAwaitingPayment = awaitingPaymentBookings
+        .slice()
+        .sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time))[0];
+      awaitingPaymentSummaryEl.textContent = nextAwaitingPayment
+        ? `${nextAwaitingPayment.customer_name || `Customer #${nextAwaitingPayment.customer_id}`} · ${formatPaymentDeadline(nextAwaitingPayment)}`
+        : "No unpaid approvals";
     }
     if (queueSummaryEl) {
       queueSummaryEl.textContent = pending.length
@@ -2479,10 +2619,10 @@ async function hydrateBarberDashboard() {
     renderBarberCalendar();
     focusDashboardTarget();
   } catch (error) {
-    pendingEl.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
-    allEl.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
-    todayEl.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
-    recentClientsEl.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
+    if (pendingEl) pendingEl.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
+    if (allEl) allEl.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
+    if (todayEl) todayEl.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
+    if (recentClientsEl) recentClientsEl.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
     if (disputesEl) {
       disputesEl.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
     }
@@ -2735,7 +2875,9 @@ function getNotificationBookingLink(item) {
   const bookingId = Number(item?.booking_id || 0);
   if (!bookingId) return "";
   const focus = isChatNotification(item) ? "chat" : isPaymentNotification(item) ? "payment" : "booking";
-  return `/static/dashboard.html?booking=${bookingId}&focus=${focus}`;
+  const role = state.currentRole || localStorage.getItem("trimly_role") || "customer";
+  const section = normalizeRole(role) === "barber" ? "queue" : "bookings";
+  return buildDashboardLink(role, section, { booking: bookingId, focus });
 }
 
 function renderNotificationOpenActions(item, compact = false) {
@@ -2817,6 +2959,14 @@ function focusDashboardTarget() {
   }
 
   if (disputeId) {
+    if (state.currentRole === "customer" && !window.location.pathname.toLowerCase().endsWith("/dashboard-bookings.html")) {
+      window.location.replace(buildDashboardLink("customer", "bookings", { dispute: disputeId }));
+      return true;
+    }
+    if (state.currentRole === "barber") {
+      window.location.replace("/static/settings.html?tab=activity");
+      return true;
+    }
     return (
       highlightAndScroll(document.querySelector(`[data-dispute-card-id="${disputeId}"]`)) ||
       highlightAndScroll(document.getElementById("customerDisputesList")) ||
@@ -2825,6 +2975,14 @@ function focusDashboardTarget() {
   }
 
   if (bookingId) {
+    const currentPath = window.location.pathname.toLowerCase();
+    if (state.currentRole === "barber" && !currentPath.endsWith("/barber-queue.html")) {
+      window.location.replace(buildDashboardLink("barber", "queue", { booking: bookingId, focus }));
+      return true;
+    } else if (state.currentRole === "customer" && !currentPath.endsWith("/dashboard-bookings.html")) {
+      window.location.replace(buildDashboardLink("customer", "bookings", { booking: bookingId, focus }));
+      return true;
+    }
     return (
       highlightAndScroll(document.querySelector(`[data-booking-card-id="${bookingId}"]`)) ||
       highlightAndScroll(document.querySelector(`#customerUpcomingCard [data-booking-card-id="${bookingId}"]`)) ||
@@ -4526,13 +4684,13 @@ function renderBarberCalendar() {
 
 function calendarEventTemplate(booking) {
   const customerName = booking.customer_name || `Customer #${booking.customer_id}`;
-  const statusValue = String(booking.status || "pending").toLowerCase();
+  const statusValue = getBookingDisplayStatus(booking);
   return `
     <button class="calendar-event" type="button" data-calendar-booking-id="${Number(booking.id)}">
       <strong>${escapeHtml(customerName)}</strong>
       <span>${escapeHtml(booking.service_name || "Haircut")}</span>
       <span>${escapeHtml(formatTime(booking.scheduled_time))} - ${priceText(booking.price)}</span>
-      <span class="status-badge status-${escapeHtml(statusValue)}">${escapeHtml(statusValue)}</span>
+      <span class="status-badge status-${escapeHtml(statusValue)}">${escapeHtml(capitalize(statusValue))}</span>
     </button>
   `;
 }
@@ -4540,7 +4698,7 @@ function calendarEventTemplate(booking) {
 function renderCalendarAppointmentDetails(booking) {
   const customerName = booking.customer_name || `Customer #${booking.customer_id}`;
   const customerPhone = booking.customer_phone || "Not provided";
-  const statusValue = String(booking.status || "pending").toLowerCase();
+  const statusValue = getBookingDisplayStatus(booking);
 
   return `
     <h4>Appointment Details</h4>
@@ -4551,7 +4709,7 @@ function renderCalendarAppointmentDetails(booking) {
     <p><strong>Price:</strong> ${priceText(booking.price)}</p>
     <p>
       <strong>Status:</strong>
-      <span class="status-badge status-${escapeHtml(statusValue)}">${escapeHtml(statusValue)}</span>
+      <span class="status-badge status-${escapeHtml(statusValue)}">${escapeHtml(capitalize(statusValue))}</span>
     </p>
   `;
 }
@@ -4708,9 +4866,53 @@ function bookingModeLabel(booking) {
   return Boolean(booking?.is_home_service) ? "Home service" : "Shop visit";
 }
 
+function getPaymentDueDate(booking) {
+  const value = booking?.payment_due_at;
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function isAwaitingPaymentBooking(booking) {
+  const statusValue = String(booking?.status || "").toLowerCase();
+  const paymentStatus = String(booking?.payment_status || "").toLowerCase();
+  const dueDate = getPaymentDueDate(booking);
+  if (dueDate && dueDate < new Date()) return false;
+  return ["approved", "accepted"].includes(statusValue) && paymentStatus !== "paid";
+}
+
+function isConfirmedScheduleBooking(booking) {
+  const statusValue = String(booking?.status || "").toLowerCase();
+  const paymentStatus = String(booking?.payment_status || "").toLowerCase();
+  return (
+    paymentStatus === "paid" &&
+    statusValue === "paid" &&
+    !booking?.refund_requested
+  );
+}
+
+function formatPaymentDeadline(booking) {
+  const dueDate = getPaymentDueDate(booking);
+  if (!dueDate) return "";
+  const diffMs = dueDate.getTime() - Date.now();
+  if (diffMs <= 0) return "Payment window expired";
+  const totalMinutes = Math.max(Math.ceil(diffMs / 60000), 1);
+  if (totalMinutes < 60) {
+    return `Pay within ${totalMinutes} min`;
+  }
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `Pay within ${hours}h${minutes ? ` ${minutes}m` : ""}`;
+}
+
 function getBookingDisplayStatus(booking) {
   const statusValue = String(booking?.status || "pending").toLowerCase();
   const paymentStatus = String(booking?.payment_status || "").toLowerCase();
+  const dueDate = getPaymentDueDate(booking);
+
+  if (["approved", "accepted"].includes(statusValue) && paymentStatus !== "paid" && dueDate && dueDate < new Date()) {
+    return "expired";
+  }
 
   if (
     paymentStatus === "paid" &&
@@ -4727,8 +4929,7 @@ function getBookingDisplayStatus(booking) {
 }
 
 function isBookingVisibleInSchedule(booking) {
-  const statusValue = String(booking?.status || "").toLowerCase();
-  return !["cancelled", "rejected", "refunded", "completed", "no_show"].includes(statusValue);
+  return isConfirmedScheduleBooking(booking);
 }
 
 function renderCustomerBookingActions(booking, disputes = []) {
@@ -4832,6 +5033,41 @@ function renderBarberBookingActions(booking, disputes = []) {
     );
   }
   return actions.join("");
+}
+
+function renderAwaitingPaymentList(bookings) {
+  if (!Array.isArray(bookings) || bookings.length === 0) {
+    return `<p class="muted">No approved bookings are waiting for payment.</p>`;
+  }
+
+  return bookings
+    .slice()
+    .sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time))
+    .map((booking) => {
+      const customerName = booking.customer_name || `Customer #${booking.customer_id}`;
+      const deadlineLabel = formatPaymentDeadline(booking);
+      return `
+        <article class="booking-item" data-booking-card-id="${Number(booking.id)}">
+          <div class="booking-item-copy">
+            <strong>${escapeHtml(customerName)}</strong>
+            <p class="muted">${formatDateTime(booking.scheduled_time)}</p>
+            <p class="request-service">${escapeHtml(booking.service_name || "Haircut")}</p>
+            <div class="booking-meta-row">
+              <span class="pill">${escapeHtml(bookingModeLabel(booking))}</span>
+              <span class="pill">${priceText(booking.price)}</span>
+              ${deadlineLabel ? `<span class="pill">${escapeHtml(deadlineLabel)}</span>` : ""}
+            </div>
+          </div>
+          <div class="booking-item-side">
+            <div class="booking-tags booking-tags-expanded">
+              <span class="status-badge status-approved">Awaiting payment</span>
+              ${renderMessageAction(booking)}
+            </div>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
 }
 
 function renderDisputeList(disputes, emptyText) {
@@ -5795,11 +6031,11 @@ function renderPaymentTimeline(statusValue, paymentStatus) {
     },
     {
       label: "Barber approval",
-      state: ["approved", "accepted", "completed"].includes(statusValue) || paymentStatus === "paid" ? "done" : ["rejected", "cancelled"].includes(statusValue) ? "blocked" : "active",
+      state: ["approved", "accepted", "paid", "completed", "expired"].includes(statusValue) || paymentStatus === "paid" ? "done" : ["rejected", "cancelled"].includes(statusValue) ? "blocked" : "active",
     },
     {
       label: "Payment",
-      state: paymentStatus === "paid" ? "done" : ["approved", "accepted"].includes(statusValue) ? "active" : ["rejected", "cancelled"].includes(statusValue) ? "blocked" : "pending",
+      state: paymentStatus === "paid" ? "done" : ["expired", "rejected", "cancelled"].includes(statusValue) ? "blocked" : ["approved", "accepted"].includes(statusValue) ? "active" : "pending",
     },
   ];
 
@@ -5823,6 +6059,10 @@ function renderPaymentSummary(booking) {
   const services = Array.isArray(booking?.selected_services) ? booking.selected_services : [];
   const statusValue = String(booking?.status || "pending").toLowerCase();
   const paymentStatus = String(booking?.payment_status || "unpaid").toLowerCase();
+  const deadlineLabel = formatPaymentDeadline(booking);
+  const dueDate = getPaymentDueDate(booking);
+  const isAwaitingPayment = isAwaitingPaymentBooking(booking);
+  const isExpired = getBookingDisplayStatus(booking) === "expired";
   const serviceChips = services.length
     ? services.map((service) => `<span class="pill">${escapeHtml(serviceLabel({
       name: service.name,
@@ -5834,10 +6074,19 @@ function renderPaymentSummary(booking) {
   return `
     <div class="payment-summary-shell">
       <div class="payment-status-ribbon">
-        <span class="pill ${["approved", "accepted"].includes(statusValue) ? "pill-success" : ""}">
-          ${escapeHtml(statusValue === "approved" || statusValue === "accepted" ? "Ready for payment" : capitalize(statusValue))}
+        <span class="pill ${isExpired ? "pill-danger" : isAwaitingPayment ? "pill-warning" : ["approved", "accepted"].includes(statusValue) ? "pill-success" : ""}">
+          ${escapeHtml(
+            isExpired
+              ? "Payment window expired"
+              : isAwaitingPayment
+              ? "Pay now to secure"
+              : statusValue === "approved" || statusValue === "accepted"
+              ? "Ready for payment"
+              : capitalize(statusValue)
+          )}
         </span>
-        <span class="pill">${escapeHtml(paymentStatus === "paid" ? "Payment complete" : "Payment pending")}</span>
+        <span class="pill">${escapeHtml(paymentStatus === "paid" ? "Payment complete" : isExpired ? "Slot released" : "Payment pending")}</span>
+        ${deadlineLabel ? `<span class="pill ${isExpired ? "pill-danger" : "pill-warning"}">${escapeHtml(deadlineLabel)}</span>` : ""}
       </div>
       <div class="payment-summary-grid">
       <div class="payment-summary-row">
@@ -5856,10 +6105,22 @@ function renderPaymentSummary(booking) {
       <div class="pill-row payment-service-pill-row">
         ${serviceChips}
       </div>
+      ${
+        dueDate
+          ? `<div class="payment-deadline ${isExpired ? "payment-deadline-expired" : ""}">
+              <strong>${escapeHtml(isExpired ? "This hold expired before payment was completed." : "Your slot is only held until payment is completed.")}</strong>
+              <span>${escapeHtml(
+                isExpired
+                  ? "Choose another available time to continue."
+                  : `Pay before ${formatDateTime(dueDate)} to keep this appointment.`
+              )}</span>
+            </div>`
+          : ""
+      }
       <div class="booking-trust-list payment-trust-list">
-        <div class="booking-trust-item">Only approved bookings unlock payment.</div>
-        <div class="booking-trust-item">Your payment status stays visible in your dashboard.</div>
-        <div class="booking-trust-item">Need to change plans? Rebook quickly from this screen.</div>
+        <div class="booking-trust-item">Only paid bookings become confirmed appointments on the barber schedule.</div>
+        <div class="booking-trust-item">Your payment state stays visible across bookings, overview, and notifications.</div>
+        <div class="booking-trust-item">If the payment window expires, the time slot is released back into availability.</div>
       </div>
     </div>
   `;
@@ -5888,7 +6149,7 @@ async function renderBookingPaymentActions(bookingId, container) {
           </div>
           ${renderPaymentTimeline("pending", "unpaid")}
           <div class="payment-action-row">
-            <a class="btn btn-ghost" href="/static/dashboard.html">Open Dashboard</a>
+            <a class="btn btn-ghost" href="${getDashboardPath()}">Open Dashboard</a>
           </div>
         </div>
       `;
@@ -5911,7 +6172,28 @@ async function renderBookingPaymentActions(bookingId, container) {
           ${renderPaymentTimeline(statusValue, paymentStatus)}
           ${renderPaymentSummary(booking)}
           <div class="payment-action-row">
-            <a class="btn btn-ghost" href="/static/dashboard.html">View Booking</a>
+            <a class="btn btn-ghost" href="${buildDashboardLink(state.currentRole || "customer", normalizeRole(state.currentRole || "customer") === "barber" ? "queue" : "bookings", { booking: Number(booking.id) })}">View Booking</a>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    if (statusValue === "expired") {
+      container.innerHTML = `
+        <div class="panel payment-status-card">
+          <div class="payment-status-head">
+            <div class="payment-status-copy">
+              <strong>Payment window expired</strong>
+              <p class="payment-helper">This approved booking was not paid in time, so the slot was released. Pick another available time to continue.</p>
+            </div>
+            <span class="status-badge status-expired">Expired</span>
+          </div>
+          ${renderPaymentTimeline(statusValue, paymentStatus)}
+          ${renderPaymentSummary(booking)}
+          <div class="payment-action-row">
+            <a class="btn btn-primary" href="/static/barber-profile.html?id=${Number(booking.barber_id)}">Choose Another Slot</a>
+            <a class="btn btn-ghost" href="${buildDashboardLink("customer", "bookings", { booking: Number(booking.id) })}">View Booking</a>
           </div>
         </div>
       `;
@@ -5944,8 +6226,8 @@ async function renderBookingPaymentActions(bookingId, container) {
           <div class="payment-status-head">
             <div class="payment-status-copy">
               <span class="payment-state-eyebrow">Approved booking</span>
-              <strong>Ready to pay and lock in your slot</strong>
-              <p class="payment-helper">Your barber has approved this appointment. Complete payment now so your booking is fully secured.</p>
+              <strong>Booking approved. Pay now to lock your slot.</strong>
+              <p class="payment-helper">Your barber has accepted this request, but the appointment is not confirmed until payment succeeds.</p>
             </div>
             <span class="status-badge status-approved">Approved</span>
           </div>
@@ -5953,7 +6235,7 @@ async function renderBookingPaymentActions(bookingId, container) {
           ${renderPaymentSummary(booking)}
           <div class="payment-next-step">
             <strong>What happens next</strong>
-            <p class="muted">After payment, this appointment stays visible in your dashboard and chat stays available for final coordination.</p>
+            <p class="muted">Once you pay, this booking moves into the confirmed schedule, stays visible in your dashboard, and remains available for chat coordination.</p>
           </div>
           <div class="payment-action-row">
             <button class="btn btn-primary" type="button" data-pay-booking-id="${Number(booking.id)}">Pay Now</button>
@@ -5994,7 +6276,7 @@ async function renderBookingPaymentActions(bookingId, container) {
           ${renderPaymentSummary(booking)}
           <div class="payment-action-row">
             <button class="btn btn-ghost" type="button" data-refresh-booking-id="${Number(booking.id)}">Check Approval</button>
-            <a class="btn btn-ghost" href="/static/dashboard.html">View Dashboard</a>
+            <a class="btn btn-ghost" href="${getDashboardPath()}">View Dashboard</a>
           </div>
         </div>
       `;
@@ -6199,10 +6481,7 @@ function renderMessageAction(booking) {
 }
 
 function renderPaymentAction(booking) {
-  const statusValue = String(booking?.status || "").toLowerCase();
-  const paymentStatus = String(booking?.payment_status || "").toLowerCase();
-
-  if (!["approved", "accepted"].includes(statusValue) || paymentStatus === "paid") {
+  if (!isAwaitingPaymentBooking(booking)) {
     return "";
   }
 
@@ -6377,7 +6656,7 @@ async function initPaymentStatusPage() {
     title.textContent = "Payment successful";
     copy.textContent = "Your appointment has been paid for and secured successfully.";
     actions.innerHTML = `
-      <a class="btn btn-primary" href="${token ? "/static/dashboard.html" : "/static/login.html"}">${token ? "View Dashboard" : "Log in to view booking"}</a>
+      <a class="btn btn-primary" href="${token ? getDashboardPath() : "/static/login.html"}">${token ? "View Dashboard" : "Log in to view booking"}</a>
       <a class="btn btn-ghost" href="/static/booking.html?barber=${barberId || ""}&booking=${bookingId || ""}">Open Booking</a>
     `;
     return;
@@ -6387,7 +6666,7 @@ async function initPaymentStatusPage() {
     title.textContent = "Payment not confirmed";
     copy.textContent = paymentError;
     actions.innerHTML = `
-      <a class="btn btn-primary" href="/static/dashboard.html">Back to Dashboard</a>
+      <a class="btn btn-primary" href="${getDashboardPath()}">Back to Dashboard</a>
       <a class="btn btn-ghost" href="/static/booking.html?barber=${barberId || ""}&booking=${bookingId || ""}">Return to Booking</a>
     `;
     return;
@@ -6396,13 +6675,13 @@ async function initPaymentStatusPage() {
   if (!reference) {
     title.textContent = "Payment reference missing";
     copy.textContent = "We could not verify this payment. Please return to your dashboard and try again.";
-    actions.innerHTML = `<a class="btn btn-primary" href="/static/dashboard.html">Back to Dashboard</a>`;
+    actions.innerHTML = `<a class="btn btn-primary" href="${getDashboardPath()}">Back to Dashboard</a>`;
     return;
   }
 
   title.textContent = "Verifying payment...";
   copy.textContent = "Please wait while we confirm your Paystack payment.";
-  actions.innerHTML = `<a class="btn btn-ghost" href="/static/dashboard.html">Back to Dashboard</a>`;
+  actions.innerHTML = `<a class="btn btn-ghost" href="${getDashboardPath()}">Back to Dashboard</a>`;
 
   try {
     if (token) {
@@ -6413,7 +6692,7 @@ async function initPaymentStatusPage() {
     title.textContent = "Payment successful";
     copy.textContent = "Your appointment has been paid for and secured successfully.";
     actions.innerHTML = `
-      <a class="btn btn-primary" href="${token ? "/static/dashboard.html" : "/static/login.html"}">${token ? "View Dashboard" : "Log in to view booking"}</a>
+      <a class="btn btn-primary" href="${token ? getDashboardPath() : "/static/login.html"}">${token ? "View Dashboard" : "Log in to view booking"}</a>
       <a class="btn btn-ghost" href="/static/booking.html?barber=${barberId || ""}&booking=${bookingId || ""}">Open Booking</a>
     `;
   } catch (error) {
@@ -6441,7 +6720,7 @@ async function initPaymentStatusPage() {
       copy.textContent =
         "Your payment went through successfully. We confirmed it from your booking status.";
       actions.innerHTML = `
-        <a class="btn btn-primary" href="${token ? "/static/dashboard.html" : "/static/login.html"}">${token ? "View Dashboard" : "Log in to view booking"}</a>
+        <a class="btn btn-primary" href="${token ? getDashboardPath() : "/static/login.html"}">${token ? "View Dashboard" : "Log in to view booking"}</a>
         <a class="btn btn-ghost" href="/static/booking.html?barber=${barberId || ""}&booking=${bookingId || ""}">Open Booking</a>
       `;
       return;
@@ -6450,7 +6729,7 @@ async function initPaymentStatusPage() {
     title.textContent = "Payment not confirmed";
     copy.textContent = error.message || "We could not confirm your payment yet.";
     actions.innerHTML = `
-      <a class="btn btn-primary" href="/static/dashboard.html">Back to Dashboard</a>
+      <a class="btn btn-primary" href="${getDashboardPath()}">Back to Dashboard</a>
       <a class="btn btn-ghost" href="/static/booking.html?barber=${barberId || ""}&booking=${bookingId || ""}">Return to Booking</a>
     `;
   }
@@ -6665,6 +6944,8 @@ async function refreshChatMessages(bookingId, list, context = {}) {
   list.innerHTML = messages.map(renderChatBubble).join("");
   list.scrollTop = list.scrollHeight;
 }
+
+
 
 
 

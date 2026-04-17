@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trimly | Barber Records</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Sora:wght@100..800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./style.css?v=20260402h" />
+  </head>
+  <body data-page="dashboard" data-dashboard-role="barber">
+    <header class="site-header">
+      <div class="container nav-shell">
+        <a class="brand" href="/">
+          <span class="brand-badge">T</span>
+          <span>Trimly</span>
+        </a>
+        <button class="nav-toggle" data-nav-toggle aria-label="Toggle menu">Menu</button>
+        <nav class="nav-main" data-nav-menu>
+          <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="./barbers.html">Barbers</a>
+            <a class="active" href="./barber-dashboard.html">Dashboard</a>
+          </div>
+          <div class="auth-actions" data-auth-actions>
+            <a class="btn btn-ghost" href="./login.html">Login</a>
+            <a class="btn btn-primary" href="./register.html">Register</a>
+            <a class="auth-admin-link" href="./admin-login.html">Admin Login</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main class="section">
+      <div class="container dashboard-container">
+        <h1 class="section-title" id="customerGreeting">Good to see you. Your chair is ready for the week.</h1>
+        <p class="section-subtitle">
+          Signed in as <strong id="dashboardEmail">...</strong>
+          <span class="pill" id="dashboardRole">...</span>
+        </p>
+
+        <nav id="barberDashboardSubnav" class="dashboard-subnav hidden" aria-label="Barber dashboard sections">
+          <a class="dashboard-subnav-link" href="./barber-dashboard.html">Overview</a>
+          <a class="dashboard-subnav-link" href="./barber-queue.html">Queue</a>
+          <a class="dashboard-subnav-link" href="./barber-records.html">Records</a>
+        </nav>
+
+        <section id="barberDashboard" class="barber-hub hidden">
+          <section id="barberApprovalBanner" class="barber-approval-banner hidden" aria-live="polite">
+            <div class="barber-approval-banner-copy">
+              <strong id="barberApprovalBannerTitle">Profile review in progress</strong>
+              <p id="barberApprovalBannerText" class="muted">
+                Your barber page is currently under review. Customers will not see your public listing until approval is complete.
+              </p>
+            </div>
+            <a class="btn btn-ghost" href="./settings.html?tab=operations">Open Operations</a>
+          </section>
+
+          <div id="barberRecordsPanel" class="dashboard-records-stack">
+            <div class="barber-support-grid">
+              <article class="panel barber-support-card">
+                <div class="panel-head-row">
+                  <div>
+                    <h3>Profile momentum</h3>
+                    <p class="muted barber-panel-subtitle">How your public page currently looks to customers.</p>
+                  </div>
+                  <span class="pill" id="barberProfileHealth">Needs work</span>
+                </div>
+                <div class="kpi-grid kpi-grid-2">
+                  <div class="kpi">
+                    <small class="muted">Public Rating</small>
+                    <strong id="barberProfileRating">New</strong>
+                  </div>
+                  <div class="kpi">
+                    <small class="muted">Review Count</small>
+                    <strong id="barberProfileReviewCount">0</strong>
+                  </div>
+                  <div class="kpi">
+                    <small class="muted">Portfolio Photos</small>
+                    <strong id="barberProfilePortfolioCount">0</strong>
+                  </div>
+                  <div class="kpi">
+                    <small class="muted">Public Profile</small>
+                    <strong id="barberProfileShareReadiness">Draft</strong>
+                  </div>
+                </div>
+              </article>
+
+              <article class="panel barber-support-card">
+                <div class="panel-head-row">
+                  <div>
+                    <h3>Setup checklist</h3>
+                    <p class="muted barber-panel-subtitle">The fastest way to make your page ready to share.</p>
+                  </div>
+                  <span class="pill" id="barberChecklistProgress">0 / 5 done</span>
+                </div>
+                <div id="barberOnboardingChecklist" class="checklist-grid"></div>
+              </article>
+            </div>
+
+            <div class="barber-bottom-grid">
+              <article class="panel">
+                <div class="panel-head-row">
+                  <div>
+                    <h3>Recent clients</h3>
+                    <p class="muted barber-panel-subtitle">The people you have most recently served.</p>
+                  </div>
+                  <span class="pill" id="barberRecentClientsCount">0 recent</span>
+                </div>
+                <div id="barberRecentClients" class="booking-list"></div>
+              </article>
+            </div>
+
+            <section id="allBookingsPanel" class="panel barber-bookings-panel">
+              <div class="panel-head-row">
+                <div>
+                  <h3>Booking ledger</h3>
+                  <p class="muted barber-panel-subtitle">Full booking history, payment state, and customer actions.</p>
+                </div>
+                <span class="pill" id="barberAllBookingsCount">0 total</span>
+              </div>
+              <div id="barberAll" class="booking-list"></div>
+            </section>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-row">
+        <span>&copy; <span data-current-year></span> Trimly</span>
+        <span>Manage appointments, trust, and payouts from one place</span>
+      </div>
+    </footer>
+
+    <div id="toast" class="toast"></div>
+    <script type="module" src="./main.js?v=20260411a"></script>
+  </body>
+</html>
