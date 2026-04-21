@@ -525,6 +525,8 @@ function mapBarber(barber, index = 0) {
     price: Number.isFinite(rawPrice) ? rawPrice : 0,
     beardTrimPrice: Number(barber.beard_trim_price || 0),
     location: barber.location || "Unknown",
+    shopAddress: barber.shop_address || "",
+    shopLandmark: barber.shop_landmark || "",
     bio: barber.bio || "Professional grooming services.",
     image: resolveMediaSource(barber.cover_image_url) || mediaSources[0] || "",
     profileImage: resolveMediaSource(barber.profile_image_url) || mediaSources[0] || "",
@@ -541,6 +543,77 @@ function mapBarber(barber, index = 0) {
 
 function priceText(amount) {
   return `NGN ${Number(amount || 0).toLocaleString()}`;
+}
+
+function composeAddressParts(...parts) {
+  return parts
+    .flat()
+    .map((part) => String(part || "").trim())
+    .filter(Boolean);
+}
+
+function buildGoogleMapsSearchUrl(...parts) {
+  const query = composeAddressParts(parts).join(", ");
+  if (!query) return "";
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+function customerAddressText(source) {
+  return composeAddressParts(
+    source?.customer_address_line,
+    source?.customer_address_area,
+    source?.customer_address_landmark
+  ).join(", ");
+}
+
+function customerAreaPreviewText(source) {
+  return composeAddressParts(source?.customer_address_area).join(", ");
+}
+
+function barberShopAddressText(source) {
+  return composeAddressParts(
+    source?.barber_shop_address || source?.shopAddress,
+    source?.barber_shop_landmark || source?.shopLandmark,
+    source?.barber_location || source?.location
+  ).join(", ");
+}
+
+function getBarberNavigationMeta(booking) {
+  const modeLabel = bookingModeLabel(booking);
+  if (modeLabel === "Home service") {
+    const exactAddress = customerAddressText(booking);
+    if (exactAddress) {
+      return {
+        label: exactAddress,
+        helper: booking?.customer_address_note || "Customer address is ready for navigation.",
+        url: buildGoogleMapsSearchUrl(exactAddress, booking?.customer_address_note || ""),
+        ctaLabel: "Navigate",
+      };
+    }
+    const areaOnly = customerAreaPreviewText(booking);
+    if (areaOnly) {
+      return {
+        label: `${areaOnly} area only`,
+        helper: "Exact address will appear after payment is completed.",
+        url: "",
+        ctaLabel: "",
+      };
+    }
+    return {
+      label: "Waiting for customer address",
+      helper: "The customer has not saved a home-service address yet.",
+      url: "",
+      ctaLabel: "",
+    };
+  }
+
+  const shopAddress = barberShopAddressText(booking);
+  return {
+    label: shopAddress || booking?.barber_location || "Shop address not added yet",
+    helper: booking?.barber_shop_landmark || booking?.barber_location || "Ask the barber to update the shop address if needed.",
+    url: shopAddress ? buildGoogleMapsSearchUrl(shopAddress) : "",
+    ctaLabel: shopAddress ? "Navigate" : "",
+  };
 }
 
 function splitServiceList(value) {
@@ -873,6 +946,14 @@ async function initBarberProfilePage() {
           <span class="profile-kicker">${escapeHtml(barber.barberName || "Trimly Barber")}</span>
           <h1>${escapeHtml(barber.shopName)}</h1>
           <p class="muted profile-location-line">${escapeHtml(barber.location)}</p>
+          ${
+            barberShopAddressText(barber)
+              ? `<div class="pill-row">
+                  <span class="pill">${escapeHtml(barberShopAddressText(barber))}</span>
+                  <a class="btn btn-ghost btn-sm" href="${escapeHtml(buildGoogleMapsSearchUrl(barber.shopAddress, barber.shopLandmark, barber.location))}" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>
+                </div>`
+              : ""
+          }
           <p class="profile-bio-lead">${escapeHtml(barber.bio)}</p>
 
           <div class="profile-stat-grid">
@@ -947,7 +1028,7 @@ async function initBarberProfilePage() {
           <section class="profile-cta-panel">
             <div>
               <strong>Ready to book ${escapeHtml(barber.shopName)}?</strong>
-              <p class="muted">Choose a slot, send your request, and pay only after approval.</p>
+              <p class="muted">Choose a slot and pay immediately to secure it.</p>
             </div>
             <a class="btn btn-primary" href="/static/booking.html?barber=${barber.id}">Start Booking</a>
           </section>
@@ -1021,6 +1102,11 @@ async function initBookingPage() {
   const barberSummary = document.getElementById("bookingBarberSummary");
   const bookingServiceOptions = document.getElementById("bookingServiceOptions");
   const bookingServiceSummary = document.getElementById("bookingServiceSummary");
+  const bookingAddressPanel = document.getElementById("bookingAddressPanel");
+  const bookingAddressFields = document.getElementById("bookingAddressFields");
+  const bookingAddressTitle = document.getElementById("bookingAddressTitle");
+  const bookingAddressSubtitle = document.getElementById("bookingAddressSubtitle");
+  const bookingAddressPreview = document.getElementById("bookingAddressPreview");
 
   if (!bookingForm || !dateInput || !timeSelect || !barberSummary || !barberId) {
     return;
@@ -1029,6 +1115,8 @@ async function initBookingPage() {
   let selectedServiceIds = [];
   let bookingServices = [];
   let slotRequestId = 0;
+  let currentUserProfile = null;
+  let selectedBarber = null;
 
   function getSelectedBookingServices() {
     return bookingServices.filter((service) => selectedServiceIds.includes(Number(service.id)));
@@ -1044,6 +1132,65 @@ async function initBookingPage() {
       ),
       15
     );
+  }
+
+  function isHomeServiceBookingSelected() {
+    return getSelectedBookingServices().some((service) => Boolean(service.isHomeService));
+  }
+
+  function renderBookingAddressPanel() {
+    if (!bookingAddressPanel || !bookingAddressPreview) return;
+
+    const isHomeService = isHomeServiceBookingSelected();
+    bookingAddressPanel.classList.toggle("hidden", false);
+
+    if (isHomeService) {
+      if (bookingAddressFields) bookingAddressFields.classList.remove("hidden");
+      bookingAddressTitle.textContent = "Home service address";
+      bookingAddressSubtitle.textContent = "This address is shared with the barber after payment so they can navigate to you.";
+      bookingAddressPanel.querySelectorAll("input").forEach((input) => {
+        if (input.id === "booking_address_line" || input.id === "booking_address_area") {
+          input.required = true;
+        }
+      });
+      const addressText = composeAddressParts(
+        bookingForm.elements.customer_address_line?.value,
+        bookingForm.elements.customer_address_area?.value,
+        bookingForm.elements.customer_address_landmark?.value
+      ).join(", ");
+      bookingAddressPreview.classList.toggle("hidden", !addressText);
+      bookingAddressPreview.innerHTML = addressText
+        ? `
+          <div class="booking-service-summary-head">
+            <strong>Saved for this booking</strong>
+            <a class="btn btn-ghost btn-sm" href="${escapeHtml(buildGoogleMapsSearchUrl(addressText, bookingForm.elements.customer_address_note?.value || ""))}" target="_blank" rel="noopener noreferrer">Preview in Google Maps</a>
+          </div>
+          <p class="muted">${escapeHtml(addressText)}</p>
+          ${bookingForm.elements.customer_address_note?.value ? `<p class="muted">${escapeHtml(bookingForm.elements.customer_address_note.value)}</p>` : ""}
+        `
+        : "";
+      return;
+    }
+
+    if (bookingAddressFields) bookingAddressFields.classList.add("hidden");
+    bookingAddressTitle.textContent = "Shop location";
+    bookingAddressSubtitle.textContent = "Use the barber's saved shop location to find the studio easily.";
+    bookingAddressPanel.querySelectorAll("input").forEach((input) => {
+      input.required = false;
+    });
+    const shopAddress = barberShopAddressText(selectedBarber);
+    bookingAddressPreview.classList.remove("hidden");
+    bookingAddressPreview.innerHTML = `
+      <div class="booking-service-summary-head">
+        <strong>${escapeHtml(shopAddress || selectedBarber?.location || "Shop address not added yet")}</strong>
+        ${
+          shopAddress
+            ? `<a class="btn btn-ghost btn-sm" href="${escapeHtml(buildGoogleMapsSearchUrl(selectedBarber?.shopAddress, selectedBarber?.shopLandmark, selectedBarber?.location))}" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>`
+            : ""
+        }
+      </div>
+      <p class="muted">${escapeHtml(selectedBarber?.shopLandmark || selectedBarber?.location || "The barber can still share directions in chat if needed.")}</p>
+    `;
   }
 
   function renderBookingServiceSummary() {
@@ -1102,16 +1249,22 @@ async function initBookingPage() {
               .filter((value) => Number.isFinite(value) && value > 0)
           : [];
         renderBookingServiceSummary();
+        renderBookingAddressPanel();
         loadTimeSlots();
       });
     });
 
     renderBookingServiceSummary();
+    renderBookingAddressPanel();
   }
 
   const now = new Date();
   dateInput.min = toDateInput(now);
   dateInput.value = toDateInput(now);
+  ["customer_address_line", "customer_address_area", "customer_address_landmark", "customer_address_note"].forEach((fieldName) => {
+    const field = bookingForm.elements[fieldName];
+    field?.addEventListener("input", () => renderBookingAddressPanel());
+  });
 
   async function loadTimeSlots() {
     bookingNotice.textContent = "";
@@ -1146,15 +1299,29 @@ async function initBookingPage() {
   }
 
   try {
+    currentUserProfile = await getCurrentUser();
     const barber = mapBarber(await getBarberById(barberId), Number(barberId));
+    selectedBarber = barber;
     bookingServices = Array.isArray(barber.services) ? barber.services.filter((service) => Number(service.id || 0) > 0) : [];
     selectedServiceIds = bookingServices.length ? [Number(bookingServices[0].id)] : [];
+    if (bookingForm.elements.customer_address_line) bookingForm.elements.customer_address_line.value = currentUserProfile?.address_line || "";
+    if (bookingForm.elements.customer_address_area) bookingForm.elements.customer_address_area.value = currentUserProfile?.address_area || "";
+    if (bookingForm.elements.customer_address_landmark) bookingForm.elements.customer_address_landmark.value = currentUserProfile?.address_landmark || "";
+    if (bookingForm.elements.customer_address_note) bookingForm.elements.customer_address_note.value = currentUserProfile?.address_note || "";
     barberSummary.innerHTML = `
       <article class="booking-summary-card">
         <div class="booking-summary-copy">
           <span class="booking-summary-kicker">${escapeHtml(barber.barberName || "Trimly Barber")}</span>
           <strong>${escapeHtml(barber.shopName)}</strong>
           <p class="muted">${escapeHtml(barber.location)}</p>
+          ${
+            barberShopAddressText(barber)
+              ? `<div class="pill-row">
+                  <span class="pill">${escapeHtml(barberShopAddressText(barber))}</span>
+                  <a class="btn btn-ghost btn-sm" href="${escapeHtml(buildGoogleMapsSearchUrl(barber.shopAddress, barber.shopLandmark, barber.location))}" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>
+                </div>`
+              : ""
+          }
           <div class="booking-summary-brief">
             <div class="booking-summary-brief-item">
               <span class="muted">Starting from</span>
@@ -1215,9 +1382,22 @@ async function initBookingPage() {
       return;
     }
 
+    if (
+      isHomeServiceBookingSelected() &&
+      (
+        !String(bookingForm.elements.customer_address_line?.value || "").trim() ||
+        !String(bookingForm.elements.customer_address_area?.value || "").trim()
+      )
+    ) {
+      bookingNotice.textContent = "Add your home-service address and area before confirming this booking.";
+      bookingNotice.className = "notice error";
+      return;
+    }
+
     const scheduledTime = `${selectedDate}T${selectedTime}:00`;
     const selectedServices = getSelectedBookingServices();
     const serviceName = selectedServices.map((service) => service.name).join(", ") || "Haircut";
+    const isHomeService = isHomeServiceBookingSelected();
 
     const submitBtn = bookingForm.querySelector("button[type='submit']");
     submitBtn.disabled = true;
@@ -1233,10 +1413,14 @@ async function initBookingPage() {
         scheduled_time: scheduledTime,
         service_name: serviceName,
         service_ids: selectedServiceIds,
+        customer_address_line: isHomeService ? String(bookingForm.elements.customer_address_line?.value || "").trim() || null : null,
+        customer_address_area: isHomeService ? String(bookingForm.elements.customer_address_area?.value || "").trim() || null : null,
+        customer_address_landmark: isHomeService ? String(bookingForm.elements.customer_address_landmark?.value || "").trim() || null : null,
+        customer_address_note: isHomeService ? String(bookingForm.elements.customer_address_note?.value || "").trim() || null : null,
       });
 
       bookingNotice.textContent =
-        "Booking request sent. Payment unlocks after the barber approves your appointment.";
+        "Booking created. Pay now to secure your slot before the payment window expires.";
       bookingNotice.className = "notice success";
       await loadTimeSlots();
       await renderBookingPaymentActions(bookingResult.id, paymentActions);
@@ -2168,7 +2352,7 @@ async function hydrateCustomerDashboard() {
     }
     if (fastActionSummaryEl) {
       fastActionSummaryEl.textContent = readyToPayBookings.length
-        ? "Complete payment for your approved booking"
+        ? "Complete payment to secure your slot"
         : favorites.length
         ? "Rebook from your saved barbers"
         : "Browse barbers near you";
@@ -2247,6 +2431,7 @@ function renderUpcomingAppointmentCard(booking, barberMap) {
   const barber = barberMap.get(Number(booking.barber_id));
   const barberName = barber ? barber.shopName : booking.barber_name || `Barber #${booking.barber_id}`;
   const barberLocation = barber ? barber.location : booking.barber_location || "Location unavailable";
+  const mapsUrl = buildGoogleMapsSearchUrl(barberShopAddressText(booking) || barberShopAddressText(barber) || barberLocation);
 
   return `
     <article data-booking-card-id="${Number(booking.id)}">
@@ -2255,11 +2440,12 @@ function renderUpcomingAppointmentCard(booking, barberMap) {
         <span class="muted">${escapeHtml(barberLocation)}</span>
         <span>${formatDateTime(booking.scheduled_time)}</span>
         <span class="status-badge status-${escapeHtml(getBookingDisplayStatus(booking))}">${escapeHtml(
-      capitalize(getBookingDisplayStatus(booking))
+      getBookingDisplayLabel(booking)
     )}</span>
       </div>
       <div class="upcoming-actions">
         <a class="btn btn-ghost" href="/static/barber-profile.html?id=${Number(booking.barber_id)}">View</a>
+        ${mapsUrl ? `<a class="btn btn-ghost" href="${escapeHtml(mapsUrl)}" target="_blank" rel="noopener noreferrer">Maps</a>` : ""}
         ${renderPaymentAction(booking)}
         ${renderMessageAction(booking)}
         ${renderCustomerBookingActions(booking, state.disputes)}
@@ -2333,7 +2519,7 @@ function renderRecentActivityList(bookings, barberMap, disputes = []) {
             </div>
           </div>
           <div class="booking-tags booking-tags-expanded">
-            <span class="status-badge status-${escapeHtml(statusValue)}">${escapeHtml(capitalize(statusValue))}</span>
+            <span class="status-badge status-${escapeHtml(statusValue)}">${escapeHtml(getBookingDisplayLabel(booking))}</span>
             <span class="pill">${priceText(booking.price)}</span>
             ${renderPaymentAction(booking)}
             ${renderMessageAction(booking)}
@@ -2556,7 +2742,7 @@ async function hydrateBarberDashboard() {
         .sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time))[0];
       awaitingPaymentSummaryEl.textContent = nextAwaitingPayment
         ? `${nextAwaitingPayment.customer_name || `Customer #${nextAwaitingPayment.customer_id}`} · ${formatPaymentDeadline(nextAwaitingPayment)}`
-        : "No unpaid approvals";
+        : "No bookings waiting for payment";
     }
     if (queueSummaryEl) {
       queueSummaryEl.textContent = pending.length
@@ -3392,6 +3578,7 @@ function initSettingsTabs() {
 function hydrateSettingsPanel() {
   const profileForm = document.getElementById("settingsProfileForm");
   const profileNotice = document.getElementById("settingsProfileNotice");
+  const settingsSavedAddressCard = document.getElementById("settingsSavedAddressCard");
   const preferencesForm = document.getElementById("settingsPreferencesForm");
   const preferencesNotice = document.getElementById("settingsPreferencesNotice");
   const passwordForm = document.getElementById("settingsPasswordForm");
@@ -3747,6 +3934,53 @@ function hydrateSettingsPanel() {
     profileForm.elements.full_name.value = state.currentUser.full_name || "";
     profileForm.elements.email.value = state.currentUser.logged_in_as || state.currentEmail || "";
     profileForm.elements.phone.value = state.currentUser.phone || "";
+    if (profileForm.elements.address_line) profileForm.elements.address_line.value = state.currentUser.address_line || "";
+    if (profileForm.elements.address_area) profileForm.elements.address_area.value = state.currentUser.address_area || "";
+    if (profileForm.elements.address_landmark) profileForm.elements.address_landmark.value = state.currentUser.address_landmark || "";
+    if (profileForm.elements.address_note) profileForm.elements.address_note.value = state.currentUser.address_note || "";
+
+    if (settingsSavedAddressCard) {
+      const savedAddress = composeAddressParts(
+        state.currentUser.address_line,
+        state.currentUser.address_area,
+        state.currentUser.address_landmark
+      );
+      const savedAddressNote = String(state.currentUser.address_note || "").trim();
+      const savedAddressMapUrl = buildGoogleMapsSearchUrl(
+        state.currentUser.address_line,
+        state.currentUser.address_area,
+        state.currentUser.address_landmark
+      );
+
+      if (savedAddress) {
+        settingsSavedAddressCard.innerHTML = `
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Saved booking address</p>
+              <h4>Home-service bookings will prefill from here.</h4>
+            </div>
+          </div>
+          <p class="settings-address-primary">${escapeHtml(savedAddress)}</p>
+          ${savedAddressNote ? `<p class="muted settings-address-note">${escapeHtml(savedAddressNote)}</p>` : ""}
+          <div class="booking-meta-row">
+            <span class="pill">Customer address</span>
+            ${savedAddressMapUrl ? `<a class="btn btn-ghost location-cta-btn" href="${escapeHtml(savedAddressMapUrl)}" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>` : ""}
+          </div>
+        `;
+        settingsSavedAddressCard.classList.remove("hidden");
+      } else {
+        settingsSavedAddressCard.innerHTML = `
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Saved booking address</p>
+              <h4>Add your home-service address once.</h4>
+            </div>
+          </div>
+          <p class="muted settings-address-note">We will reuse it the next time you book a home-service appointment.</p>
+        `;
+        settingsSavedAddressCard.classList.remove("hidden");
+      }
+    }
 
     if (profileForm.dataset.bound !== "true") {
       profileForm.dataset.bound = "true";
@@ -3761,6 +3995,10 @@ function hydrateSettingsPanel() {
           const payload = {
             full_name: String(profileForm.elements.full_name.value || "").trim(),
             phone: String(profileForm.elements.phone.value || "").trim() || null,
+            address_line: String(profileForm.elements.address_line?.value || "").trim() || null,
+            address_area: String(profileForm.elements.address_area?.value || "").trim() || null,
+            address_landmark: String(profileForm.elements.address_landmark?.value || "").trim() || null,
+            address_note: String(profileForm.elements.address_note?.value || "").trim() || null,
           };
           const updated = await updateCurrentUserProfile(payload);
           state.currentUser = updated;
@@ -3905,6 +4143,8 @@ function hydrateBarberProfileEditor(
   form.elements.barber_name.value = profile.barber_name || "";
   form.elements.shop_name.value = profile.shop_name || "";
   form.elements.location.value = profile.location || "";
+  if (form.elements.shop_address) form.elements.shop_address.value = profile.shop_address || "";
+  if (form.elements.shop_landmark) form.elements.shop_landmark.value = profile.shop_landmark || "";
   form.elements.profile_image_url.value = profile.profile_image_url || "";
   if (form.elements.cover_image_url) {
     form.elements.cover_image_url.value = profile.cover_image_url || "";
@@ -4073,6 +4313,8 @@ function hydrateBarberProfileEditor(
           barber_name: String(form.elements.barber_name.value || "").trim() || null,
           shop_name: String(form.elements.shop_name.value || "").trim(),
           location: String(form.elements.location.value || "").trim(),
+          shop_address: String(form.elements.shop_address?.value || "").trim() || null,
+          shop_landmark: String(form.elements.shop_landmark?.value || "").trim() || null,
           profile_image_url: String(form.elements.profile_image_url.value || "").trim() || null,
           cover_image_url: String(form.elements.cover_image_url?.value || "").trim() || null,
           haircut_price: Number(form.elements.haircut_price.value || 0),
@@ -4690,7 +4932,7 @@ function calendarEventTemplate(booking) {
       <strong>${escapeHtml(customerName)}</strong>
       <span>${escapeHtml(booking.service_name || "Haircut")}</span>
       <span>${escapeHtml(formatTime(booking.scheduled_time))} - ${priceText(booking.price)}</span>
-      <span class="status-badge status-${escapeHtml(statusValue)}">${escapeHtml(capitalize(statusValue))}</span>
+      <span class="status-badge status-${escapeHtml(statusValue)}">${escapeHtml(getBookingDisplayLabel(booking))}</span>
     </button>
   `;
 }
@@ -4709,7 +4951,7 @@ function renderCalendarAppointmentDetails(booking) {
     <p><strong>Price:</strong> ${priceText(booking.price)}</p>
     <p>
       <strong>Status:</strong>
-      <span class="status-badge status-${escapeHtml(statusValue)}">${escapeHtml(capitalize(statusValue))}</span>
+      <span class="status-badge status-${escapeHtml(statusValue)}">${escapeHtml(getBookingDisplayLabel(booking))}</span>
     </p>
   `;
 }
@@ -4762,12 +5004,15 @@ function renderTodayAppointmentList(bookings) {
       const customerName = booking.customer_name || `Customer #${booking.customer_id}`;
       const statusValue = getBookingDisplayStatus(booking);
       const modeLabel = bookingModeLabel(booking);
+      const navigation = getBarberNavigationMeta(booking);
       return `
         <article class="booking-item" data-booking-card-id="${Number(booking.id)}">
           <div class="booking-item-copy">
             <strong>${escapeHtml(customerName)}</strong>
             <p class="muted">${escapeHtml(formatTime(booking.scheduled_time))}</p>
             <p class="request-service">${escapeHtml(booking.service_name || "Haircut")}</p>
+            <p class="muted booking-location-line">${escapeHtml(navigation.label)}</p>
+            ${navigation.helper ? `<p class="muted booking-location-helper">${escapeHtml(navigation.helper)}</p>` : ""}
             <div class="booking-meta-row">
               <span class="pill">${escapeHtml(modeLabel)}</span>
               <span class="pill">${priceText(booking.price)}</span>
@@ -4775,7 +5020,8 @@ function renderTodayAppointmentList(bookings) {
           </div>
           <div class="booking-item-side">
             <div class="booking-tags booking-tags-expanded">
-            <span class="status-badge status-${escapeHtml(statusValue)}">${escapeHtml(statusValue)}</span>
+            <span class="status-badge status-${escapeHtml(statusValue)}">${escapeHtml(getBookingDisplayLabel(booking))}</span>
+            ${navigation.url ? `<a class="btn btn-ghost location-cta-btn" href="${escapeHtml(navigation.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(navigation.ctaLabel)}</a>` : ""}
             ${renderMessageAction(booking)}
             </div>
           </div>
@@ -4838,12 +5084,15 @@ function renderBookingList(bookings, emptyText, disputes = []) {
       const customerName = booking.customer_name || `Customer #${booking.customer_id}`;
       const statusValue = getBookingDisplayStatus(booking);
       const modeLabel = bookingModeLabel(booking);
+      const navigation = getBarberNavigationMeta(booking);
       return `
         <article class="booking-item" data-booking-card-id="${Number(booking.id)}">
           <div class="booking-item-copy">
             <strong>${escapeHtml(customerName)}</strong>
             <p class="muted">${formatDateTime(booking.scheduled_time)}</p>
             <p class="request-service">${escapeHtml(booking.service_name || "Haircut")}</p>
+            <p class="muted booking-location-line">${escapeHtml(navigation.label)}</p>
+            ${navigation.helper ? `<p class="muted booking-location-helper">${escapeHtml(navigation.helper)}</p>` : ""}
             <div class="booking-meta-row">
               <span class="pill">${escapeHtml(modeLabel)}</span>
               <span class="pill">${priceText(booking.price)}</span>
@@ -4851,7 +5100,8 @@ function renderBookingList(bookings, emptyText, disputes = []) {
           </div>
           <div class="booking-item-side">
             <div class="booking-tags booking-tags-expanded">
-              <span class="status-badge status-${escapeHtml(statusValue)}">${escapeHtml(statusValue)}</span>
+              <span class="status-badge status-${escapeHtml(statusValue)}">${escapeHtml(getBookingDisplayLabel(booking))}</span>
+              ${navigation.url ? `<a class="btn btn-ghost location-cta-btn" href="${escapeHtml(navigation.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(navigation.ctaLabel)}</a>` : ""}
               ${renderMessageAction(booking)}
               ${state.currentRole === "barber" ? renderBarberBookingActions(booking, disputes) : ""}
             </div>
@@ -4863,7 +5113,9 @@ function renderBookingList(bookings, emptyText, disputes = []) {
 }
 
 function bookingModeLabel(booking) {
-  return Boolean(booking?.is_home_service) ? "Home service" : "Shop visit";
+  if (String(booking?.service_mode || "").toLowerCase() === "home_service") return "Home service";
+  if (String(booking?.service_mode || "").toLowerCase() === "shop_visit") return "Shop visit";
+  return resolveBookingMode(booking);
 }
 
 function getPaymentDueDate(booking) {
@@ -4926,6 +5178,23 @@ function getBookingDisplayStatus(booking) {
   }
 
   return statusValue;
+}
+
+function getBookingDisplayLabel(bookingOrStatus) {
+  const statusValue =
+    typeof bookingOrStatus === "string"
+      ? String(bookingOrStatus || "").toLowerCase()
+      : getBookingDisplayStatus(bookingOrStatus);
+
+  if (["approved", "accepted"].includes(statusValue)) {
+    return "Awaiting payment";
+  }
+
+  if (statusValue === "paid") {
+    return "Paid";
+  }
+
+  return capitalize(statusValue);
 }
 
 function isBookingVisibleInSchedule(booking) {
@@ -5037,7 +5306,7 @@ function renderBarberBookingActions(booking, disputes = []) {
 
 function renderAwaitingPaymentList(bookings) {
   if (!Array.isArray(bookings) || bookings.length === 0) {
-    return `<p class="muted">No approved bookings are waiting for payment.</p>`;
+    return `<p class="muted">No bookings are currently waiting for payment.</p>`;
   }
 
   return bookings
@@ -5046,12 +5315,15 @@ function renderAwaitingPaymentList(bookings) {
     .map((booking) => {
       const customerName = booking.customer_name || `Customer #${booking.customer_id}`;
       const deadlineLabel = formatPaymentDeadline(booking);
+      const navigation = getBarberNavigationMeta(booking);
       return `
         <article class="booking-item" data-booking-card-id="${Number(booking.id)}">
           <div class="booking-item-copy">
             <strong>${escapeHtml(customerName)}</strong>
             <p class="muted">${formatDateTime(booking.scheduled_time)}</p>
             <p class="request-service">${escapeHtml(booking.service_name || "Haircut")}</p>
+            <p class="muted booking-location-line">${escapeHtml(navigation.label)}</p>
+            ${navigation.helper ? `<p class="muted booking-location-helper">${escapeHtml(navigation.helper)}</p>` : ""}
             <div class="booking-meta-row">
               <span class="pill">${escapeHtml(bookingModeLabel(booking))}</span>
               <span class="pill">${priceText(booking.price)}</span>
@@ -5061,6 +5333,7 @@ function renderAwaitingPaymentList(bookings) {
           <div class="booking-item-side">
             <div class="booking-tags booking-tags-expanded">
               <span class="status-badge status-approved">Awaiting payment</span>
+              ${navigation.url ? `<a class="btn btn-ghost location-cta-btn" href="${escapeHtml(navigation.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(navigation.ctaLabel)}</a>` : ""}
               ${renderMessageAction(booking)}
             </div>
           </div>
@@ -6026,16 +6299,16 @@ function resolveBookingMode(booking) {
 function renderPaymentTimeline(statusValue, paymentStatus) {
   const steps = [
     {
-      label: "Request sent",
+      label: "Booking created",
       state: "done",
-    },
-    {
-      label: "Barber approval",
-      state: ["approved", "accepted", "paid", "completed", "expired"].includes(statusValue) || paymentStatus === "paid" ? "done" : ["rejected", "cancelled"].includes(statusValue) ? "blocked" : "active",
     },
     {
       label: "Payment",
       state: paymentStatus === "paid" ? "done" : ["expired", "rejected", "cancelled"].includes(statusValue) ? "blocked" : ["approved", "accepted"].includes(statusValue) ? "active" : "pending",
+    },
+    {
+      label: "Slot secured",
+      state: paymentStatus === "paid" ? "done" : ["expired", "rejected", "cancelled"].includes(statusValue) ? "blocked" : "pending",
     },
   ];
 
@@ -6063,6 +6336,9 @@ function renderPaymentSummary(booking) {
   const dueDate = getPaymentDueDate(booking);
   const isAwaitingPayment = isAwaitingPaymentBooking(booking);
   const isExpired = getBookingDisplayStatus(booking) === "expired";
+  const isHomeService = resolveBookingMode(booking) === "Home service";
+  const customerAddress = customerAddressText(booking);
+  const shopAddress = barberShopAddressText(booking);
   const serviceChips = services.length
     ? services.map((service) => `<span class="pill">${escapeHtml(serviceLabel({
       name: service.name,
@@ -6101,6 +6377,19 @@ function renderPaymentSummary(booking) {
         <span class="muted">Total amount</span>
         <strong>${escapeHtml(priceText(booking?.price || 0))}</strong>
       </div>
+      </div>
+      <div class="pill-row payment-service-pill-row">
+        ${
+          isHomeService
+            ? customerAddress
+              ? `<span class="pill">${escapeHtml(customerAddress)}</span>
+                 <a class="btn btn-ghost btn-sm" href="${escapeHtml(buildGoogleMapsSearchUrl(customerAddress, booking?.customer_address_note || ""))}" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>`
+              : `<span class="pill">Customer address unlocks after payment</span>`
+            : shopAddress
+              ? `<span class="pill">${escapeHtml(shopAddress)}</span>
+                 <a class="btn btn-ghost btn-sm" href="${escapeHtml(buildGoogleMapsSearchUrl(shopAddress))}" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>`
+              : `<span class="pill">Shop location not added yet</span>`
+        }
       </div>
       <div class="pill-row payment-service-pill-row">
         ${serviceChips}
@@ -6143,7 +6432,7 @@ async function renderBookingPaymentActions(bookingId, container) {
           <div class="payment-status-head">
             <div class="payment-status-copy">
               <strong>Booking created</strong>
-              <p class="payment-helper">We could not reload this booking yet. Open your dashboard to track approval.</p>
+              <p class="payment-helper">We could not reload this booking yet. Open your dashboard to continue payment and track the slot.</p>
             </div>
             <span class="status-badge status-pending">Pending</span>
           </div>
@@ -6185,7 +6474,7 @@ async function renderBookingPaymentActions(bookingId, container) {
           <div class="payment-status-head">
             <div class="payment-status-copy">
               <strong>Payment window expired</strong>
-              <p class="payment-helper">This approved booking was not paid in time, so the slot was released. Pick another available time to continue.</p>
+              <p class="payment-helper">This booking was not paid in time, so the slot was released. Pick another available time to continue.</p>
             </div>
             <span class="status-badge status-expired">Expired</span>
           </div>
@@ -6225,11 +6514,11 @@ async function renderBookingPaymentActions(bookingId, container) {
         <div class="panel payment-status-card payment-status-card-approved">
           <div class="payment-status-head">
             <div class="payment-status-copy">
-              <span class="payment-state-eyebrow">Approved booking</span>
-              <strong>Booking approved. Pay now to lock your slot.</strong>
-              <p class="payment-helper">Your barber has accepted this request, but the appointment is not confirmed until payment succeeds.</p>
+              <span class="payment-state-eyebrow">Payment ready</span>
+              <strong>Pay now to lock your slot.</strong>
+              <p class="payment-helper">Your booking is waiting for payment. The appointment is not confirmed until payment succeeds.</p>
             </div>
-            <span class="status-badge status-approved">Approved</span>
+            <span class="status-badge status-approved">Awaiting payment</span>
           </div>
           ${renderPaymentTimeline(statusValue, paymentStatus)}
           ${renderPaymentSummary(booking)}
@@ -6266,16 +6555,16 @@ async function renderBookingPaymentActions(bookingId, container) {
         <div class="panel payment-status-card">
           <div class="payment-status-head">
             <div class="payment-status-copy">
-              <span class="payment-state-eyebrow">Approval pending</span>
-              <strong>Waiting for the barber to approve</strong>
-              <p class="payment-helper">Your booking is pending. Pay Now will appear here as soon as the barber approves.</p>
+              <span class="payment-state-eyebrow">Preparing payment</span>
+              <strong>Booking saved. Refresh to continue.</strong>
+              <p class="payment-helper">We are preparing the payment state for this booking. Refresh in a moment if Pay Now is not visible yet.</p>
             </div>
             <span class="status-badge status-pending">Pending</span>
           </div>
           ${renderPaymentTimeline(statusValue, paymentStatus)}
           ${renderPaymentSummary(booking)}
           <div class="payment-action-row">
-            <button class="btn btn-ghost" type="button" data-refresh-booking-id="${Number(booking.id)}">Check Approval</button>
+            <button class="btn btn-ghost" type="button" data-refresh-booking-id="${Number(booking.id)}">Refresh Status</button>
             <a class="btn btn-ghost" href="${getDashboardPath()}">View Dashboard</a>
           </div>
         </div>
@@ -6814,7 +7103,7 @@ async function initMessagesPage() {
 
     const statusValue = String(booking.status || "pending").toLowerCase();
     if (!["approved", "accepted", "paid", "completed"].includes(statusValue)) {
-      throw new Error("Chat is only available for approved or paid bookings.");
+      throw new Error("Chat is only available for bookings waiting for payment or already paid.");
     }
 
     state.currentUserId = state.currentRole === "barber"
@@ -6848,10 +7137,14 @@ async function initMessagesPage() {
       backBookingLink.href = `/static/booking.html?barber=${Number(booking.barber_id)}&booking=${bookingId}`;
     }
     if (contextStrip) {
+      const addressText = isHomeService ? customerAddressText(booking) : barberShopAddressText(booking);
+      const mapsUrl = isHomeService
+        ? buildGoogleMapsSearchUrl(addressText, booking?.customer_address_note || "")
+        : buildGoogleMapsSearchUrl(addressText);
       contextStrip.innerHTML = `
         <article class="chat-context-card">
           <small class="muted">Booking status</small>
-          <strong>${escapeHtml(capitalize(String(booking.status || "approved")))}</strong>
+          <strong>${escapeHtml(getBookingDisplayLabel(booking))}</strong>
         </article>
         <article class="chat-context-card">
           <small class="muted">Service</small>
@@ -6864,6 +7157,11 @@ async function initMessagesPage() {
         <article class="chat-context-card">
           <small class="muted">Mode</small>
           <strong>${escapeHtml(serviceMode)}</strong>
+        </article>
+        <article class="chat-context-card">
+          <small class="muted">${escapeHtml(isHomeService ? "Service address" : "Shop address")}</small>
+          <strong>${escapeHtml(addressText || (isHomeService ? "Address will appear after payment." : "Shop address not added yet."))}</strong>
+          ${mapsUrl ? `<a class="btn btn-ghost btn-sm" href="${escapeHtml(mapsUrl)}" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>` : ""}
         </article>
       `;
     }

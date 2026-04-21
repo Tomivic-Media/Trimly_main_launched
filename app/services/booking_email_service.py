@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from app.core.config import FRONTEND_URL, RESEND_API_KEY
+from app.core.config import BOOKINGS_REQUIRE_BARBER_APPROVAL, FRONTEND_URL, RESEND_API_KEY
 
 BOOKING_EMAIL_FROM = "Trimly <hello@trimly.com.ng>"
 
@@ -33,6 +33,34 @@ def send_booking_approved_payment_email(
     _send_resend_email(to_email, subject, html)
 
 
+def send_booking_payment_ready_email(
+    to_email: str,
+    customer_name: str,
+    service_name: str,
+    scheduled_time: datetime | None,
+    payment_due_at: datetime | None,
+    booking_link: str,
+) -> None:
+    due_copy = (
+        f"Complete payment before {payment_due_at.strftime('%b %d, %I:%M %p')} to keep your slot."
+        if payment_due_at
+        else "Complete payment now to keep your slot."
+    )
+    subject = "Pay now to secure your Trimly booking"
+    html = _wrap_email(
+        eyebrow="Trimly Booking Update",
+        headline=f"Your booking is ready, {_first_name(customer_name)}",
+        intro=(
+            f"Your {service_name} booking for {scheduled_time.strftime('%b %d, %I:%M %p') if scheduled_time else 'your selected time'} "
+            f"is waiting for payment. {due_copy}"
+        ),
+        cta_label="Pay Now",
+        cta_url=booking_link,
+        footer="Once payment is completed, the appointment becomes fully locked in on Trimly.",
+    )
+    _send_resend_email(to_email, subject, html)
+
+
 def send_booking_payment_reminder_email(
     to_email: str,
     customer_name: str,
@@ -48,7 +76,8 @@ def send_booking_payment_reminder_email(
         headline=f"{reminder_label}: your slot is still waiting",
         intro=(
             f"{_first_name(customer_name)}, your {service_name} booking for "
-            f"{scheduled_time.strftime('%b %d, %I:%M %p') if scheduled_time else 'your selected time'} is approved but not yet paid."
+            f"{scheduled_time.strftime('%b %d, %I:%M %p') if scheduled_time else 'your selected time'} "
+            f"is {'approved but not yet paid' if BOOKINGS_REQUIRE_BARBER_APPROVAL else 'still waiting for payment'}."
         ),
         cta_label="Complete Payment",
         cta_url=booking_link,

@@ -827,6 +827,47 @@ textarea:focus {
   background: rgba(255, 250, 242, 0.82);
 }
 
+.section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.section-heading h4 {
+  margin: 2px 0 0;
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.73rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+#settingsSavedAddressCard {
+  margin-top: 14px;
+  gap: 10px;
+  background: linear-gradient(180deg, rgba(255, 250, 242, 0.96), rgba(246, 237, 224, 0.88));
+  box-shadow: 0 12px 28px rgba(24, 57, 43, 0.05);
+}
+
+.settings-address-primary {
+  margin: 0;
+  color: var(--text);
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.settings-address-note {
+  margin: 0;
+  line-height: 1.55;
+}
+
 .share-link-list {
   display: grid;
   gap: 12px;
@@ -1449,6 +1490,18 @@ label {
   gap: 4px;
 }
 
+.booking-location-line {
+  margin: 2px 0 0;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.booking-location-helper {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
 .booking-item-side {
   display: grid;
   justify-items: end;
@@ -1506,6 +1559,17 @@ label {
   gap: 8px;
   flex-wrap: wrap;
   align-items: center;
+}
+
+.location-cta-btn {
+  border-color: rgba(46, 106, 79, 0.24);
+  background: rgba(46, 106, 79, 0.08);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.location-cta-btn:hover {
+  background: rgba(46, 106, 79, 0.14);
 }
 
 .booking-action-stack {
@@ -3663,6 +3727,11 @@ label {
   .booking-tags-expanded,
   .settings-action-row {
     width: 100%;
+  }
+
+  .location-cta-btn {
+    width: 100%;
+    justify-content: center;
   }
 
   .settings-action-row .btn,

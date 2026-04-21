@@ -41,17 +41,17 @@
           <p class="section-kicker">Trimly Booking Flow</p>
           <h1 class="section-title">Book your appointment</h1>
           <p class="section-subtitle">
-            Choose your services and slot, send your request, and move into payment only after approval.
+            Choose your services and slot, then pay immediately to secure the appointment.
           </p>
         </section>
 
         <div class="booking-page-grid">
           <section class="panel booking-primary-panel">
             <div class="panel-head-row">
-              <div>
-                <h3>Appointment details</h3>
-                <p class="muted booking-panel-subtitle">Pick a clean slot and send your request when you are ready.</p>
-              </div>
+                <div>
+                  <h3>Appointment details</h3>
+                  <p class="muted booking-panel-subtitle">Pick a clean slot and move straight into payment when you are ready.</p>
+                </div>
               <a class="muted" href="./barbers.html">Back to barbers</a>
             </div>
 
@@ -79,6 +79,39 @@
                   <option value="">Select a time</option>
                 </select>
               </div>
+              <div id="bookingAddressPanel" class="booking-service-block hidden">
+                <div class="panel-head-row">
+                  <div>
+                    <h4 id="bookingAddressTitle">Location details</h4>
+                    <p id="bookingAddressSubtitle" class="muted booking-panel-subtitle">Trimly will use this address for navigation.</p>
+                  </div>
+                </div>
+                <div id="bookingAddressShell" class="form-grid">
+                  <div id="bookingAddressFields" class="form-grid">
+                  <div class="form-grid form-grid-2">
+                    <div>
+                      <label for="booking_address_line">Address</label>
+                      <input id="booking_address_line" name="customer_address_line" class="input" type="text" placeholder="House number, street, estate" />
+                    </div>
+                    <div>
+                      <label for="booking_address_area">Area / City</label>
+                      <input id="booking_address_area" name="customer_address_area" class="input" type="text" placeholder="Lekki Phase 1, Lagos" />
+                    </div>
+                  </div>
+                  <div class="form-grid form-grid-2">
+                    <div>
+                      <label for="booking_address_landmark">Landmark</label>
+                      <input id="booking_address_landmark" name="customer_address_landmark" class="input" type="text" placeholder="Blue gate beside supermarket" />
+                    </div>
+                    <div>
+                      <label for="booking_address_note">Extra Note</label>
+                      <input id="booking_address_note" name="customer_address_note" class="input" type="text" placeholder="Call when you get to the estate gate" />
+                    </div>
+                  </div>
+                  </div>
+                  <div id="bookingAddressPreview" class="booking-service-summary hidden"></div>
+                </div>
+              </div>
               <button class="btn btn-primary" type="submit">Confirm Booking</button>
             </form>
           </section>
@@ -88,26 +121,26 @@
               <div class="panel-head-row">
                 <div>
                   <h3>How it works</h3>
-                  <p class="muted booking-panel-subtitle">Trimly keeps payment and approvals simple.</p>
+                  <p class="muted booking-panel-subtitle">Trimly keeps booking and payment simple.</p>
                 </div>
               </div>
               <div class="booking-list booking-list-spacious">
                 <article class="booking-item">
                   <div>
-                    <strong>1. Send request</strong>
-                    <p class="muted">Pick a slot and submit your booking request to the barber.</p>
+                    <strong>1. Choose your slot</strong>
+                    <p class="muted">Pick the service and time that works for you.</p>
                   </div>
                 </article>
                 <article class="booking-item">
                   <div>
-                    <strong>2. Wait for approval</strong>
-                    <p class="muted">Payment opens only after the barber accepts your appointment.</p>
+                    <strong>2. Pay now</strong>
+                    <p class="muted">Complete payment immediately so the slot is reserved for you.</p>
                   </div>
                 </article>
                 <article class="booking-item">
                   <div>
-                    <strong>3. Pay securely</strong>
-                    <p class="muted">Once approved, your payment action appears here immediately.</p>
+                    <strong>3. Booking confirmed</strong>
+                    <p class="muted">Once payment succeeds, the appointment is locked into the schedule.</p>
                   </div>
                 </article>
               </div>
@@ -116,8 +149,8 @@
             <section class="panel booking-payment-panel booking-payment-panel-featured">
               <div class="panel-head-row">
                 <div>
-                  <h3>Approved booking and payment</h3>
-                  <p class="muted booking-panel-subtitle">This panel becomes your payment checkpoint as soon as the barber approves.</p>
+                  <h3>Booking and payment</h3>
+                  <p class="muted booking-panel-subtitle">This panel becomes your payment checkpoint as soon as the booking is created.</p>
                 </div>
               </div>
               <div id="bookingPaymentActions" class="payment-actions"></div>
@@ -128,7 +161,7 @@
                 <h3>Protected by Trimly</h3>
               </div>
               <div class="booking-trust-list">
-                <div class="booking-trust-item">You only pay after the barber approves your appointment.</div>
+                <div class="booking-trust-item">You pay immediately to secure the slot you selected.</div>
                 <div class="booking-trust-item">Your booking timeline and payment state stay visible in one place.</div>
                 <div class="booking-trust-item">If the slot changes, you can refresh status or rebook without starting over.</div>
               </div>

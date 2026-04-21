@@ -12,6 +12,7 @@ from app.core.config import (
     BOOTSTRAP_SUPER_ADMIN_EMAIL,
     BOOTSTRAP_SUPER_ADMIN_NAME,
     BOOTSTRAP_SUPER_ADMIN_PASSWORD,
+    BOOKINGS_REQUIRE_BARBER_APPROVAL,
 )
 from app.core.security import get_admin_user_from_cookie, hash_password
 from app.db.session import Base, engine
@@ -82,6 +83,13 @@ def ensure_runtime_schema() -> None:
     """Apply lightweight, idempotent schema patches for existing databases."""
     statements = [
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS service_name VARCHAR",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS service_mode VARCHAR",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_address_line VARCHAR",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_address_area VARCHAR",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_address_landmark VARCHAR",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_address_note VARCHAR",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS barber_shop_address VARCHAR",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS barber_shop_landmark VARCHAR",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS payment_reference VARCHAR",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS payment_status VARCHAR(20)",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP",
@@ -109,6 +117,8 @@ def ensure_runtime_schema() -> None:
         "ALTER TABLE barbers ADD COLUMN IF NOT EXISTS beard_trim_price DOUBLE PRECISION",
         "ALTER TABLE barbers ADD COLUMN IF NOT EXISTS other_services VARCHAR",
         "ALTER TABLE barbers ADD COLUMN IF NOT EXISTS barber_name VARCHAR",
+        "ALTER TABLE barbers ADD COLUMN IF NOT EXISTS shop_address VARCHAR",
+        "ALTER TABLE barbers ADD COLUMN IF NOT EXISTS shop_landmark VARCHAR",
         "ALTER TABLE barbers ADD COLUMN IF NOT EXISTS profile_image_url VARCHAR",
         "ALTER TABLE barbers ADD COLUMN IF NOT EXISTS cover_image_url VARCHAR",
         "ALTER TABLE barbers ADD COLUMN IF NOT EXISTS portfolio_image_urls VARCHAR",
@@ -130,6 +140,10 @@ def ensure_runtime_schema() -> None:
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp_expires_at TIMESTAMP",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_token_hash VARCHAR",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_expires_at TIMESTAMP",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS address_line VARCHAR",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS address_area VARCHAR",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS address_landmark VARCHAR",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS address_note VARCHAR",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS accepted_terms BOOLEAN DEFAULT FALSE",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_approved BOOLEAN DEFAULT FALSE",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_approved_at TIMESTAMP",
@@ -219,9 +233,28 @@ def ensure_bootstrap_super_admin() -> None:
         db.close()
 
 
+def migrate_legacy_pending_bookings() -> None:
+    """One-off runtime cleanup for legacy bookings created before approval was disabled."""
+    if BOOKINGS_REQUIRE_BARBER_APPROVAL:
+        return
+
+    db = SessionLocal()
+    try:
+        migrated_count = booking_routes.migrate_pending_bookings_to_payment_ready(db)
+        if migrated_count:
+            db.commit()
+        else:
+            db.rollback()
+    except Exception:
+        db.rollback()
+    finally:
+        db.close()
+
+
 Base.metadata.create_all(bind=engine)
 ensure_runtime_schema()
 ensure_bootstrap_super_admin()
+migrate_legacy_pending_bookings()
 
 app.include_router(auth.router)
 app.include_router(account_routes.router)

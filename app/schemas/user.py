@@ -42,6 +42,10 @@ class CurrentUserResponse(BaseModel):
     role: UserRole
     full_name: str
     phone: Optional[str] = None
+    address_line: Optional[str] = None
+    address_area: Optional[str] = None
+    address_landmark: Optional[str] = None
+    address_note: Optional[str] = None
     accepted_terms: bool
     admin_approved: bool
     referral_code: Optional[str] = None
@@ -93,6 +97,10 @@ class ResetPasswordResponse(BaseModel):
 class UserProfileUpdateRequest(BaseModel):
     full_name: str
     phone: Optional[str] = None
+    address_line: Optional[str] = None
+    address_area: Optional[str] = None
+    address_landmark: Optional[str] = None
+    address_note: Optional[str] = None
 
 
 class ChangePasswordRequest(BaseModel):

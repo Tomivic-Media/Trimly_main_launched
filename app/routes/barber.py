@@ -291,6 +291,8 @@ def barber_payload(barber: Barber) -> dict:
         "id": barber.id,
         "shop_name": barber.shop_name,
         "location": barber.location,
+        "shop_address": barber.shop_address,
+        "shop_landmark": barber.shop_landmark,
         "bio": barber.bio,
         "haircut_price": barber.haircut_price,
         "beard_trim_price": barber.beard_trim_price,
@@ -363,6 +365,8 @@ def create_barber_profile(
         user_id=current_user.id,
         shop_name=barber_data.shop_name,
         location=barber_data.location,
+        shop_address=barber_data.shop_address,
+        shop_landmark=barber_data.shop_landmark,
         bio=barber_data.bio,
         haircut_price=barber_data.haircut_price,
         beard_trim_price=barber_data.beard_trim_price,
@@ -406,6 +410,8 @@ def update_my_barber_profile(
 
     barber.shop_name = payload.shop_name.strip()
     barber.location = payload.location.strip()
+    barber.shop_address = payload.shop_address.strip() if payload.shop_address else None
+    barber.shop_landmark = payload.shop_landmark.strip() if payload.shop_landmark else None
     barber.bio = payload.bio.strip() if payload.bio else None
     barber.haircut_price = payload.haircut_price
     barber.beard_trim_price = payload.beard_trim_price
@@ -803,6 +809,8 @@ def list_barbers_for_admin(
                     shop_name=barber.shop_name,
                     email=barber.user.email if barber.user else None,
                     location=barber.location,
+                    public_shop_address=barber.shop_address,
+                    public_shop_landmark=barber.shop_landmark,
                     bio=barber.bio,
                     haircut_price=barber.haircut_price,
                     beard_trim_price=barber.beard_trim_price,
@@ -841,6 +849,8 @@ def list_barbers_for_admin(
                 shop_name="Profile setup not completed",
                 email=user.email,
                 location="Awaiting barber profile setup",
+                public_shop_address=None,
+                public_shop_landmark=None,
                 bio="This barber account has been created but the public barber profile has not been completed yet.",
                 haircut_price=0,
                 beard_trim_price=None,

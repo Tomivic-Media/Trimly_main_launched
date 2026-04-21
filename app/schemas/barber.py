@@ -34,6 +34,8 @@ class BarberServiceResponse(BaseModel):
 class BarberCreate(BaseModel):
     shop_name: str
     location: str
+    shop_address: Optional[str] = None
+    shop_landmark: Optional[str] = None
     bio: Optional[str] = None
     haircut_price: float
     beard_trim_price: Optional[float] = None
@@ -51,6 +53,8 @@ class BarberCreate(BaseModel):
 class BarberProfileUpdate(BaseModel):
     shop_name: str
     location: str
+    shop_address: Optional[str] = None
+    shop_landmark: Optional[str] = None
     bio: Optional[str] = None
     haircut_price: float
     beard_trim_price: Optional[float] = None
@@ -77,6 +81,8 @@ class BarberResponse(BaseModel):
     id: int
     shop_name: str
     location: str
+    shop_address: Optional[str] = None
+    shop_landmark: Optional[str] = None
     bio: Optional[str] = None
     haircut_price: float
     beard_trim_price: Optional[float] = None
@@ -142,6 +148,8 @@ class AdminBarberReviewResponse(BaseModel):
     shop_name: str
     email: Optional[str] = None
     location: str
+    public_shop_address: Optional[str] = None
+    public_shop_landmark: Optional[str] = None
     bio: Optional[str] = None
     haircut_price: float
     beard_trim_price: Optional[float] = None

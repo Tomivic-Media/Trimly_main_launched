@@ -12,6 +12,8 @@ class Barber(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     shop_name = Column(String, nullable=False)
     location = Column(String, nullable=False)
+    shop_address = Column(String, nullable=True)
+    shop_landmark = Column(String, nullable=True)
     bio = Column(String, nullable=True)
     haircut_price = Column(Float, nullable=False)
     beard_trim_price = Column(Float, nullable=True)

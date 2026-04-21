@@ -7,7 +7,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session, joinedload
 
-from app.core.config import FRONTEND_URL, PAYSTACK_SECRET_KEY
+from app.core.config import BOOKINGS_REQUIRE_BARBER_APPROVAL, FRONTEND_URL, PAYSTACK_SECRET_KEY
 from app.core.security import get_current_user, require_any_role, require_role
 from app.db.session import get_db
 from app.enums.booking_status import BookingStatus
@@ -26,7 +26,7 @@ from app.services.escrow_service import (
     mark_booking_completed,
 )
 from app.services.notification_service import create_notifications, format_notification_time, notify_admins
-from app.services.booking_email_service import send_booking_approved_payment_email
+from app.services.booking_email_service import send_booking_approved_payment_email, send_booking_payment_ready_email
 from app.services.referral_service import award_completion_points, maybe_award_referral_bonus
 from app.services.reminder_service import dispatch_due_booking_reminders
 from app.services.paystack_subaccount_service import ensure_barber_subaccount
@@ -128,6 +128,10 @@ def _booking_duration_minutes(booking: Booking) -> int:
     return DEFAULT_SERVICE_DURATION_MINUTES
 
 
+def _selected_services_service_mode(services: list[BarberService]) -> str:
+    return "home_service" if any(bool(getattr(service, "is_home_service", False)) for service in services) else "shop_visit"
+
+
 def _booking_time_bounds(booking: Booking) -> tuple[datetime, datetime]:
     start = _normalize_datetime(booking.scheduled_time)
     end = start + timedelta(minutes=_booking_duration_minutes(booking))
@@ -195,7 +199,31 @@ def _assert_barber_owns_booking(booking: Booking, current_user: User) -> None:
         raise HTTPException(status_code=403, detail="Not allowed")
 
 
-def _booking_to_response(booking: Booking) -> BookingResponse:
+def _can_view_customer_address(booking: Booking, viewer_role: str, viewer_user_id: int | None = None) -> bool:
+    if viewer_role in ADMIN_ROLES:
+        return True
+    if viewer_role == UserRole.customer.value:
+        return booking.customer_id == viewer_user_id
+    if viewer_role != UserRole.barber.value:
+        return False
+
+    logic_status = _logic_status(booking.status)
+    payment_status = str(getattr(booking.payment_status, "value", booking.payment_status or "")).lower()
+    return payment_status == PaymentStatus.paid.value or logic_status in {
+        BookingStatus.paid.value,
+        BookingStatus.completed.value,
+        BookingStatus.no_show.value,
+        BookingStatus.disputed.value,
+        BookingStatus.refunded.value,
+    }
+
+
+def _booking_to_response(
+    booking: Booking,
+    *,
+    viewer_role: str = "",
+    viewer_user_id: int | None = None,
+) -> BookingResponse:
     customer = booking.customer
     barber = booking.barber
     barber_user = barber.user if barber else None
@@ -216,6 +244,7 @@ def _booking_to_response(booking: Booking) -> BookingResponse:
         )
         for item in getattr(booking, "booking_services", []) or []
     ]
+    can_view_customer_address = _can_view_customer_address(booking, viewer_role, viewer_user_id)
 
     return BookingResponse(
         id=booking.id,
@@ -223,12 +252,19 @@ def _booking_to_response(booking: Booking) -> BookingResponse:
         barber_id=booking.barber_id,
         scheduled_time=booking.scheduled_time,
         service_name=booking.service_name or "Haircut",
+        service_mode=booking.service_mode or ("home_service" if any(item.is_home_service for item in selected_services) else "shop_visit"),
         customer_name=customer.full_name if customer else None,
         customer_phone=customer.phone if customer else None,
         customer_email=customer.email if customer else None,
         barber_user_id=barber.user_id if barber else None,
         barber_name=barber_name,
         barber_location=barber_location,
+        barber_shop_address=booking.barber_shop_address or (barber.shop_address if barber else None),
+        barber_shop_landmark=booking.barber_shop_landmark or (barber.shop_landmark if barber else None),
+        customer_address_line=booking.customer_address_line if can_view_customer_address else None,
+        customer_address_area=booking.customer_address_area,
+        customer_address_landmark=booking.customer_address_landmark if can_view_customer_address else None,
+        customer_address_note=booking.customer_address_note if can_view_customer_address else None,
         review_exists=bool(booking.review),
         review_id=booking.review.id if booking.review else None,
         service_ids=[item.service_id for item in selected_services],
@@ -259,6 +295,36 @@ def _set_payment_window_on_approval(booking: Booking) -> None:
     booking.approved_at = now
     booking.payment_due_at = now + timedelta(minutes=APPROVED_PAYMENT_WINDOW_MINUTES)
     booking.payment_reminder_count = 0
+
+
+def migrate_pending_bookings_to_payment_ready(db: Session) -> int:
+    """Promote legacy pending bookings into the payment-ready flow.
+
+    This is intentionally idempotent:
+    - only runs when barber approval is disabled
+    - only touches pending, unpaid bookings
+    - refreshes the payment window from "now" so old queue items do not
+      instantly expire after the flow change
+    """
+    if BOOKINGS_REQUIRE_BARBER_APPROVAL:
+        return 0
+
+    legacy_pending_bookings = (
+        db.query(Booking)
+        .filter(
+            Booking.status == BookingStatus.pending,
+            Booking.payment_status == PaymentStatus.unpaid,
+        )
+        .all()
+    )
+
+    migrated_count = 0
+    for booking in legacy_pending_bookings:
+        booking.status = BookingStatus.approved
+        _set_payment_window_on_approval(booking)
+        migrated_count += 1
+
+    return migrated_count
 
 
 def _resolve_selected_services(db: Session, barber: Barber, service_ids: list[int]) -> list[BarberService]:
@@ -334,6 +400,22 @@ def _frontend_public_base() -> str:
 
 
 def _notify_booking_created(db: Session, booking: Booking, customer: User, barber_user: User) -> None:
+    if not BOOKINGS_REQUIRE_BARBER_APPROVAL:
+        create_notifications(
+            db,
+            user_ids=[barber_user.id],
+            notification_type="booking_created",
+            title="New booking awaiting payment",
+            message=(
+                f"{customer.full_name} selected {booking.service_name} for "
+                f"{format_notification_time(booking.scheduled_time)}. "
+                "The slot will lock in once payment is completed."
+            ),
+            link=_dashboard_link(section="barber_queue", booking=booking.id, focus="payment"),
+            booking_id=booking.id,
+        )
+        return
+
     create_notifications(
         db,
         user_ids=[barber_user.id],
@@ -381,6 +463,39 @@ def _notify_booking_approved(db: Session, booking: Booking) -> None:
             pass
 
 
+def _notify_booking_payment_ready(db: Session, booking: Booking) -> None:
+    payment_due_copy = (
+        f" Pay now to secure your slot by {format_notification_time(booking.payment_due_at)}."
+        if booking.payment_due_at
+        else " Pay now to secure your slot."
+    )
+    create_notifications(
+        db,
+        user_ids=[booking.customer_id],
+        notification_type="booking_payment_ready",
+        title="Pay now to secure your slot",
+        message=(
+            f"Your booking for {booking.service_name} on "
+            f"{format_notification_time(booking.scheduled_time)} is ready for payment."
+            f"{payment_due_copy}"
+        ),
+        link=_dashboard_link(section="bookings", booking=booking.id, focus="payment"),
+        booking_id=booking.id,
+    )
+    if booking.customer and booking.customer.email:
+        try:
+            send_booking_payment_ready_email(
+                booking.customer.email,
+                booking.customer.full_name or "there",
+                booking.service_name,
+                booking.scheduled_time,
+                booking.payment_due_at,
+                _dashboard_link(section="bookings", booking=booking.id, focus="payment"),
+            )
+        except Exception:
+            pass
+
+
 def _notify_chat_available(db: Session, booking: Booking) -> None:
     recipient_ids = [booking.customer_id]
     if booking.barber:
@@ -393,8 +508,9 @@ def _notify_chat_available(db: Session, booking: Booking) -> None:
         title="Chat is now open",
         message=(
             f"Your {booking.service_name} booking for "
-            f"{format_notification_time(booking.scheduled_time)} is approved. "
-            "You can now chat directly inside Trimly while payment is being completed."
+            f"{format_notification_time(booking.scheduled_time)} "
+            f"{'is approved' if BOOKINGS_REQUIRE_BARBER_APPROVAL else 'is ready'}."
+            " You can now chat directly inside Trimly while payment is being completed."
         ),
         link=_chat_link(booking.id),
         booking_id=booking.id,
@@ -627,16 +743,44 @@ def create_booking(
     price = round(sum(float(service.price or 0) for service in selected_services), 2)
     commission, barber_earnings = calculate_split_amounts(price)
     service_name = ", ".join(str(service.name or "").strip() for service in selected_services) or (booking_data.service_name or "Haircut").strip() or "Haircut"
+    service_mode = _selected_services_service_mode(selected_services)
+    latest_kyc = db.query(BarberKYC).filter(BarberKYC.barber_id == barber.id).order_by(BarberKYC.created_at.desc()).first()
+    barber_shop_address = str(barber.shop_address or (latest_kyc.shop_address if latest_kyc else "") or "").strip() or None
+    barber_shop_landmark = str(barber.shop_landmark or "").strip() or None
+
+    customer_address_line = str(booking_data.customer_address_line or current_user.address_line or "").strip() or None
+    customer_address_area = str(booking_data.customer_address_area or current_user.address_area or "").strip() or None
+    customer_address_landmark = str(booking_data.customer_address_landmark or current_user.address_landmark or "").strip() or None
+    customer_address_note = str(booking_data.customer_address_note or current_user.address_note or "").strip() or None
+
+    if service_mode == "home_service" and not customer_address_line:
+        raise HTTPException(
+            status_code=400,
+            detail="Add your home-service address before booking this appointment.",
+        )
+
+    if any([booking_data.customer_address_line, booking_data.customer_address_area, booking_data.customer_address_landmark, booking_data.customer_address_note]):
+        current_user.address_line = customer_address_line
+        current_user.address_area = customer_address_area
+        current_user.address_landmark = customer_address_landmark
+        current_user.address_note = customer_address_note
 
     new_booking = Booking(
         customer_id=current_user.id,
         barber_id=barber.id,
         scheduled_time=scheduled_time,
         service_name=service_name,
+        service_mode=service_mode,
+        customer_address_line=customer_address_line,
+        customer_address_area=customer_address_area,
+        customer_address_landmark=customer_address_landmark,
+        customer_address_note=customer_address_note,
+        barber_shop_address=barber_shop_address,
+        barber_shop_landmark=barber_shop_landmark,
         price=price,
         commission_amount=commission,
         barber_earnings=barber_earnings,
-        status=BookingStatus.pending,
+        status=BookingStatus.pending if BOOKINGS_REQUIRE_BARBER_APPROVAL else BookingStatus.approved,
         payment_status=PaymentStatus.unpaid,
         refund_requested=False,
         escrow_released=False,
@@ -652,10 +796,20 @@ def create_booking(
                 price=float(service.price or 0),
             )
         )
-    _notify_booking_created(db, new_booking, current_user, barber_user)
+    if BOOKINGS_REQUIRE_BARBER_APPROVAL:
+        _notify_booking_created(db, new_booking, current_user, barber_user)
+    else:
+        _set_payment_window_on_approval(new_booking)
+        _notify_booking_created(db, new_booking, current_user, barber_user)
+        _notify_booking_payment_ready(db, new_booking)
+        _notify_chat_available(db, new_booking)
     db.commit()
     db.refresh(new_booking)
-    return _booking_to_response(_get_booking_or_404(db, new_booking.id))
+    return _booking_to_response(
+        _get_booking_or_404(db, new_booking.id),
+        viewer_role=UserRole.customer.value,
+        viewer_user_id=current_user.id,
+    )
 
 
 @router.patch("/bookings/{booking_id}/approve", response_model=BookingResponse)
@@ -679,7 +833,11 @@ def approve_booking(
     _notify_chat_available(db, booking)
     db.commit()
     db.refresh(booking)
-    return _booking_to_response(_get_booking_or_404(db, booking.id))
+    return _booking_to_response(
+        _get_booking_or_404(db, booking.id),
+        viewer_role=UserRole.barber.value,
+        viewer_user_id=current_user.id,
+    )
 
 
 @router.patch("/bookings/{booking_id}/reject", response_model=BookingResponse)
@@ -699,7 +857,11 @@ def reject_booking(
     _notify_booking_rejected(db, booking)
     db.commit()
     db.refresh(booking)
-    return _booking_to_response(_get_booking_or_404(db, booking.id))
+    return _booking_to_response(
+        _get_booking_or_404(db, booking.id),
+        viewer_role=UserRole.barber.value,
+        viewer_user_id=current_user.id,
+    )
 
 
 @router.post("/bookings/{booking_id}/cancel", response_model=BookingResponse)
@@ -716,7 +878,11 @@ def cancel_booking(
 
     db.commit()
     db.refresh(booking)
-    return _booking_to_response(_get_booking_or_404(db, booking.id))
+    return _booking_to_response(
+        _get_booking_or_404(db, booking.id),
+        viewer_role=actor_role,
+        viewer_user_id=current_user.id,
+    )
 
 
 @router.patch("/bookings/{booking_id}/status", response_model=BookingResponse)
@@ -766,7 +932,11 @@ def update_booking_status(
 
     db.commit()
     db.refresh(booking)
-    return _booking_to_response(_get_booking_or_404(db, booking.id))
+    return _booking_to_response(
+        _get_booking_or_404(db, booking.id),
+        viewer_role=_normalize_role(current_user.role),
+        viewer_user_id=current_user.id,
+    )
 
 
 @router.post("/bookings/{booking_id}/pay")
@@ -790,7 +960,11 @@ def pay_for_booking(
 
     logic_status = _logic_status(booking.status)
     if logic_status == BookingStatus.pending.value:
-        raise HTTPException(status_code=400, detail="Booking not yet approved")
+        if BOOKINGS_REQUIRE_BARBER_APPROVAL:
+            raise HTTPException(status_code=400, detail="Booking not yet approved")
+        booking.status = BookingStatus.approved
+        if not booking.approved_at or not booking.payment_due_at:
+            _set_payment_window_on_approval(booking)
     if logic_status == BookingStatus.expired.value:
         raise HTTPException(status_code=400, detail="This approved booking expired before payment was completed")
     if logic_status != BookingStatus.approved.value:
@@ -960,7 +1134,11 @@ def mark_booking_completed_for_admin(
 
     db.commit()
     db.refresh(booking)
-    return _booking_to_response(_get_booking_or_404(db, booking.id))
+    return _booking_to_response(
+        _get_booking_or_404(db, booking.id),
+        viewer_role=_normalize_role(current_user.role),
+        viewer_user_id=current_user.id,
+    )
 
 
 @router.get("/barber/{barber_id}/availability")
@@ -1045,17 +1223,17 @@ def get_all_bookings(
 
     if role in ADMIN_ROLES:
         bookings = base_query.order_by(Booking.created_at.desc()).all()
-        return [_booking_to_response(booking) for booking in bookings]
+        return [_booking_to_response(booking, viewer_role=role, viewer_user_id=current_user.id) for booking in bookings]
 
     if role == UserRole.customer.value:
         bookings = base_query.filter(Booking.customer_id == current_user.id).order_by(Booking.created_at.desc()).all()
-        return [_booking_to_response(booking) for booking in bookings]
+        return [_booking_to_response(booking, viewer_role=role, viewer_user_id=current_user.id) for booking in bookings]
 
     if role == UserRole.barber.value:
         barber_profile = db.query(Barber).filter(Barber.user_id == current_user.id).first()
         if not barber_profile:
             return []
         bookings = base_query.filter(Booking.barber_id == barber_profile.id).order_by(Booking.created_at.desc()).all()
-        return [_booking_to_response(booking) for booking in bookings]
+        return [_booking_to_response(booking, viewer_role=role, viewer_user_id=current_user.id) for booking in bookings]
 
     raise HTTPException(status_code=403, detail="Not allowed")

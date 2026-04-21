@@ -192,6 +192,10 @@ def read_current_user(current_user: User = Depends(get_current_user)):
         role=current_user.role,
         full_name=current_user.full_name,
         phone=current_user.phone,
+        address_line=current_user.address_line,
+        address_area=current_user.address_area,
+        address_landmark=current_user.address_landmark,
+        address_note=current_user.address_note,
         accepted_terms=current_user.accepted_terms,
         admin_approved=current_user.admin_approved,
         referral_code=current_user.referral_code,
@@ -216,6 +220,10 @@ def update_current_user_profile(
 
     user.full_name = full_name
     user.phone = str(payload.phone or "").strip() or None
+    user.address_line = str(payload.address_line or "").strip() or None
+    user.address_area = str(payload.address_area or "").strip() or None
+    user.address_landmark = str(payload.address_landmark or "").strip() or None
+    user.address_note = str(payload.address_note or "").strip() or None
     db.commit()
     db.refresh(user)
 
@@ -224,6 +232,10 @@ def update_current_user_profile(
         role=user.role,
         full_name=user.full_name,
         phone=user.phone,
+        address_line=user.address_line,
+        address_area=user.address_area,
+        address_landmark=user.address_landmark,
+        address_note=user.address_note,
         accepted_terms=user.accepted_terms,
         admin_approved=user.admin_approved,
         referral_code=user.referral_code,

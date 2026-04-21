@@ -16,6 +16,13 @@ class Booking(Base):
 
     scheduled_time = Column(DateTime, nullable=False)
     service_name = Column(String, nullable=False, default="Haircut")
+    service_mode = Column(String, nullable=True)
+    customer_address_line = Column(String, nullable=True)
+    customer_address_area = Column(String, nullable=True)
+    customer_address_landmark = Column(String, nullable=True)
+    customer_address_note = Column(String, nullable=True)
+    barber_shop_address = Column(String, nullable=True)
+    barber_shop_landmark = Column(String, nullable=True)
 
     price = Column(Float, nullable=False)
     commission_amount = Column(Float, nullable=True)

@@ -8,6 +8,7 @@ from app.models.barber import Barber
 from app.models.booking import Booking
 from app.models.user import UserRole
 from app.services.notification_service import create_notifications, format_notification_time
+from app.core.config import BOOKINGS_REQUIRE_BARBER_APPROVAL
 from app.services.booking_email_service import (
     send_booking_expired_email,
     send_booking_payment_reminder_email,
@@ -155,7 +156,8 @@ def _reconcile_approved_payment_windows(db: Session, now: datetime) -> int:
             notification_type="booking_payment_reminder",
             title="Pay now to keep your booking",
             message=(
-                f"Your {booking.service_name} booking for {format_notification_time(booking.scheduled_time)} is approved. "
+                f"Your {booking.service_name} booking for {format_notification_time(booking.scheduled_time)} "
+                f"{'is approved' if BOOKINGS_REQUIRE_BARBER_APPROVAL else 'is ready for payment'}. "
                 f"Complete payment in Trimly to secure your slot. {minutes_left} minute{'s' if minutes_left != 1 else ''} left."
             ),
             link=booking_link,

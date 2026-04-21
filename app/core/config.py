@@ -20,3 +20,13 @@ ADMIN_SESSION_COOKIE_NAME = os.getenv("ADMIN_SESSION_COOKIE_NAME", "trimly_admin
 BOOTSTRAP_SUPER_ADMIN_EMAIL = os.getenv("BOOTSTRAP_SUPER_ADMIN_EMAIL", "")
 BOOTSTRAP_SUPER_ADMIN_PASSWORD = os.getenv("BOOTSTRAP_SUPER_ADMIN_PASSWORD", "")
 BOOTSTRAP_SUPER_ADMIN_NAME = os.getenv("BOOTSTRAP_SUPER_ADMIN_NAME", "Trimly Super Admin")
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+
+
+BOOKINGS_REQUIRE_BARBER_APPROVAL = _env_bool("BOOKINGS_REQUIRE_BARBER_APPROVAL", False)

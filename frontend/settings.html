@@ -77,9 +77,30 @@
                 <label for="settings_phone">Phone</label>
                 <input id="settings_phone" name="phone" class="input" type="tel" />
               </div>
+              <div class="form-grid form-grid-2">
+                <div>
+                  <label for="settings_address_line">Saved Address</label>
+                  <input id="settings_address_line" name="address_line" class="input" type="text" placeholder="House number, street, estate" />
+                </div>
+                <div>
+                  <label for="settings_address_area">Area / City</label>
+                  <input id="settings_address_area" name="address_area" class="input" type="text" placeholder="Lekki Phase 1, Lagos" />
+                </div>
+              </div>
+              <div class="form-grid form-grid-2">
+                <div>
+                  <label for="settings_address_landmark">Landmark</label>
+                  <input id="settings_address_landmark" name="address_landmark" class="input" type="text" placeholder="Blue gate beside the pharmacy" />
+                </div>
+                <div>
+                  <label for="settings_address_note">Extra Note</label>
+                  <input id="settings_address_note" name="address_note" class="input" type="text" placeholder="Call when you get to the gate" />
+                </div>
+              </div>
               <button class="btn btn-primary" type="submit">Save Profile</button>
             </form>
             <p id="settingsProfileNotice" class="notice"></p>
+            <div id="settingsSavedAddressCard" class="share-link-panel hidden"></div>
           </article>
 
           <article class="settings-card" data-settings-group="account">
@@ -343,6 +364,17 @@
                 <div>
                   <label for="barber_profile_location">Location</label>
                   <input id="barber_profile_location" name="location" class="input" type="text" placeholder="Area, city, landmark" required />
+                </div>
+                <div>
+                  <label for="barber_shop_address_public">Shop Address</label>
+                  <input id="barber_shop_address_public" name="shop_address" class="input" type="text" placeholder="Precise shop address customers can navigate to" />
+                </div>
+              </div>
+
+              <div class="form-grid form-grid-2">
+                <div>
+                  <label for="barber_shop_landmark_public">Shop Landmark</label>
+                  <input id="barber_shop_landmark_public" name="shop_landmark" class="input" type="text" placeholder="Opposite Chevron Roundabout, 2nd floor, green gate" />
                 </div>
                 <div>
                   <label for="barber_profile_image_url">Profile Image URL</label>

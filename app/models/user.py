@@ -37,4 +37,8 @@ class User(Base):
     referred_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     loyalty_points = Column(Integer, default=0, nullable=False)
     referral_reward_granted = Column(Boolean, default=False, nullable=False)
+    address_line = Column(String, nullable=True)
+    address_area = Column(String, nullable=True)
+    address_landmark = Column(String, nullable=True)
+    address_note = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

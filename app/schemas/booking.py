@@ -12,6 +12,10 @@ class BookingCreate(BaseModel):
     scheduled_time: datetime
     service_name: Optional[str] = "Haircut"
     service_ids: list[int] = Field(default_factory=list)
+    customer_address_line: Optional[str] = None
+    customer_address_area: Optional[str] = None
+    customer_address_landmark: Optional[str] = None
+    customer_address_note: Optional[str] = None
 
 
 class BookingServiceSelection(BaseModel):
@@ -30,6 +34,7 @@ class BookingResponse(BaseModel):
     barber_id: int
     scheduled_time: datetime
     service_name: str = "Haircut"
+    service_mode: Optional[str] = None
 
     customer_name: Optional[str] = None
     customer_phone: Optional[str] = None
@@ -37,6 +42,12 @@ class BookingResponse(BaseModel):
     barber_user_id: Optional[int] = None
     barber_name: Optional[str] = None
     barber_location: Optional[str] = None
+    barber_shop_address: Optional[str] = None
+    barber_shop_landmark: Optional[str] = None
+    customer_address_line: Optional[str] = None
+    customer_address_area: Optional[str] = None
+    customer_address_landmark: Optional[str] = None
+    customer_address_note: Optional[str] = None
     review_exists: bool = False
     review_id: Optional[int] = None
     service_ids: list[int] = Field(default_factory=list)
