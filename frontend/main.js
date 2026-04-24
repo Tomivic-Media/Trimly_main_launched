@@ -1419,16 +1419,12 @@ async function initBookingPage() {
         customer_address_note: isHomeService ? String(bookingForm.elements.customer_address_note?.value || "").trim() || null : null,
       });
 
-      bookingNotice.textContent =
-        "Booking created. Pay now to secure your slot before the payment window expires.";
+      bookingNotice.textContent = "Booking created. Redirecting to payment...";
       bookingNotice.className = "notice success";
-      await loadTimeSlots();
-      await renderBookingPaymentActions(bookingResult.id, paymentActions);
-
-      const nextParams = new URLSearchParams(window.location.search);
-      nextParams.set("barber", String(barberId));
-      nextParams.set("booking", String(bookingResult.id));
-      window.history.replaceState({}, "", "/static/booking.html?" + nextParams.toString());
+      const paymentParams = new URLSearchParams();
+      paymentParams.set("booking", String(bookingResult.id));
+      paymentParams.set("barber", String(barberId));
+      window.location.href = `/static/payment-status.html?${paymentParams.toString()}`;
     } catch (error) {
       bookingNotice.textContent = error.message;
       bookingNotice.className = "notice error";
@@ -6958,6 +6954,13 @@ async function initPaymentStatusPage() {
       <a class="btn btn-primary" href="${getDashboardPath()}">Back to Dashboard</a>
       <a class="btn btn-ghost" href="/static/booking.html?barber=${barberId || ""}&booking=${bookingId || ""}">Return to Booking</a>
     `;
+    return;
+  }
+
+  if (bookingId && !reference) {
+    title.textContent = "Complete your payment";
+    copy.textContent = "Your booking has been created. Pay now to secure the slot before the payment window expires.";
+    await renderBookingPaymentActions(bookingId, actions);
     return;
   }
 
