@@ -251,10 +251,20 @@ def migrate_legacy_pending_bookings() -> None:
         db.close()
 
 
+def backfill_legacy_barber_card_images() -> None:
+    """One-off runtime cleanup for older barber profiles missing a dedicated card image."""
+    db = SessionLocal()
+    try:
+        barber_routes.backfill_legacy_barber_card_images(db)
+    finally:
+        db.close()
+
+
 Base.metadata.create_all(bind=engine)
 ensure_runtime_schema()
 ensure_bootstrap_super_admin()
 migrate_legacy_pending_bookings()
+backfill_legacy_barber_card_images()
 
 app.include_router(auth.router)
 app.include_router(account_routes.router)

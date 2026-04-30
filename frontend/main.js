@@ -462,7 +462,7 @@ function bindHeaderNotificationActions(scope = document) {
 }
 
 function resolveMediaSource(source) {
-  const value = String(source || "").trim();
+  const value = String(source || "").trim().replace(/\\/g, "/");
   if (!value) return "";
   if (
     value.startsWith("http://") ||
@@ -471,6 +471,25 @@ function resolveMediaSource(source) {
     value.startsWith("data:image/")
   ) {
     return value;
+  }
+  if (value.startsWith("./")) {
+    return resolveMediaSource(value.slice(2));
+  }
+  if (value.startsWith("static/")) {
+    return `/${value}`;
+  }
+  if (value.startsWith("uploads/")) {
+    return `/static/${value}`;
+  }
+
+  const uploadsMatch = value.match(/(?:^|\/)(uploads\/.+)$/i);
+  if (uploadsMatch?.[1]) {
+    return `/static/${uploadsMatch[1]}`;
+  }
+
+  const staticMatch = value.match(/(?:^|\/)(static\/.+)$/i);
+  if (staticMatch?.[1]) {
+    return `/${staticMatch[1]}`;
   }
   return "";
 }
@@ -556,6 +575,22 @@ function buildGoogleMapsSearchUrl(...parts) {
   const query = composeAddressParts(parts).join(", ");
   if (!query) return "";
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+function firstSelectedFile(...inputs) {
+  for (const input of inputs) {
+    const file = input?.files?.[0];
+    if (file && typeof file === "object" && file.name) {
+      return file;
+    }
+  }
+  return null;
+}
+
+function collectSelectedFiles(...inputs) {
+  return inputs
+    .flatMap((input) => Array.from(input?.files || []))
+    .filter((file) => file && typeof file === "object" && file.name);
 }
 
 function customerAddressText(source) {
@@ -1401,7 +1436,7 @@ async function initBookingPage() {
 
     const submitBtn = bookingForm.querySelector("button[type='submit']");
     submitBtn.disabled = true;
-    submitBtn.textContent = "Confirming...";
+    submitBtn.textContent = "Preparing payment...";
 
     if (paymentActions) {
       paymentActions.innerHTML = "";
@@ -1433,7 +1468,7 @@ async function initBookingPage() {
       }
     } finally {
       submitBtn.disabled = false;
-      submitBtn.textContent = "Confirm Booking";
+      submitBtn.textContent = "Continue to Payment";
     }
   });
 }
@@ -1940,11 +1975,14 @@ async function initSettingsPage() {
     if (role === "barber") {
       const profileForm = document.getElementById("barberProfileForm");
       const profileNotice = document.getElementById("barberProfileNotice");
+      const profileImageCameraInput = document.getElementById("barber_profile_image_camera");
       const profileImageFileInput = document.getElementById("barber_profile_image_file");
       const profileImagePreview = document.getElementById("barberProfileImagePreview");
+      const coverImageCameraInput = document.getElementById("barber_cover_image_camera");
       const coverImageFileInput = document.getElementById("barber_cover_image_file");
       const coverImagePreview = document.getElementById("barberCoverImagePreview");
       const portfolioList = document.getElementById("barberPortfolioList");
+      const portfolioCameraInput = document.getElementById("barberPortfolioCameraInput");
       const portfolioFileInput = document.getElementById("barberPortfolioFileInput");
       const portfolioUrlInput = document.getElementById("barberPortfolioUrlInput");
       const addPortfolioBtn = document.getElementById("addBarberPortfolioUrl");
@@ -1953,11 +1991,14 @@ async function initSettingsPage() {
       hydrateBarberProfileEditor(
         profileForm,
         profileNotice,
+        profileImageCameraInput,
         profileImageFileInput,
         profileImagePreview,
+        coverImageCameraInput,
         coverImageFileInput,
         coverImagePreview,
         portfolioList,
+        portfolioCameraInput,
         portfolioFileInput,
         portfolioUrlInput,
         addPortfolioBtn,
@@ -2065,14 +2106,34 @@ async function initSetupBarberPage() {
     submitBtn.textContent = "Saving...";
 
     try {
-      const profileImageFile = formData.get("profile_image");
+      const profileImageFile =
+        formData.get("profile_image_camera") && typeof formData.get("profile_image_camera") === "object" && formData.get("profile_image_camera").name
+          ? formData.get("profile_image_camera")
+          : formData.get("profile_image");
+      if (!profileImageFile || typeof profileImageFile !== "object" || !profileImageFile.name) {
+        throw new Error("Profile photo is required. Take a clear face photo or choose one from your gallery.");
+      }
       if (profileImageFile && typeof profileImageFile === "object" && profileImageFile.name) {
         const uploadedProfile = await uploadBarberImage(profileImageFile);
         payload.profile_image_url = String(uploadedProfile?.url || "").trim() || null;
-        payload.cover_image_url = payload.profile_image_url;
       }
 
-      const portfolioFiles = Array.from(formData.getAll("portfolio_images") || []).filter(
+      const cardImageFile =
+        formData.get("card_image_camera") && typeof formData.get("card_image_camera") === "object" && formData.get("card_image_camera").name
+          ? formData.get("card_image_camera")
+          : formData.get("card_image");
+      if (!cardImageFile || typeof cardImageFile !== "object" || !cardImageFile.name) {
+        throw new Error("Barber card photo is required. Take one or choose one from your gallery.");
+      }
+      if (cardImageFile && typeof cardImageFile === "object" && cardImageFile.name) {
+        const uploadedCard = await uploadBarberImage(cardImageFile);
+        payload.cover_image_url = String(uploadedCard?.url || "").trim() || null;
+      }
+
+      const portfolioFiles = [
+        ...Array.from(formData.getAll("portfolio_images_camera") || []),
+        ...Array.from(formData.getAll("portfolio_images") || []),
+      ].filter(
         (file) => file && typeof file === "object" && file.name
       );
       if (portfolioFiles.length) {
@@ -2080,9 +2141,6 @@ async function initSetupBarberPage() {
         payload.portfolio_image_urls = uploads
           .map((item) => String(item?.url || "").trim())
           .filter(Boolean);
-        if (!payload.cover_image_url && payload.portfolio_image_urls.length) {
-          payload.cover_image_url = payload.portfolio_image_urls[0];
-        }
       }
 
       await createBarberProfile(payload);
@@ -4109,11 +4167,14 @@ function hydrateBarberNotificationPreferences(soundToggle, highlightToggle) {
 function hydrateBarberProfileEditor(
   form,
   notice,
+  profileImageCameraInput,
   profileImageFileInput,
   profileImagePreview,
+  coverImageCameraInput,
   coverImageFileInput,
   coverImagePreview,
   portfolioList,
+  portfolioCameraInput,
   portfolioFileInput,
   portfolioUrlInput,
   addPortfolioBtn,
@@ -4123,9 +4184,6 @@ function hydrateBarberProfileEditor(
     !form ||
     !notice ||
     !portfolioList ||
-    !portfolioUrlInput ||
-    !addPortfolioBtn ||
-    !uploadPortfolioBtn ||
     !state.barberProfile
   ) {
     return;
@@ -4151,64 +4209,100 @@ function hydrateBarberProfileEditor(
   form.elements.other_services.value = profile.other_services || "";
   form.elements.bio.value = profile.bio || "";
 
-  renderBarberProfileImagePreview(profileImagePreview, form.elements.profile_image_url.value);
-  renderBarberProfileImagePreview(coverImagePreview, form.elements.cover_image_url?.value || "");
+  renderBarberProfileImagePreview(
+    profileImagePreview,
+        form.elements.profile_image_url.value,
+        "No profile photo uploaded yet. Add a clear face photo so customers can recognize the account owner.",
+        "This profile photo is ready. Upload another one anytime if you want to change it.",
+        "This profile photo entry is not usable yet. Please upload it again."
+      );
+  renderBarberProfileImagePreview(
+    coverImagePreview,
+        form.elements.cover_image_url?.value || "",
+        "No barber card photo uploaded yet. Add a separate haircut or shop image for your public card.",
+        "This barber card photo is ready. Upload another one anytime if you want to change it.",
+        "This barber card photo entry is not usable yet. Please upload it again."
+      );
   renderBarberPortfolioDraft(portfolioList, form.elements.cover_image_url?.value || "");
 
-  if (profileImageFileInput && profileImageFileInput.dataset.bound !== "true") {
-    profileImageFileInput.dataset.bound = "true";
-    profileImageFileInput.addEventListener("change", async () => {
-      const file = profileImageFileInput.files?.[0];
+  const profileUploadInputs = [profileImageCameraInput, profileImageFileInput].filter(Boolean);
+  profileUploadInputs.forEach((input) => {
+    if (!input || input.dataset.bound === "true") return;
+    input.dataset.bound = "true";
+    input.addEventListener("change", async () => {
+      const file = input.files?.[0];
       if (!file) return;
-      profileImageFileInput.disabled = true;
-      notice.textContent = "Uploading profile image...";
+      profileUploadInputs.forEach((field) => {
+        field.disabled = true;
+      });
+      notice.textContent = "Uploading profile photo...";
       notice.className = "notice";
       try {
         const response = await uploadBarberImage(file);
         const imageUrl = String(response?.url || "").trim();
         if (!imageUrl) throw new Error("Image upload failed");
         form.elements.profile_image_url.value = imageUrl;
-        renderBarberProfileImagePreview(profileImagePreview, imageUrl);
-        notice.textContent = "Profile image uploaded. Save your profile to publish it.";
+        renderBarberProfileImagePreview(
+          profileImagePreview,
+          imageUrl,
+          "No profile photo uploaded yet. Add a clear face photo so customers can recognize the account owner.",
+          "This profile photo is ready and will show the barber's face on the public profile.",
+          "This profile photo entry is not usable yet. Please upload it again."
+        );
+        notice.textContent = "Profile photo uploaded. Save your profile to publish it.";
         notice.className = "notice success";
       } catch (error) {
         notice.textContent = error.message;
         notice.className = "notice error";
       } finally {
-        profileImageFileInput.disabled = false;
-        profileImageFileInput.value = "";
+        profileUploadInputs.forEach((field) => {
+          field.disabled = false;
+          field.value = "";
+        });
       }
     });
-  }
+  });
 
-  if (coverImageFileInput && coverImageFileInput.dataset.bound !== "true") {
-    coverImageFileInput.dataset.bound = "true";
-    coverImageFileInput.addEventListener("change", async () => {
-      const file = coverImageFileInput.files?.[0];
+  const coverUploadInputs = [coverImageCameraInput, coverImageFileInput].filter(Boolean);
+  coverUploadInputs.forEach((input) => {
+    if (!input || input.dataset.bound === "true") return;
+    input.dataset.bound = "true";
+    input.addEventListener("change", async () => {
+      const file = input.files?.[0];
       if (!file) return;
-      coverImageFileInput.disabled = true;
-      notice.textContent = "Uploading cover image...";
+      coverUploadInputs.forEach((field) => {
+        field.disabled = true;
+      });
+      notice.textContent = "Uploading barber card photo...";
       notice.className = "notice";
       try {
         const response = await uploadBarberImage(file);
         const imageUrl = String(response?.url || "").trim();
-        if (!imageUrl) throw new Error("Cover image upload failed");
+        if (!imageUrl) throw new Error("Barber card photo upload failed");
         form.elements.cover_image_url.value = imageUrl;
-        renderBarberProfileImagePreview(coverImagePreview, imageUrl);
+        renderBarberProfileImagePreview(
+          coverImagePreview,
+          imageUrl,
+          "No barber card photo uploaded yet. Add a separate haircut or shop image for your public card.",
+          "This barber card photo is ready for customers to see first when browsing barbers.",
+          "This barber card photo entry is not usable yet. Please upload it again."
+        );
         renderBarberPortfolioDraft(portfolioList, imageUrl);
-        notice.textContent = "Cover image uploaded. Save your profile to publish it.";
+        notice.textContent = "Barber card photo uploaded. Save your profile to publish it.";
         notice.className = "notice success";
       } catch (error) {
         notice.textContent = error.message;
         notice.className = "notice error";
       } finally {
-        coverImageFileInput.disabled = false;
-        coverImageFileInput.value = "";
+        coverUploadInputs.forEach((field) => {
+          field.disabled = false;
+          field.value = "";
+        });
       }
     });
-  }
+  });
 
-  if (addPortfolioBtn.dataset.bound !== "true") {
+  if (addPortfolioBtn && addPortfolioBtn.dataset.bound !== "true" && portfolioUrlInput) {
     addPortfolioBtn.dataset.bound = "true";
     addPortfolioBtn.addEventListener("click", () => {
       const value = String(portfolioUrlInput.value || "").trim();
@@ -4223,10 +4317,10 @@ function hydrateBarberProfileEditor(
     });
   }
 
-  if (portfolioFileInput && uploadPortfolioBtn.dataset.bound !== "true") {
+  if (uploadPortfolioBtn && uploadPortfolioBtn.dataset.bound !== "true") {
     uploadPortfolioBtn.dataset.bound = "true";
     uploadPortfolioBtn.addEventListener("click", async () => {
-      const files = Array.from(portfolioFileInput.files || []);
+      const files = collectSelectedFiles(portfolioCameraInput, portfolioFileInput);
       if (!files.length) {
         toast("Choose one or more photos first", true);
         return;
@@ -4250,7 +4344,8 @@ function hydrateBarberProfileEditor(
         notice.className = "notice error";
       } finally {
         uploadPortfolioBtn.disabled = false;
-        portfolioFileInput.value = "";
+        if (portfolioCameraInput) portfolioCameraInput.value = "";
+        if (portfolioFileInput) portfolioFileInput.value = "";
       }
     });
   }
@@ -4267,7 +4362,13 @@ function hydrateBarberProfileEditor(
         const removedUrl = state.barberPortfolioDraft.splice(index, 1)[0];
         if (form.elements.cover_image_url?.value === removedUrl) {
           form.elements.cover_image_url.value = state.barberPortfolioDraft[0] || "";
-          renderBarberProfileImagePreview(coverImagePreview, form.elements.cover_image_url.value);
+          renderBarberProfileImagePreview(
+            coverImagePreview,
+            form.elements.cover_image_url.value,
+            "No barber card photo uploaded yet. Add a separate haircut or shop image for your public card.",
+            "This barber card photo is ready. Upload another one anytime if you want to change it.",
+            "This barber card photo entry is not usable yet. Please upload it again."
+          );
         }
         renderBarberPortfolioDraft(portfolioList, form.elements.cover_image_url?.value || "");
         return;
@@ -4320,16 +4421,35 @@ function hydrateBarberProfileEditor(
           portfolio_image_urls: [...state.barberPortfolioDraft],
         };
 
+        if (!payload.profile_image_url) {
+          throw new Error("Profile photo is required. Upload a clear face photo before saving.");
+        }
+        if (!payload.cover_image_url) {
+          throw new Error("Barber card photo is required. Upload a haircut or shop photo before saving.");
+        }
+
         if (!payload.shop_name || !payload.location || !payload.haircut_price) {
-          throw new Error("Shop name, location, and haircut price are required");
+          throw new Error("Shop name, location, haircut price, profile photo, and barber card photo are required");
         }
 
         state.barberProfile = await updateBarberProfile(payload);
         state.barberPortfolioDraft = Array.isArray(state.barberProfile.portfolio_image_urls)
           ? [...state.barberProfile.portfolio_image_urls]
           : [];
-        renderBarberProfileImagePreview(profileImagePreview, state.barberProfile.profile_image_url);
-        renderBarberProfileImagePreview(coverImagePreview, state.barberProfile.cover_image_url);
+        renderBarberProfileImagePreview(
+          profileImagePreview,
+          state.barberProfile.profile_image_url,
+          "No profile photo uploaded yet. Add a clear face photo so customers can recognize the account owner.",
+          "This profile photo is ready. Upload another one anytime if you want to change it.",
+          "This profile photo entry is not usable yet. Please upload it again."
+        );
+        renderBarberProfileImagePreview(
+          coverImagePreview,
+          state.barberProfile.cover_image_url,
+          "No barber card photo uploaded yet. Add a separate haircut or shop image for your public card.",
+          "This barber card photo is ready. Upload another one anytime if you want to change it.",
+          "This barber card photo entry is not usable yet. Please upload it again."
+        );
         renderBarberPortfolioDraft(portfolioList, state.barberProfile.cover_image_url);
         notice.textContent = "Barber profile updated successfully.";
         notice.className = "notice success";
@@ -4376,20 +4496,26 @@ function bindCopyLinkButtons(scope = document) {
   });
 }
 
-function renderBarberProfileImagePreview(container, imageUrl) {
+function renderBarberProfileImagePreview(
+  container,
+  imageUrl,
+  emptyMessage = "No profile image uploaded yet. Add one so customers can recognize your work instantly.",
+  readyMessage = "This image is ready for customers to see on your public Trimly page.",
+  invalidMessage = "This image entry is not usable yet. Please upload the profile image again so customers can see it."
+) {
   if (!container) return;
   const source = resolveMediaSource(imageUrl);
   if (!source) {
     const label = String(imageUrl || "").trim();
     container.innerHTML = label
-      ? `<p class="muted">This image entry is not usable yet. Please upload the profile image again so customers can see it.</p>`
-      : `<p class="muted">No profile image uploaded yet. Add one so customers can recognize your work instantly.</p>`;
+      ? `<p class="muted">${escapeHtml(invalidMessage)}</p>`
+      : `<p class="muted">${escapeHtml(emptyMessage)}</p>`;
     return;
   }
 
   container.innerHTML = `
     <img src="${escapeHtml(source)}" alt="Profile preview" />
-    <span class="muted">This image is ready for customers to see on your public Trimly page.</span>
+    <span class="muted">${escapeHtml(readyMessage)}</span>
   `;
 }
 

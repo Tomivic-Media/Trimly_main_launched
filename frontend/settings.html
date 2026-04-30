@@ -376,33 +376,45 @@
                   <label for="barber_shop_landmark_public">Shop Landmark</label>
                   <input id="barber_shop_landmark_public" name="shop_landmark" class="input" type="text" placeholder="Opposite Chevron Roundabout, 2nd floor, green gate" />
                 </div>
-                <div>
-                  <label for="barber_profile_image_url">Profile Image URL</label>
-                  <input id="barber_profile_image_url" name="profile_image_url" class="input" type="url" placeholder="Uploaded image URL appears here automatically" />
-                </div>
+                <input id="barber_profile_image_url" name="profile_image_url" class="input hidden" type="url" />
               </div>
 
-              <div>
-                <label for="barber_cover_image_url">Cover Image URL</label>
-                <input id="barber_cover_image_url" name="cover_image_url" class="input" type="url" placeholder="Use a strong shop or haircut image as your page cover" />
-              </div>
+              <input id="barber_cover_image_url" name="cover_image_url" class="input hidden" type="url" />
 
               <div class="settings-upload-grid">
                 <div class="portfolio-manager">
-                  <strong>Profile Image</strong>
-                  <p class="muted">Upload the photo customers should see on your public profile and booking cards.</p>
-                  <input id="barber_profile_image_file" class="input" type="file" accept="image/*" />
+                  <strong>Profile Photo (Required)</strong>
+                  <p class="muted">This should show the face of the real account owner.</p>
+                  <div class="image-upload-choice-grid">
+                    <div class="upload-choice-card">
+                      <label for="barber_profile_image_camera">Take new profile photo</label>
+                      <input id="barber_profile_image_camera" class="input" type="file" accept="image/*" capture="user" />
+                    </div>
+                    <div class="upload-choice-card">
+                      <label for="barber_profile_image_file">Choose profile photo from gallery</label>
+                      <input id="barber_profile_image_file" class="input" type="file" accept="image/*" />
+                    </div>
+                  </div>
                   <div id="barberProfileImagePreview" class="profile-image-preview-card"></div>
                 </div>
 
                 <div class="portfolio-manager">
-                  <strong>Cover Image</strong>
-                  <p class="muted">This becomes the big visual header when someone opens your public Trimly page.</p>
-                  <input id="barber_cover_image_file" class="input" type="file" accept="image/*" />
+                  <strong>Barber Card Photo</strong>
+                  <p class="muted">Use a haircut or shop image that should appear first on your barber card.</p>
+                  <div class="image-upload-choice-grid">
+                    <div class="upload-choice-card">
+                      <label for="barber_cover_image_camera">Take new barber card photo</label>
+                      <input id="barber_cover_image_camera" class="input" type="file" accept="image/*" capture="environment" />
+                    </div>
+                    <div class="upload-choice-card">
+                      <label for="barber_cover_image_file">Choose barber card photo from gallery</label>
+                      <input id="barber_cover_image_file" class="input" type="file" accept="image/*" />
+                    </div>
+                  </div>
                   <div id="barberCoverImagePreview" class="profile-image-preview-card"></div>
                 </div>
 
-                <div class="portfolio-manager">
+              <div class="portfolio-manager">
                   <strong>Pricing</strong>
                   <div class="form-grid form-grid-2">
                     <div>
@@ -427,15 +439,20 @@
               </div>
 
               <div class="portfolio-manager">
-                <strong>Haircut Portfolio</strong>
-                <p class="muted">These are the haircut pictures customers and anyone viewing your profile will see.</p>
-                <div class="portfolio-add-row">
-                  <input id="barberPortfolioFileInput" class="input" type="file" accept="image/*" multiple />
-                  <button class="btn btn-ghost" id="uploadBarberPortfolioFiles" type="button">Upload selected photos</button>
+                  <strong>Haircut Portfolio</strong>
+                <p class="muted">Add haircut photos from your camera or gallery. Portfolio is optional.</p>
+                <div class="image-upload-choice-grid">
+                  <div class="upload-choice-card">
+                    <label for="barberPortfolioCameraInput">Take haircut photo</label>
+                    <input id="barberPortfolioCameraInput" class="input" type="file" accept="image/*" capture="environment" />
+                  </div>
+                  <div class="upload-choice-card">
+                    <label for="barberPortfolioFileInput">Choose from gallery</label>
+                    <input id="barberPortfolioFileInput" class="input" type="file" accept="image/*" multiple />
+                  </div>
                 </div>
                 <div class="portfolio-add-row">
-                  <input id="barberPortfolioUrlInput" class="input" type="url" placeholder="Or paste a public image URL" />
-                  <button class="btn btn-ghost" id="addBarberPortfolioUrl" type="button">Add URL</button>
+                  <button class="btn btn-ghost" id="uploadBarberPortfolioFiles" type="button">Upload selected photos</button>
                 </div>
                 <div id="barberPortfolioList" class="portfolio-chip-list"></div>
               </div>

@@ -3135,6 +3135,27 @@ label {
   gap: 14px;
 }
 
+.image-upload-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.upload-choice-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  background: rgba(255, 250, 242, 0.84);
+  display: grid;
+  gap: 8px;
+}
+
+.upload-choice-card label {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text);
+}
+
 .settings-action-row {
   display: flex;
   gap: 10px;
@@ -3681,6 +3702,7 @@ label {
   .settings-hero,
   .form-grid-2,
   .settings-upload-grid,
+  .image-upload-choice-grid,
   .day-checkboxes,
   .time-row,
   .calendar-grid.week {

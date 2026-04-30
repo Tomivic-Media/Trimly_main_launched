@@ -268,6 +268,52 @@ def _public_upload_url(user_id: int, filename: str) -> str:
     return f"/static/uploads/barbers/{int(user_id)}/{filename}"
 
 
+def _first_uploaded_barber_image_url(user_id: int) -> Optional[str]:
+    upload_dir = BARBER_UPLOADS_DIR / str(int(user_id))
+    if not upload_dir.exists() or not upload_dir.is_dir():
+        return None
+
+    candidates = [
+        path for path in upload_dir.iterdir()
+        if path.is_file() and path.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp"}
+    ]
+    if not candidates:
+        return None
+
+    candidates.sort(key=lambda path: path.stat().st_mtime, reverse=True)
+    return _public_upload_url(int(user_id), candidates[0].name)
+
+
+def backfill_legacy_barber_card_images(db: Session) -> int:
+    """One-off cleanup for older barber records created before card images were separated."""
+    updated = 0
+    barbers = db.query(Barber).all()
+
+    for barber in barbers:
+        cover_value = str(barber.cover_image_url or "").strip()
+        if cover_value:
+            continue
+
+        portfolio_urls = _parse_portfolio(barber.portfolio_image_urls)
+        fallback_cover = (
+            str(barber.profile_image_url or "").strip()
+            or (portfolio_urls[0] if portfolio_urls else "")
+            or _first_uploaded_barber_image_url(barber.user_id)
+            or ""
+        ).strip()
+
+        if not fallback_cover:
+            continue
+
+        barber.cover_image_url = fallback_cover
+        updated += 1
+
+    if updated:
+        db.commit()
+
+    return updated
+
+
 def _validate_time_range(start_time: Optional[time], end_time: Optional[time]) -> None:
     if start_time and end_time and start_time >= end_time:
         raise HTTPException(status_code=400, detail="Start time must be before end time")

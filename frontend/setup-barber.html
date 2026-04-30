@@ -57,9 +57,33 @@
                 <label for="bio">Bio / Description</label>
                 <textarea id="bio" name="bio" rows="4" placeholder="Tell customers about your style and expertise" required></textarea>
               </div>
-              <div>
-                <label for="profile_image">Profile Image Upload</label>
-                <input id="profile_image" name="profile_image" class="input" type="file" accept="image/*" />
+              <div class="portfolio-manager">
+                <strong>Profile Photo (Required)</strong>
+                <p class="muted">Upload a clear face photo so customers can recognize the real account owner.</p>
+                <div class="image-upload-choice-grid">
+                  <div class="upload-choice-card">
+                    <label for="profile_image_camera">Take new profile photo</label>
+                    <input id="profile_image_camera" name="profile_image_camera" class="input" type="file" accept="image/*" capture="user" />
+                  </div>
+                  <div class="upload-choice-card">
+                    <label for="profile_image">Choose profile photo from gallery</label>
+                    <input id="profile_image" name="profile_image" class="input" type="file" accept="image/*" />
+                  </div>
+                </div>
+              </div>
+              <div class="portfolio-manager">
+                <strong>Barber Card Photo</strong>
+                <p class="muted">Use a separate haircut or shop image for the public barber card customers browse first.</p>
+                <div class="image-upload-choice-grid">
+                  <div class="upload-choice-card">
+                    <label for="card_image_camera">Take new barber card photo</label>
+                    <input id="card_image_camera" name="card_image_camera" class="input" type="file" accept="image/*" capture="environment" />
+                  </div>
+                  <div class="upload-choice-card">
+                    <label for="card_image">Choose barber card photo from gallery</label>
+                    <input id="card_image" name="card_image" class="input" type="file" accept="image/*" />
+                  </div>
+                </div>
               </div>
             </section>
 
@@ -121,18 +145,31 @@
 
             <section class="setup-block">
               <h3>Portfolio</h3>
-              <div>
-                <label for="portfolio_images">Upload Haircut Photos</label>
-                <input
-                  id="portfolio_images"
-                  name="portfolio_images"
-                  class="input"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                />
+              <div class="image-upload-choice-grid">
+                <div class="upload-choice-card">
+                  <label for="portfolio_images_camera">Take haircut photo</label>
+                  <input
+                    id="portfolio_images_camera"
+                    name="portfolio_images_camera"
+                    class="input"
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                  />
+                </div>
+                <div class="upload-choice-card">
+                  <label for="portfolio_images">Choose from gallery</label>
+                  <input
+                    id="portfolio_images"
+                    name="portfolio_images"
+                    class="input"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                  />
+                </div>
               </div>
-              <p class="muted">You can upload multiple photos to showcase your work.</p>
+              <p class="muted">Portfolio is optional. Add haircut photos only if you want customers to see more of your work.</p>
             </section>
 
             <button class="btn btn-primary" type="submit">Create Barber Profile</button>
