@@ -19,7 +19,7 @@ from app.db.session import Base, engine
 from app.db.session import SessionLocal
 
 # Import models so SQLAlchemy registers tables
-from app.models import barber, barber_kyc, barber_service, booking, booking_service, chat, dispute, notification, review, user, user_session, wallet
+from app.models import barber, barber_image, barber_kyc, barber_service, booking, booking_service, chat, dispute, notification, review, user, user_session, wallet
 from app.models.user import User, UserRole
 
 # Import routers
@@ -133,6 +133,17 @@ def ensure_runtime_schema() -> None:
         "ALTER TABLE barbers ADD COLUMN IF NOT EXISTS verified_at TIMESTAMP",
         "ALTER TABLE barbers ADD COLUMN IF NOT EXISTS rejection_reason VARCHAR",
         "ALTER TABLE barbers ADD COLUMN IF NOT EXISTS created_at TIMESTAMP",
+        (
+            "CREATE TABLE IF NOT EXISTS barber_images ("
+            "id SERIAL PRIMARY KEY, "
+            "user_id INTEGER NOT NULL REFERENCES users(id), "
+            "original_filename VARCHAR NOT NULL, "
+            "content_type VARCHAR NOT NULL, "
+            "file_size INTEGER NOT NULL, "
+            "image_bytes BYTEA NOT NULL, "
+            "created_at TIMESTAMP DEFAULT NOW()"
+            ")"
+        ),
         "UPDATE barbers SET is_available = TRUE WHERE is_available IS NULL",
         "UPDATE barbers SET available_days = '' WHERE available_days IS NULL",
         "UPDATE barbers SET kyc_status = 'pending' WHERE kyc_status IS NULL",

@@ -1,5 +1,6 @@
 from .user import User
 from .barber import Barber
+from .barber_image import BarberImage
 from .barber_kyc import BarberKYC
 from .booking import Booking
 from .booking_service import BookingService

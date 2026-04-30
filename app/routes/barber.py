@@ -5,10 +5,12 @@ from urllib.parse import urlencode
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi.responses import Response
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.security import get_current_user, require_any_role, require_role
 from app.db.session import SessionLocal
+from app.models.barber_image import BarberImage
 from app.models.barber_kyc import BarberKYC
 from app.models.barber import Barber
 from app.models.barber_service import BarberService
@@ -34,6 +36,7 @@ from app.services.paystack_subaccount_service import ensure_barber_subaccount
 router = APIRouter()
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 BARBER_UPLOADS_DIR = BASE_DIR / "frontend" / "uploads" / "barbers"
+MAX_BARBER_IMAGE_BYTES = 8 * 1024 * 1024
 
 DAY_ORDER = [
     "monday",
@@ -268,6 +271,10 @@ def _public_upload_url(user_id: int, filename: str) -> str:
     return f"/static/uploads/barbers/{int(user_id)}/{filename}"
 
 
+def _persistent_barber_image_url(image_id: int) -> str:
+    return f"/barber/images/{int(image_id)}"
+
+
 def _first_uploaded_barber_image_url(user_id: int) -> Optional[str]:
     upload_dir = BARBER_UPLOADS_DIR / str(int(user_id))
     if not upload_dir.exists() or not upload_dir.is_dir():
@@ -284,6 +291,24 @@ def _first_uploaded_barber_image_url(user_id: int) -> Optional[str]:
     return _public_upload_url(int(user_id), candidates[0].name)
 
 
+def _shop_photo_url(barber: Barber) -> str:
+    latest_kyc = _latest_kyc(barber)
+    return str(latest_kyc.shop_photo_url or "").strip() if latest_kyc else ""
+
+
+def _resolved_public_barber_images(barber: Barber) -> tuple[Optional[str], Optional[str], list[str], Optional[str]]:
+    profile_url = str(barber.profile_image_url or "").strip() or None
+    cover_url = str(barber.cover_image_url or "").strip() or None
+    shop_photo_url = _shop_photo_url(barber) or None
+    portfolio_urls = _parse_portfolio(barber.portfolio_image_urls)
+    uploaded_url = _first_uploaded_barber_image_url(barber.user_id)
+
+    resolved_cover = cover_url or shop_photo_url or (portfolio_urls[0] if portfolio_urls else None) or uploaded_url or profile_url
+    resolved_profile = profile_url or cover_url or shop_photo_url or (portfolio_urls[0] if portfolio_urls else None) or uploaded_url
+
+    return resolved_profile, resolved_cover, portfolio_urls, shop_photo_url
+
+
 def backfill_legacy_barber_card_images(db: Session) -> int:
     """One-off cleanup for older barber records created before card images were separated."""
     updated = 0
@@ -296,8 +321,9 @@ def backfill_legacy_barber_card_images(db: Session) -> int:
 
         portfolio_urls = _parse_portfolio(barber.portfolio_image_urls)
         fallback_cover = (
-            str(barber.profile_image_url or "").strip()
+            _shop_photo_url(barber)
             or (portfolio_urls[0] if portfolio_urls else "")
+            or str(barber.profile_image_url or "").strip()
             or _first_uploaded_barber_image_url(barber.user_id)
             or ""
         ).strip()
@@ -333,6 +359,7 @@ def _barber_review_metrics(barber: Barber) -> tuple[float, int, int]:
 
 def barber_payload(barber: Barber) -> dict:
     average_rating, review_count, hidden_review_count = _barber_review_metrics(barber)
+    profile_image_url, cover_image_url, portfolio_urls, shop_photo_url = _resolved_public_barber_images(barber)
     return {
         "id": barber.id,
         "shop_name": barber.shop_name,
@@ -344,9 +371,10 @@ def barber_payload(barber: Barber) -> dict:
         "beard_trim_price": barber.beard_trim_price,
         "other_services": barber.other_services,
         "barber_name": barber.barber_name,
-        "profile_image_url": barber.profile_image_url,
-        "cover_image_url": barber.cover_image_url,
-        "portfolio_image_urls": _parse_portfolio(barber.portfolio_image_urls),
+        "profile_image_url": profile_image_url,
+        "cover_image_url": cover_image_url,
+        "shop_photo_url": shop_photo_url,
+        "portfolio_image_urls": portfolio_urls,
         "is_available": barber.is_available,
         "kyc_status": barber.kyc_status,
         "kyc_submitted_at": barber.kyc_submitted_at,
@@ -477,6 +505,7 @@ def update_my_barber_profile(
 async def upload_barber_profile_image(
     file: UploadFile = File(...),
     current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     if _normalize_role(current_user.role) != UserRole.barber.value:
         raise HTTPException(status_code=403, detail="Only barbers can upload images")
@@ -490,17 +519,36 @@ async def upload_barber_profile_image(
     if extension not in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
         raise HTTPException(status_code=400, detail="Unsupported image format")
 
-    user_upload_dir = BARBER_UPLOADS_DIR / str(current_user.id)
-    user_upload_dir.mkdir(parents=True, exist_ok=True)
-
-    filename = f"{uuid4().hex}{extension}"
-    destination = user_upload_dir / filename
     contents = await file.read()
     if not contents:
         raise HTTPException(status_code=400, detail="Uploaded image is empty")
+    if len(contents) > MAX_BARBER_IMAGE_BYTES:
+        raise HTTPException(status_code=400, detail="Image is too large. Keep uploads under 8MB.")
 
-    destination.write_bytes(contents)
-    return {"url": _public_upload_url(current_user.id, filename)}
+    stored_image = BarberImage(
+        user_id=int(current_user.id),
+        original_filename=original_name,
+        content_type=content_type,
+        file_size=len(contents),
+        image_bytes=contents,
+    )
+    db.add(stored_image)
+    db.commit()
+    db.refresh(stored_image)
+    return {"url": _persistent_barber_image_url(stored_image.id)}
+
+
+@router.get("/barber/images/{image_id}")
+def serve_barber_image(image_id: int, db: Session = Depends(get_db)):
+    stored_image = db.query(BarberImage).filter(BarberImage.id == image_id).first()
+    if not stored_image:
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    return Response(
+        content=stored_image.image_bytes,
+        media_type=str(stored_image.content_type or "application/octet-stream"),
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+    )
 
 
 @router.patch("/barber/profile/availability", response_model=BarberResponse)

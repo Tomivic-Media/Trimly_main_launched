@@ -462,9 +462,37 @@ function bindHeaderNotificationActions(scope = document) {
   });
 }
 
+const API_MEDIA_BASE_URL =
+  (typeof window !== "undefined" && window.__TRIMLY_API_BASE_URL) ||
+  "https://api.trimly.com.ng";
+
+function toApiMediaUrl(path) {
+  const normalizedPath = String(path || "").trim();
+  if (!normalizedPath) return "";
+  return `${API_MEDIA_BASE_URL}${normalizedPath.startsWith("/") ? normalizedPath : `/${normalizedPath}`}`;
+}
+
 function resolveMediaSource(source) {
   const value = String(source || "").trim().replace(/\\/g, "/");
   if (!value) return "";
+  if (value.startsWith("/barber/images/")) {
+    return toApiMediaUrl(value);
+  }
+  if (value.startsWith("barber/images/")) {
+    return toApiMediaUrl(`/${value}`);
+  }
+  if (value.startsWith("/static/uploads/")) {
+    return toApiMediaUrl(value);
+  }
+  if (value.startsWith("static/uploads/")) {
+    return toApiMediaUrl(`/${value}`);
+  }
+  if (value.startsWith("/uploads/")) {
+    return toApiMediaUrl(`/static${value}`);
+  }
+  if (value.startsWith("uploads/")) {
+    return toApiMediaUrl(`/static/${value}`);
+  }
   if (
     value.startsWith("http://") ||
     value.startsWith("https://") ||
@@ -479,17 +507,17 @@ function resolveMediaSource(source) {
   if (value.startsWith("static/")) {
     return `/${value}`;
   }
-  if (value.startsWith("uploads/")) {
-    return `/static/${value}`;
-  }
 
   const uploadsMatch = value.match(/(?:^|\/)(uploads\/.+)$/i);
   if (uploadsMatch?.[1]) {
-    return `/static/${uploadsMatch[1]}`;
+    return toApiMediaUrl(`/static/${uploadsMatch[1]}`);
   }
 
   const staticMatch = value.match(/(?:^|\/)(static\/.+)$/i);
   if (staticMatch?.[1]) {
+    if (staticMatch[1].toLowerCase().startsWith("static/uploads/")) {
+      return toApiMediaUrl(`/${staticMatch[1]}`);
+    }
     return `/${staticMatch[1]}`;
   }
   return "";
@@ -497,7 +525,9 @@ function resolveMediaSource(source) {
 
 function barberMediaSources(barber) {
   const sources = [
+    resolveMediaSource(barber.cover_image_url),
     resolveMediaSource(barber.profile_image_url),
+    resolveMediaSource(barber.shop_photo_url),
     ...(Array.isArray(barber.portfolio_image_urls) ? barber.portfolio_image_urls.map(resolveMediaSource) : []),
   ].filter(Boolean);
   return [...new Set(sources)];
@@ -527,9 +557,11 @@ function barberImageCandidates(barber) {
     barber?.image,
     barber?.coverImage,
     barber?.profileImage,
+    barber?.shopPhoto,
     ...(Array.isArray(barber?.portfolioImages) ? barber.portfolioImages : []),
     barber?.cover_image_url,
     barber?.profile_image_url,
+    barber?.shop_photo_url,
     ...(Array.isArray(barber?.portfolio_image_urls) ? barber.portfolio_image_urls : []),
   ]
     .map(resolveMediaSource)
@@ -609,6 +641,7 @@ function mapBarber(barber, index = 0) {
     image: resolveMediaSource(barber.cover_image_url) || mediaSources[0] || "",
     profileImage: resolveMediaSource(barber.profile_image_url) || mediaSources[0] || "",
     coverImage: resolveMediaSource(barber.cover_image_url) || mediaSources[0] || "",
+    shopPhoto: resolveMediaSource(barber.shop_photo_url) || mediaSources[0] || "",
     portfolioImages: mediaSources,
     available: Boolean(barber.is_available),
     availableDays,

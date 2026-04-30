@@ -90,6 +90,7 @@ class BarberResponse(BaseModel):
     barber_name: Optional[str] = None
     profile_image_url: Optional[str] = None
     cover_image_url: Optional[str] = None
+    shop_photo_url: Optional[str] = None
     portfolio_image_urls: list[str] = Field(default_factory=list)
     is_available: bool
     kyc_status: str
