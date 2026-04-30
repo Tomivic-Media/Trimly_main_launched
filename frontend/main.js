@@ -165,6 +165,7 @@ const TIME_FORMAT_PREF_KEY = "trimly_time_format";
 
 document.addEventListener("DOMContentLoaded", () => {
   bindGlobalUi();
+  bindImageFallbacks();
   routePage();
 });
 
@@ -513,17 +514,75 @@ function barberInitials(barber) {
   );
 }
 
-function barberImageMarkup(barber, className, altText, placeholderClass = "barber-image-placeholder") {
-  const source = resolveMediaSource(barber.image);
-  if (source) {
-    return `<img class="${className}" src="${source}" alt="${escapeHtml(altText)}" />`;
-  }
-
+function barberPlaceholderMarkup(className, placeholderClass, altText, initials) {
   return `
     <div class="${className} ${placeholderClass}" aria-label="${escapeHtml(altText)}">
-      <span>${escapeHtml(barberInitials(barber))}</span>
+      <span>${escapeHtml(initials)}</span>
     </div>
   `;
+}
+
+function barberImageCandidates(barber) {
+  const sources = [
+    barber?.image,
+    barber?.coverImage,
+    barber?.profileImage,
+    ...(Array.isArray(barber?.portfolioImages) ? barber.portfolioImages : []),
+    barber?.cover_image_url,
+    barber?.profile_image_url,
+    ...(Array.isArray(barber?.portfolio_image_urls) ? barber.portfolio_image_urls : []),
+  ]
+    .map(resolveMediaSource)
+    .filter(Boolean);
+
+  return [...new Set(sources)];
+}
+
+function barberImageMarkup(barber, className, altText, placeholderClass = "barber-image-placeholder") {
+  const candidates = barberImageCandidates(barber);
+  const source = candidates[0] || "";
+  const initials = barberInitials(barber);
+  if (source) {
+    return `<img class="${className}" src="${escapeHtml(source)}" alt="${escapeHtml(altText)}" data-image-fallback="true" data-fallback-sources="${escapeHtml(JSON.stringify(candidates.slice(1)))}" data-image-class="${escapeHtml(className)}" data-image-alt="${escapeHtml(altText)}" data-placeholder-class="${escapeHtml(placeholderClass)}" data-image-initials="${escapeHtml(initials)}" />`;
+  }
+
+  return barberPlaceholderMarkup(className, placeholderClass, altText, initials);
+}
+
+function bindImageFallbacks() {
+  if (state.imageFallbacksBound) return;
+  state.imageFallbacksBound = true;
+
+  document.addEventListener(
+    "error",
+    (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLImageElement)) return;
+      if (target.dataset.imageFallback !== "true") return;
+
+      let remaining = [];
+      try {
+        remaining = JSON.parse(target.dataset.fallbackSources || "[]");
+      } catch (_error) {
+        remaining = [];
+      }
+
+      const nextSource = remaining.find((item) => resolveMediaSource(item) && resolveMediaSource(item) !== target.currentSrc && resolveMediaSource(item) !== target.src);
+      if (nextSource) {
+        target.dataset.fallbackSources = JSON.stringify(remaining.filter((item) => resolveMediaSource(item) !== resolveMediaSource(nextSource)));
+        target.src = resolveMediaSource(nextSource);
+        return;
+      }
+
+      target.outerHTML = barberPlaceholderMarkup(
+        target.dataset.imageClass || "barber-photo",
+        target.dataset.placeholderClass || "barber-image-placeholder",
+        target.dataset.imageAlt || "Barber image",
+        target.dataset.imageInitials || "TB"
+      );
+    },
+    true
+  );
 }
 
 function mapBarber(barber, index = 0) {
