@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Sora:wght@100..800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./style.css?v=20260430b" />
+    <link rel="stylesheet" href="./style.css?v=20260430c" />
   </head>
   <body data-page="admin-dashboard">
     <header class="site-header">
@@ -71,162 +71,234 @@
         </section>
 
         <section id="adminDashboard" class="admin-hub">
-          <section class="stats-grid admin-stats-grid admin-overview-metrics">
-            <article class="stat-card admin-metric-card">
-              <small class="muted">Total Barbers</small>
-              <strong id="adminStatTotalBarbers">0</strong>
-              <p>Profiles currently in the Trimly marketplace pipeline.</p>
-            </article>
-            <article class="stat-card admin-metric-card">
-              <small class="muted">Verified</small>
-              <strong id="adminStatVerifiedBarbers">0</strong>
-              <p>Approved barber profiles visible to customers.</p>
-            </article>
-            <article class="stat-card admin-metric-card">
-              <small class="muted">Pending Review</small>
-              <strong id="adminStatPendingBarbers">0</strong>
-              <p>Applications waiting for trust and compliance review.</p>
-            </article>
-            <article class="stat-card admin-metric-card">
-              <small class="muted">Suspended / Rejected</small>
-              <strong id="adminStatFlaggedBarbers">0</strong>
-              <p>Profiles requiring follow-up before public listing.</p>
-            </article>
-            <article class="stat-card admin-metric-card">
-              <small class="muted">Open Disputes</small>
-              <strong id="adminStatOpenDisputes">0</strong>
-              <p>Customer or barber cases waiting for admin decision.</p>
-            </article>
-            <article class="stat-card admin-metric-card">
-              <small class="muted">Payout Review</small>
-              <strong id="adminStatEscrowPending">0</strong>
-              <p>Completed paid bookings awaiting payout completion.</p>
-            </article>
-          </section>
+          <nav class="admin-subpage-nav" id="adminSubpageNav" aria-label="Admin sections">
+            <a class="admin-subpage-link" data-admin-view-link="overview" href="/admin?view=overview">Overview</a>
+            <a class="admin-subpage-link" data-admin-view-link="barbers" href="/admin?view=barbers">Barber Ops</a>
+            <a class="admin-subpage-link" data-admin-view-link="operations" href="/admin?view=operations">Operations</a>
+            <a class="admin-subpage-link" data-admin-view-link="reviews" href="/admin?view=reviews">Reviews</a>
+            <a class="admin-subpage-link hidden" data-admin-view-link="access" href="/admin?view=access">Access</a>
+          </nav>
 
-          <div class="admin-workspace-grid">
-            <aside class="admin-side-rail">
-              <article class="panel admin-side-panel" id="adminNotificationsPanel">
-                <div class="panel-head-row">
-                  <h3>Admin Notifications</h3>
-                  <div class="action-row">
-                    <span class="pill" id="adminNotificationCount">0 unread</span>
-                    <button class="btn btn-ghost btn-sm" type="button" id="adminReadAllNotifications">Mark all read</button>
-                  </div>
-                </div>
-                <div id="adminNotificationsList" class="booking-list"></div>
-              </article>
-
-              <article class="panel admin-side-panel" id="adminActivityPanel">
-                <div class="panel-head-row">
-                  <h3>Recent Admin Activity</h3>
-                  <span class="pill" id="adminActivityCount">0 events</span>
-                </div>
-                <div id="adminActivityList" class="admin-activity-feed"></div>
-              </article>
-
-              <article class="panel admin-side-panel" id="adminBarberFilterPanel">
-                <div class="panel-head-row">
-                  <h3>Barber Search & Filters</h3>
-                  <span class="pill">Live queue controls</span>
-                </div>
-                <form id="adminBarberFilterForm" class="form-grid admin-filter-grid">
-                  <div>
-                    <label for="adminBarberSearch">Search barber or shop</label>
-                    <input id="adminBarberSearch" class="input" type="text" placeholder="Search by barber, shop, or location" />
-                  </div>
-                  <div>
-                    <label for="adminBarberStatusFilter">Status</label>
-                    <select id="adminBarberStatusFilter" class="input">
-                      <option value="all">All statuses</option>
-                      <option value="pending">Pending</option>
-                      <option value="verified">Verified</option>
-                      <option value="rejected">Rejected</option>
-                      <option value="suspended">Suspended</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label for="adminBarberCityFilter">Location</label>
-                    <input id="adminBarberCityFilter" class="input" type="text" placeholder="Filter by city or area" />
-                  </div>
-                  <div class="admin-filter-actions">
-                    <button class="btn btn-ghost" type="button" id="adminBarberFilterReset">Reset Filters</button>
-                  </div>
-                </form>
-              </article>
-            </aside>
-
-            <div class="admin-main-stack">
-              <section class="admin-section-block" id="adminBarberQueueSection">
-                <div class="admin-section-head">
-                  <div>
-                    <p class="admin-section-kicker">Barber Operations</p>
-                    <h2>Onboarding and listing control</h2>
-                    <p class="muted">Move profiles from review into approved listings or hold them back when details are incomplete.</p>
-                  </div>
-                </div>
-                <div class="admin-grid admin-feature-grid">
-                  <article class="panel">
-                    <div class="panel-head-row">
-                      <h3>Barber Verification Queue</h3>
-                      <span class="pill" id="adminBarberCount">0 pending</span>
-                    </div>
-                    <div id="adminBarberQueue" class="booking-list"></div>
-                  </article>
-
-                  <article class="panel" id="adminApprovedBarbersPanel">
-                    <div class="panel-head-row">
-                      <h3>Approved Barbers</h3>
-                      <span class="pill" id="adminApprovedBarberCount">0 approved</span>
-                    </div>
-                    <div id="adminApprovedBarbers" class="booking-list"></div>
-                  </article>
-                </div>
-
-                <article class="panel" id="adminFlaggedBarbersPanel">
-                  <div class="panel-head-row">
-                    <h3>Suspended / Rejected Barbers</h3>
-                    <span class="pill" id="adminFlaggedBarberCount">0 flagged</span>
-                  </div>
-                  <div id="adminFlaggedBarbers" class="booking-list"></div>
+          <div class="admin-subpage-stack">
+            <section class="admin-subpage-page" data-admin-page="overview">
+              <section class="stats-grid admin-stats-grid admin-overview-metrics">
+                <article class="stat-card admin-metric-card">
+                  <small class="muted">Total Barbers</small>
+                  <strong id="adminStatTotalBarbers">0</strong>
+                  <p>Profiles currently in the Trimly marketplace pipeline.</p>
+                </article>
+                <article class="stat-card admin-metric-card">
+                  <small class="muted">Verified</small>
+                  <strong id="adminStatVerifiedBarbers">0</strong>
+                  <p>Approved barber profiles visible to customers.</p>
+                </article>
+                <article class="stat-card admin-metric-card">
+                  <small class="muted">Pending Review</small>
+                  <strong id="adminStatPendingBarbers">0</strong>
+                  <p>Applications waiting for trust and compliance review.</p>
+                </article>
+                <article class="stat-card admin-metric-card">
+                  <small class="muted">Suspended / Rejected</small>
+                  <strong id="adminStatFlaggedBarbers">0</strong>
+                  <p>Profiles requiring follow-up before public listing.</p>
+                </article>
+                <article class="stat-card admin-metric-card">
+                  <small class="muted">Open Disputes</small>
+                  <strong id="adminStatOpenDisputes">0</strong>
+                  <p>Customer or barber cases waiting for admin decision.</p>
+                </article>
+                <article class="stat-card admin-metric-card">
+                  <small class="muted">Payout Review</small>
+                  <strong id="adminStatEscrowPending">0</strong>
+                  <p>Completed paid bookings awaiting payout completion.</p>
                 </article>
               </section>
 
-              <section class="admin-section-block" id="adminDisputeSection">
-                <div class="admin-section-head">
-                  <div>
-                    <p class="admin-section-kicker">Risk and Resolution</p>
-                    <h2>Disputes, refunds, and payment follow-up</h2>
-                    <p class="muted">Handle service issues, payouts, and customer trust events from one workspace.</p>
-                  </div>
-                </div>
-                <div class="admin-grid admin-feature-grid">
-                  <article class="panel">
+              <div class="admin-workspace-grid admin-overview-grid">
+                <aside class="admin-side-rail">
+                  <article class="panel admin-side-panel" id="adminNotificationsPanel">
                     <div class="panel-head-row">
-                      <h3>Open Disputes</h3>
-                      <span class="pill" id="adminDisputeCount">0 open</span>
+                      <h3>Admin Notifications</h3>
+                      <div class="action-row">
+                        <span class="pill" id="adminNotificationCount">0 unread</span>
+                        <button class="btn btn-ghost btn-sm" type="button" id="adminReadAllNotifications">Mark all read</button>
+                      </div>
                     </div>
-                    <div id="adminDisputesList" class="booking-list"></div>
+                    <div id="adminNotificationsList" class="booking-list"></div>
                   </article>
 
-                  <article class="panel" id="adminPayoutSection">
+                  <article class="panel admin-side-panel" id="adminActivityPanel">
                     <div class="panel-head-row">
-                      <h3>Payout Completion Queue</h3>
-                      <span class="pill" id="adminEscrowCount">0 awaiting completion</span>
+                      <h3>Recent Admin Activity</h3>
+                      <span class="pill" id="adminActivityCount">0 events</span>
                     </div>
-                    <div id="adminEscrowList" class="booking-list"></div>
+                    <div id="adminActivityList" class="admin-activity-feed"></div>
                   </article>
+                </aside>
+
+                <div class="admin-main-stack">
+                  <section class="admin-section-block">
+                    <div class="admin-section-head">
+                      <div>
+                        <p class="admin-section-kicker">What needs attention</p>
+                        <h2>Use this overview to jump into live admin work</h2>
+                        <p class="muted">Notifications, recent activity, and live totals stay here so you can orient yourself before diving into a work queue.</p>
+                      </div>
+                    </div>
+                    <div class="admin-overview-shortcuts">
+                      <a class="admin-overview-shortcut" href="/admin?view=barbers">
+                        <strong>Barber Ops</strong>
+                        <span>Review onboarding, approval, suspension, and public listing readiness.</span>
+                      </a>
+                      <a class="admin-overview-shortcut" href="/admin?view=operations">
+                        <strong>Operations</strong>
+                        <span>Handle disputes, payouts, and refund-related marketplace events.</span>
+                      </a>
+                      <a class="admin-overview-shortcut" href="/admin?view=reviews">
+                        <strong>Reviews</strong>
+                        <span>Moderate marketplace feedback and remove unsafe or misleading content.</span>
+                      </a>
+                    </div>
+                  </section>
                 </div>
+              </div>
+            </section>
 
-                <article class="panel" id="adminRefundPanel">
-                  <div class="panel-head-row">
-                    <h3>Refund Requests</h3>
-                    <span class="pill" id="adminRefundCount">0 requested</span>
+            <section class="admin-subpage-page" data-admin-page="barbers">
+              <div class="admin-workspace-grid">
+                <aside class="admin-side-rail">
+                  <article class="panel admin-side-panel" id="adminBarberFilterPanel">
+                    <div class="panel-head-row">
+                      <h3>Barber Search & Filters</h3>
+                      <span class="pill">Live queue controls</span>
+                    </div>
+                    <form id="adminBarberFilterForm" class="form-grid admin-filter-grid">
+                      <div>
+                        <label for="adminBarberSearch">Search barber or shop</label>
+                        <input id="adminBarberSearch" class="input" type="text" placeholder="Search by barber, shop, or location" />
+                      </div>
+                      <div>
+                        <label for="adminBarberStatusFilter">Status</label>
+                        <select id="adminBarberStatusFilter" class="input">
+                          <option value="all">All statuses</option>
+                          <option value="pending">Pending</option>
+                          <option value="verified">Verified</option>
+                          <option value="rejected">Rejected</option>
+                          <option value="suspended">Suspended</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label for="adminBarberCityFilter">Location</label>
+                        <input id="adminBarberCityFilter" class="input" type="text" placeholder="Filter by city or area" />
+                      </div>
+                      <div class="admin-filter-actions">
+                        <button class="btn btn-ghost" type="button" id="adminBarberFilterReset">Reset Filters</button>
+                      </div>
+                    </form>
+                  </article>
+                </aside>
+
+                <div class="admin-main-stack">
+                  <section class="admin-section-block" id="adminBarberQueueSection">
+                    <div class="admin-section-head">
+                      <div>
+                        <p class="admin-section-kicker">Barber Operations</p>
+                        <h2>Onboarding and listing control</h2>
+                        <p class="muted">Move profiles from review into approved listings or hold them back when details are incomplete.</p>
+                      </div>
+                    </div>
+                    <div class="admin-barber-workboard">
+                      <article class="admin-barber-workcard">
+                        <small>Needs review</small>
+                        <strong id="adminBarberWorkbenchPending">0</strong>
+                        <p>Profiles currently waiting for an approval decision.</p>
+                      </article>
+                      <article class="admin-barber-workcard">
+                        <small>Approved live</small>
+                        <strong id="adminBarberWorkbenchApproved">0</strong>
+                        <p>Barbers already visible to customers in marketplace search.</p>
+                      </article>
+                      <article class="admin-barber-workcard">
+                        <small>Flagged accounts</small>
+                        <strong id="adminBarberWorkbenchFlagged">0</strong>
+                        <p>Suspended or rejected records that need follow-up.</p>
+                      </article>
+                      <article class="admin-barber-workcard admin-barber-workcard-accent">
+                        <small>Review rhythm</small>
+                        <strong id="adminBarberWorkbenchCoverage">0%</strong>
+                        <p>How much of the visible barber pipeline has been approved.</p>
+                      </article>
+                    </div>
+                    <div class="admin-grid admin-feature-grid">
+                      <article class="panel">
+                        <div class="panel-head-row">
+                          <h3>Approval Queue</h3>
+                          <span class="pill" id="adminBarberCount">0 pending</span>
+                        </div>
+                        <div id="adminBarberQueue" class="booking-list"></div>
+                      </article>
+
+                      <article class="panel" id="adminApprovedBarbersPanel">
+                        <div class="panel-head-row">
+                          <h3>Approved and Live</h3>
+                          <span class="pill" id="adminApprovedBarberCount">0 approved</span>
+                        </div>
+                        <div id="adminApprovedBarbers" class="booking-list"></div>
+                      </article>
+                    </div>
+
+                    <article class="panel" id="adminFlaggedBarbersPanel">
+                      <div class="panel-head-row">
+                        <h3>Needs Follow-up</h3>
+                        <span class="pill" id="adminFlaggedBarberCount">0 flagged</span>
+                      </div>
+                      <div id="adminFlaggedBarbers" class="booking-list"></div>
+                    </article>
+                  </section>
+                </div>
+              </div>
+            </section>
+
+            <section class="admin-subpage-page" data-admin-page="operations">
+              <div class="admin-main-stack">
+                <section class="admin-section-block" id="adminDisputeSection">
+                  <div class="admin-section-head">
+                    <div>
+                      <p class="admin-section-kicker">Risk and Resolution</p>
+                      <h2>Disputes, refunds, and payment follow-up</h2>
+                      <p class="muted">Handle service issues, payouts, and customer trust events from one workspace.</p>
+                    </div>
                   </div>
-                  <div id="adminRefundList" class="booking-list"></div>
-                </article>
-              </section>
+                  <div class="admin-grid admin-feature-grid">
+                    <article class="panel">
+                      <div class="panel-head-row">
+                        <h3>Open Disputes</h3>
+                        <span class="pill" id="adminDisputeCount">0 open</span>
+                      </div>
+                      <div id="adminDisputesList" class="booking-list"></div>
+                    </article>
 
+                    <article class="panel" id="adminPayoutSection">
+                      <div class="panel-head-row">
+                        <h3>Payout Completion Queue</h3>
+                        <span class="pill" id="adminEscrowCount">0 awaiting completion</span>
+                      </div>
+                      <div id="adminEscrowList" class="booking-list"></div>
+                    </article>
+                  </div>
+
+                  <article class="panel" id="adminRefundPanel">
+                    <div class="panel-head-row">
+                      <h3>Refund Requests</h3>
+                      <span class="pill" id="adminRefundCount">0 requested</span>
+                    </div>
+                    <div id="adminRefundList" class="booking-list"></div>
+                  </article>
+                </section>
+              </div>
+            </section>
+
+            <section class="admin-subpage-page" data-admin-page="reviews">
               <section class="admin-section-block">
                 <div class="admin-section-head">
                   <div>
@@ -243,72 +315,72 @@
                   <div id="adminReviewList" class="booking-list"></div>
                 </article>
               </section>
+            </section>
 
-              <section id="superAdminManagement" class="hidden admin-section-block">
-                <div class="admin-section-head">
-                  <div>
-                    <p class="admin-section-kicker">Super Admin</p>
-                    <h2>Admin access and approvals</h2>
-                    <p class="muted">Create admin accounts, control who can enter the console, and keep elevated access auditable.</p>
-                  </div>
+            <section id="superAdminManagement" class="hidden admin-section-block admin-subpage-page" data-admin-page="access">
+              <div class="admin-section-head">
+                <div>
+                  <p class="admin-section-kicker">Super Admin</p>
+                  <h2>Admin access and approvals</h2>
+                  <p class="muted">Create admin accounts, control who can enter the console, and keep elevated access auditable.</p>
                 </div>
-                <div class="admin-grid admin-feature-grid">
-                  <article class="panel">
-                    <div class="panel-head-row">
-                      <h3>Admin Access Management</h3>
-                      <span class="pill">Super Admin Only</span>
-                    </div>
-                    <form id="createAdminUserForm" class="form-grid">
-                      <div class="admin-grid">
-                        <div>
-                          <label for="admin_user_full_name">Full Name</label>
-                          <input id="admin_user_full_name" name="full_name" class="input" type="text" required />
-                        </div>
-                        <div>
-                          <label for="admin_user_email">Email</label>
-                          <input id="admin_user_email" name="email" class="input" type="email" required />
-                        </div>
-                        <div>
-                          <label for="admin_user_phone">Phone</label>
-                          <input id="admin_user_phone" name="phone" class="input" type="tel" />
-                        </div>
-                        <div>
-                          <label for="admin_user_role">Role</label>
-                          <select id="admin_user_role" name="role" class="input" required>
-                            <option value="admin">Admin</option>
-                            <option value="super_admin">Super Admin</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label for="admin_user_password">Temporary Password</label>
-                          <div class="input-with-action">
-                            <input id="admin_user_password" name="password" class="input" type="password" required />
-                            <button
-                              class="password-toggle"
-                              type="button"
-                              data-password-toggle="admin_user_password"
-                              aria-label="Show password"
-                            >
-                              Show
-                            </button>
-                          </div>
+              </div>
+              <div class="admin-grid admin-feature-grid">
+                <article class="panel">
+                  <div class="panel-head-row">
+                    <h3>Admin Access Management</h3>
+                    <span class="pill">Super Admin Only</span>
+                  </div>
+                  <form id="createAdminUserForm" class="form-grid">
+                    <div class="admin-grid">
+                      <div>
+                        <label for="admin_user_full_name">Full Name</label>
+                        <input id="admin_user_full_name" name="full_name" class="input" type="text" required />
+                      </div>
+                      <div>
+                        <label for="admin_user_email">Email</label>
+                        <input id="admin_user_email" name="email" class="input" type="email" required />
+                      </div>
+                      <div>
+                        <label for="admin_user_phone">Phone</label>
+                        <input id="admin_user_phone" name="phone" class="input" type="tel" />
+                      </div>
+                      <div>
+                        <label for="admin_user_role">Role</label>
+                        <select id="admin_user_role" name="role" class="input" required>
+                          <option value="admin">Admin</option>
+                          <option value="super_admin">Super Admin</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label for="admin_user_password">Temporary Password</label>
+                        <div class="input-with-action">
+                          <input id="admin_user_password" name="password" class="input" type="password" required />
+                          <button
+                            class="password-toggle"
+                            type="button"
+                            data-password-toggle="admin_user_password"
+                            aria-label="Show password"
+                          >
+                            Show
+                          </button>
                         </div>
                       </div>
-                      <button class="btn btn-primary" type="submit">Create Admin Account</button>
-                    </form>
-                    <p id="createAdminUserNotice" class="notice"></p>
-                  </article>
-
-                  <article class="panel">
-                    <div class="panel-head-row">
-                      <h3>Approve Admin & Super Admin Accounts</h3>
-                      <span class="pill" id="adminUserCount">0 accounts</span>
                     </div>
-                    <div id="adminUsersList" class="booking-list"></div>
-                  </article>
-                </div>
-              </section>
-            </div>
+                    <button class="btn btn-primary" type="submit">Create Admin Account</button>
+                  </form>
+                  <p id="createAdminUserNotice" class="notice"></p>
+                </article>
+
+                <article class="panel">
+                  <div class="panel-head-row">
+                    <h3>Approve Admin & Super Admin Accounts</h3>
+                    <span class="pill" id="adminUserCount">0 accounts</span>
+                  </div>
+                  <div id="adminUsersList" class="booking-list"></div>
+                </article>
+              </div>
+            </section>
           </div>
         </section>
       </div>
@@ -334,7 +406,7 @@
     </footer>
 
     <div id="toast" class="toast"></div>
-    <script type="module" src="./main.js?v=20260430b"></script>
+    <script type="module" src="./main.js?v=20260430c"></script>
   </body>
 </html>
 

@@ -1788,6 +1788,34 @@ function initAdminLoginPage() {
   });
 }
 
+function getAdminDashboardView() {
+  const params = new URLSearchParams(window.location.search);
+  const rawView = String(params.get("view") || "overview").trim().toLowerCase();
+  return ["overview", "barbers", "operations", "reviews", "access"].includes(rawView) ? rawView : "overview";
+}
+
+function applyAdminDashboardView(role = state.currentRole) {
+  const requestedView = getAdminDashboardView();
+  const view = requestedView === "access" && role !== "super_admin" ? "overview" : requestedView;
+
+  document.querySelectorAll("[data-admin-page]").forEach((page) => {
+    page.classList.toggle("hidden", page.dataset.adminPage !== view);
+  });
+
+  document.querySelectorAll("[data-admin-view-link]").forEach((link) => {
+    const isAccess = link.dataset.adminViewLink === "access";
+    link.classList.toggle("hidden", isAccess && role !== "super_admin");
+    link.classList.toggle("active", link.dataset.adminViewLink === view);
+  });
+
+  if (view !== requestedView) {
+    const params = new URLSearchParams(window.location.search);
+    params.set("view", view);
+    const nextUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState({}, "", nextUrl);
+  }
+}
+
 async function initAdminDashboardPage() {
   stopBarberAlertPolling();
   const token = getToken();
@@ -1833,6 +1861,7 @@ async function initAdminDashboardPage() {
       managementPanel.classList.toggle("hidden", role !== "super_admin");
     }
 
+    applyAdminDashboardView(role);
     await hydrateAdminDashboard();
     if (role === "super_admin") {
       await hydrateSuperAdminUsers();
@@ -3400,6 +3429,10 @@ async function hydrateAdminDashboard() {
   const flaggedBarbersStatEl = document.getElementById("adminStatFlaggedBarbers");
   const openDisputesStatEl = document.getElementById("adminStatOpenDisputes");
   const escrowPendingStatEl = document.getElementById("adminStatEscrowPending");
+  const workbenchPendingEl = document.getElementById("adminBarberWorkbenchPending");
+  const workbenchApprovedEl = document.getElementById("adminBarberWorkbenchApproved");
+  const workbenchFlaggedEl = document.getElementById("adminBarberWorkbenchFlagged");
+  const workbenchCoverageEl = document.getElementById("adminBarberWorkbenchCoverage");
 
   if (!barberQueueEl || !approvedBarbersEl || !flaggedBarbersEl || !disputesEl || !escrowEl || !refundEl || !reviewEl) return;
 
@@ -3461,6 +3494,14 @@ async function hydrateAdminDashboard() {
     if (openDisputesStatEl) openDisputesStatEl.textContent = `${openDisputes.length}`;
     if (escrowPendingStatEl) escrowPendingStatEl.textContent = `${escrowQueue.length}`;
     if (reviewCountEl) reviewCountEl.textContent = `${state.adminReviews.length} reviews`;
+    if (workbenchPendingEl) workbenchPendingEl.textContent = `${pendingBarbers.length}`;
+    if (workbenchApprovedEl) workbenchApprovedEl.textContent = `${approvedBarbers.length}`;
+    if (workbenchFlaggedEl) workbenchFlaggedEl.textContent = `${flaggedBarbers.length}`;
+    if (workbenchCoverageEl) {
+      const visibleTotal = approvedBarbers.length + pendingBarbers.length + flaggedBarbers.length;
+      const coverage = visibleTotal > 0 ? Math.round((approvedBarbers.length / visibleTotal) * 100) : 0;
+      workbenchCoverageEl.textContent = `${coverage}%`;
+    }
 
     bindAdminDashboardActions();
     bindAdminBarberFilters();
@@ -5598,82 +5639,133 @@ function renderAdminBarberQueue(barbers, section = "pending") {
 
   return barbers
     .map(
-      (barber) => `
-        <article class="admin-review-card" data-admin-barber-card-id="${Number(barber.barber_id)}">
-          <div class="admin-review-main">
-            <strong>${escapeHtml(barber.shop_name || barber.barber_name || `Barber #${barber.barber_id}`)}</strong>
-            <p class="muted">${escapeHtml(barber.barber_name || "Unnamed barber")} - ${escapeHtml(
-              barber.location || "No location"
-            )}</p>
-            <div class="admin-review-details admin-review-summary">
-              <p><strong>Email:</strong> ${escapeHtml(barber.email || "No email")}</p>
-              <p><strong>Phone:</strong> ${escapeHtml(barber.phone_number || "No phone")}</p>
-              <p><strong>Shop Address:</strong> ${escapeHtml(barber.shop_address || "No address submitted")}</p>
-              <p><strong>Haircut Price:</strong> ${Number(barber.haircut_price || 0) > 0 ? priceText(barber.haircut_price) : "Not set"}</p>
-              <p><strong>Rating:</strong> ${barber.review_count ? `${Number(barber.average_rating || 0).toFixed(1)} / 5` : "No reviews yet"}</p>
-              <p><strong>Review Count:</strong> ${Number(barber.review_count || 0)} public${Number(barber.hidden_review_count || 0) ? ` - ${Number(barber.hidden_review_count || 0)} hidden` : ""}</p>
-              <p><strong>KYC Submitted:</strong> ${escapeHtml(
-                barber.kyc_submitted_at ? formatDateTime(barber.kyc_submitted_at) : "Not submitted"
-              )}</p>
-              <p><strong>Verified:</strong> ${escapeHtml(
-                barber.verified_at ? formatDateTime(barber.verified_at) : "Not verified yet"
-              )}</p>
+      (barber) => {
+        const kycStatus = String(barber.kyc_status || "pending").toLowerCase();
+        const serviceCount = Array.isArray(barber.services) ? barber.services.length : 0;
+        const hasProfilePhoto = Boolean(barber.profile_image_url);
+        const hasShopPhoto = Boolean(barber.shop_photo_url || barber.cover_image_url);
+        const availableDays = Array.isArray(barber.available_days) && barber.available_days.length
+          ? barber.available_days.map(capitalize).join(", ")
+          : "Not set";
+        const moderationTone =
+          section === "flagged" ? "warning" : section === "approved" ? "success" : "neutral";
+        const moderationSummary =
+          section === "approved"
+            ? "Public listing is live. Use this card for quality checks and follow-up actions."
+            : section === "flagged"
+              ? "This profile needs admin attention before it can safely stay or return to the marketplace."
+              : "Review identity, service detail, and readiness before approving this barber.";
+        const imagePreview = barberImageMarkup(
+          {
+            ...barber,
+            shopName: barber.shop_name,
+            barberName: barber.barber_name,
+            image: barber.cover_image_url || barber.shop_photo_url || barber.profile_image_url,
+          },
+          "admin-barber-thumb",
+          barber.shop_name || barber.barber_name || `Barber #${barber.barber_id}`,
+          "admin-barber-thumb-placeholder"
+        );
+
+        return `
+          <article class="admin-review-card admin-barber-card admin-barber-card-${moderationTone}" data-admin-barber-card-id="${Number(barber.barber_id)}">
+            <div class="admin-barber-card-main">
+              <div class="admin-barber-card-head">
+                <div class="admin-barber-card-media">${imagePreview}</div>
+                <div class="admin-barber-card-copy">
+                  <div class="admin-barber-card-titles">
+                    <strong>${escapeHtml(barber.shop_name || barber.barber_name || `Barber #${barber.barber_id}`)}</strong>
+                    <p class="muted">${escapeHtml(barber.barber_name || "Unnamed barber")} - ${escapeHtml(barber.location || "No location")}</p>
+                  </div>
+                  <div class="admin-barber-card-badges">
+                    <span class="status-badge status-${escapeHtml(kycStatus)}">${escapeHtml(String(barber.kyc_status || "pending"))}</span>
+                    <span class="pill">${escapeHtml(serviceCount ? `${serviceCount} service${serviceCount === 1 ? "" : "s"}` : "No services yet")}</span>
+                    <span class="pill">${escapeHtml(barber.is_available ? "Online" : "Offline")}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="admin-barber-signal-grid">
+                <article class="admin-barber-signal-card">
+                  <small>Identity & KYC</small>
+                  <strong>${escapeHtml(barber.phone_number ? "Submitted" : "Incomplete")}</strong>
+                  <p>${escapeHtml(barber.kyc_submitted_at ? `Submitted ${formatDateTime(barber.kyc_submitted_at)}` : "No KYC submission recorded yet.")}</p>
+                </article>
+                <article class="admin-barber-signal-card">
+                  <small>Public Readiness</small>
+                  <strong>${escapeHtml(hasProfilePhoto && hasShopPhoto ? "Images ready" : "Images missing")}</strong>
+                  <p>${escapeHtml(hasProfilePhoto ? "Face photo on file." : "Profile photo missing.")} ${escapeHtml(hasShopPhoto ? "Barber card/shop photo available." : "Public card image missing.")}</p>
+                </article>
+                <article class="admin-barber-signal-card">
+                  <small>Service Setup</small>
+                  <strong>${escapeHtml(Number(barber.haircut_price || 0) > 0 ? priceText(barber.haircut_price) : "Pricing missing")}</strong>
+                  <p>${escapeHtml(serviceCount ? `${serviceCount} active service option${serviceCount === 1 ? "" : "s"} listed.` : "No live services configured yet.")}</p>
+                </article>
+              </div>
+
+              <div class="admin-review-details admin-review-summary">
+                <p><strong>Email:</strong> ${escapeHtml(barber.email || "No email")}</p>
+                <p><strong>Phone:</strong> ${escapeHtml(barber.phone_number || "No phone")}</p>
+                <p><strong>Shop Address:</strong> ${escapeHtml(barber.shop_address || "No address submitted")}</p>
+                <p><strong>Available Days:</strong> ${escapeHtml(availableDays)}</p>
+                <p><strong>Haircut Price:</strong> ${Number(barber.haircut_price || 0) > 0 ? priceText(barber.haircut_price) : "Not set"}</p>
+                <p><strong>Rating:</strong> ${barber.review_count ? `${Number(barber.average_rating || 0).toFixed(1)} / 5` : "No reviews yet"}</p>
+              </div>
+
+              <p class="request-service admin-barber-summary-copy">${escapeHtml(barber.bio || "No bio added yet.")}</p>
+              <p class="muted admin-barber-summary-note">${escapeHtml(moderationSummary)}</p>
+              ${
+                barber.other_services
+                  ? `<p class="request-service"><strong>Other Services:</strong> ${escapeHtml(barber.other_services)}</p>`
+                  : ""
+              }
+              ${
+                barber.rejection_reason
+                  ? `<p class="request-service"><strong>Review Note:</strong> ${escapeHtml(barber.rejection_reason)}</p>`
+                  : ""
+              }
+              <div class="admin-review-links">
+                ${
+                  Number(barber.barber_id) > 0
+                    ? `<button class="btn btn-ghost btn-sm" type="button" data-open-admin-barber="${Number(barber.barber_id)}">View Full Profile</button>`
+                    : `<span class="pill">Awaiting profile setup</span>`
+                }
+                ${
+                  barber.profile_image_url
+                    ? `<a href="${escapeHtml(barber.profile_image_url)}" target="_blank" rel="noopener noreferrer">Open profile image</a>`
+                    : ""
+                }
+                ${
+                  barber.shop_photo_url
+                    ? `<a href="${escapeHtml(barber.shop_photo_url)}" target="_blank" rel="noopener noreferrer">Open shop photo</a>`
+                    : ""
+                }
+                ${
+                  Array.isArray(barber.portfolio_image_urls) && barber.portfolio_image_urls.length
+                    ? barber.portfolio_image_urls
+                        .slice(0, 3)
+                        .map(
+                          (url, index) =>
+                            `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Portfolio ${index + 1}</a>`
+                        )
+                        .join("")
+                    : ""
+                }
+              </div>
             </div>
-            <p class="request-service">${escapeHtml(barber.bio || "No bio added yet.")}</p>
-            ${
-              barber.other_services
-                ? `<p class="request-service"><strong>Other Services:</strong> ${escapeHtml(barber.other_services)}</p>`
-                : ""
-            }
-            ${
-              barber.rejection_reason
-                ? `<p class="request-service"><strong>Review Note:</strong> ${escapeHtml(barber.rejection_reason)}</p>`
-                : ""
-            }
-            <div class="admin-review-links">
-              ${
-                Number(barber.barber_id) > 0
-                  ? `<button class="btn btn-ghost btn-sm" type="button" data-open-admin-barber="${Number(barber.barber_id)}">View Full Profile</button>`
-                  : `<span class="pill">Awaiting profile setup</span>`
-              }
-              ${
-                barber.profile_image_url
-                  ? `<a href="${escapeHtml(barber.profile_image_url)}" target="_blank" rel="noopener noreferrer">Open profile image</a>`
-                  : ""
-              }
-              ${
-                barber.shop_photo_url
-                  ? `<a href="${escapeHtml(barber.shop_photo_url)}" target="_blank" rel="noopener noreferrer">Open shop photo</a>`
-                  : ""
-              }
-              ${
-                Array.isArray(barber.portfolio_image_urls) && barber.portfolio_image_urls.length
-                  ? barber.portfolio_image_urls
-                      .slice(0, 3)
-                      .map(
-                        (url, index) =>
-                          `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Portfolio ${index + 1}</a>`
-                      )
-                      .join("")
-                  : ""
-              }
+            <div class="admin-review-meta admin-barber-card-meta">
+              ${renderAdminBarberActions(barber, section, isSuperAdmin)}
+              <p class="muted admin-review-note">
+                ${
+                  isSuperAdmin
+                    ? "Super admin can approve even when KYC is incomplete."
+                    : "Admin approval requires submitted KYC."
+                }
+              </p>
             </div>
-          </div>
-          <div class="admin-review-meta">
-            <span class="status-badge status-${escapeHtml(String(barber.kyc_status || "pending").toLowerCase())}">
-              ${escapeHtml(String(barber.kyc_status || "pending"))}
-            </span>
-            ${renderAdminBarberActions(barber, section, isSuperAdmin)}
-            <p class="muted admin-review-note">
-              ${
-                isSuperAdmin
-                  ? "Super admin can approve even when KYC is incomplete."
-                  : "Admin approval requires submitted KYC."
-              }
-            </p>
-          </div>
-        </article>
-      `
+          </article>
+        `;
+      }
     )
     .join("");
 }
