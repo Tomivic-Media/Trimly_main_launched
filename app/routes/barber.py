@@ -1,11 +1,12 @@
 from datetime import datetime, time
+from mimetypes import guess_type
 from pathlib import Path
 from typing import List, Optional
 from urllib.parse import urlencode
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.security import get_current_user, require_any_role, require_role
@@ -275,6 +276,15 @@ def _persistent_barber_image_url(image_id: int) -> str:
     return f"/barber/images/{int(image_id)}"
 
 
+def _latest_stored_barber_image(user_id: int, db: Session) -> Optional[BarberImage]:
+    return (
+        db.query(BarberImage)
+        .filter(BarberImage.user_id == int(user_id))
+        .order_by(BarberImage.created_at.desc(), BarberImage.id.desc())
+        .first()
+    )
+
+
 def _first_uploaded_barber_image_url(user_id: int) -> Optional[str]:
     upload_dir = BARBER_UPLOADS_DIR / str(int(user_id))
     if not upload_dir.exists() or not upload_dir.is_dir():
@@ -333,6 +343,41 @@ def backfill_legacy_barber_card_images(db: Session) -> int:
 
         barber.cover_image_url = fallback_cover
         updated += 1
+
+    if updated:
+        db.commit()
+
+    return updated
+
+
+def _is_legacy_upload_path(value: str | None) -> bool:
+    normalized = str(value or "").strip().replace("\\", "/").lower()
+    return normalized.startswith("/static/uploads/barbers/") or normalized.startswith("static/uploads/barbers/")
+
+
+def migrate_legacy_barber_image_urls(db: Session) -> int:
+    """Promote older public barber image URLs to the persistent image endpoint when possible."""
+    updated = 0
+    barbers = db.query(Barber).all()
+
+    for barber in barbers:
+        latest_image = _latest_stored_barber_image(barber.user_id, db)
+        if not latest_image:
+            continue
+
+        persistent_url = _persistent_barber_image_url(latest_image.id)
+        changed = False
+
+        if _is_legacy_upload_path(barber.profile_image_url):
+            barber.profile_image_url = persistent_url
+            changed = True
+
+        if _is_legacy_upload_path(barber.cover_image_url):
+            barber.cover_image_url = persistent_url
+            changed = True
+
+        if changed:
+            updated += 1
 
     if updated:
         db.commit()
@@ -549,6 +594,36 @@ def serve_barber_image(image_id: int, db: Session = Depends(get_db)):
         media_type=str(stored_image.content_type or "application/octet-stream"),
         headers={"Cache-Control": "public, max-age=31536000, immutable"},
     )
+
+
+@router.get("/static/uploads/barbers/{user_id}/{image_name:path}")
+def serve_legacy_barber_upload(
+    user_id: int,
+    image_name: str,
+    db: Session = Depends(get_db),
+):
+    safe_name = Path(image_name or "").name
+    if not safe_name:
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    local_file = BARBER_UPLOADS_DIR / str(int(user_id)) / safe_name
+    if local_file.exists() and local_file.is_file():
+        media_type = guess_type(str(local_file))[0] or "application/octet-stream"
+        return FileResponse(
+            local_file,
+            media_type=media_type,
+            headers={"Cache-Control": "public, max-age=3600"},
+        )
+
+    stored_image = _latest_stored_barber_image(user_id, db)
+    if stored_image:
+        return Response(
+            content=stored_image.image_bytes,
+            media_type=str(stored_image.content_type or "application/octet-stream"),
+            headers={"Cache-Control": "public, max-age=3600"},
+        )
+
+    raise HTTPException(status_code=404, detail="Image not found")
 
 
 @router.patch("/barber/profile/availability", response_model=BarberResponse)

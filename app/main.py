@@ -271,11 +271,21 @@ def backfill_legacy_barber_card_images() -> None:
         db.close()
 
 
+def migrate_legacy_barber_image_urls() -> None:
+    """One-off runtime cleanup for older barber image URLs pointing at unstable upload paths."""
+    db = SessionLocal()
+    try:
+        barber_routes.migrate_legacy_barber_image_urls(db)
+    finally:
+        db.close()
+
+
 Base.metadata.create_all(bind=engine)
 ensure_runtime_schema()
 ensure_bootstrap_super_admin()
 migrate_legacy_pending_bookings()
 backfill_legacy_barber_card_images()
+migrate_legacy_barber_image_urls()
 
 app.include_router(auth.router)
 app.include_router(account_routes.router)
