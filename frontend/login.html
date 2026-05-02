@@ -118,6 +118,29 @@
           return presetEmail;
         }
 
+        async function fetchWithTimeout(url, options, timeoutMs) {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(function () {
+            controller.abort();
+          }, timeoutMs || 15000);
+          try {
+            return await fetch(url, {
+              ...(options || {}),
+              signal: controller.signal,
+            });
+          } catch (error) {
+            if (error && error.name === "AbortError") {
+              throw new Error("Trimly is taking too long to respond right now. Please try again shortly.");
+            }
+            if (error instanceof TypeError) {
+              throw new Error("Trimly services are temporarily unavailable. Please try again shortly.");
+            }
+            throw error;
+          } finally {
+            clearTimeout(timeoutId);
+          }
+        }
+
         const presetEmail = scrubCredentialParams();
         document.addEventListener("DOMContentLoaded", function () {
           const form = document.getElementById("loginForm");
@@ -151,7 +174,7 @@
             body.append("username", email);
             body.append("password", password);
 
-            const loginResponse = await fetch(`${API_BASE_URL}/login`, {
+            const loginResponse = await fetchWithTimeout(`${API_BASE_URL}/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
                 body,
@@ -165,7 +188,7 @@
 
             localStorage.setItem("trimly_token", loginPayload.access_token || "");
 
-            const meResponse = await fetch(`${API_BASE_URL}/me`, {
+            const meResponse = await fetchWithTimeout(`${API_BASE_URL}/me`, {
                 headers: { Authorization: "Bearer " + (loginPayload.access_token || "") },
                 credentials: "include",
               });

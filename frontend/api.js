@@ -7,6 +7,28 @@ import {
 const API_BASE_URL =
   (typeof window !== "undefined" && window.__TRIMLY_API_BASE_URL) ||
   "https://api.trimly.com.ng";
+const API_REQUEST_TIMEOUT_MS = 15000;
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = API_REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error("Trimly is taking too long to respond right now. Please try again shortly.");
+    }
+    if (error instanceof TypeError) {
+      throw new Error("Trimly services are temporarily unavailable. Please try again shortly.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 function getToken() {
   return localStorage.getItem("trimly_token") || "";
@@ -30,7 +52,7 @@ async function apiFetch(path, options = {}, needsAuth = false) {
     Object.assign(headers, authHeaders());
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetchWithTimeout(`${API_BASE_URL}${path}`, {
     ...options,
     credentials: options.credentials || "include",
     headers,
