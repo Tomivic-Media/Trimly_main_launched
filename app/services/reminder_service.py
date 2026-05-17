@@ -16,7 +16,6 @@ from app.services.booking_email_service import (
     send_booking_expired_email,
     send_booking_payment_reminder_email,
 )
-from app.services.google_calendar_service import clear_google_calendar_for_booking, sync_google_calendar_for_booking
 
 REMINDER_WINDOW_MINUTES = 120
 PAYMENT_REMINDER_MINUTES = (15, 60)
@@ -147,10 +146,6 @@ def _reconcile_approved_payment_windows(db: Session, now: datetime) -> int:
             continue
 
         if _recover_paid_booking_if_possible(db, booking):
-            try:
-                sync_google_calendar_for_booking(db, booking.id)
-            except Exception:
-                pass
             changes += 1
             continue
 
@@ -191,10 +186,6 @@ def _reconcile_approved_payment_windows(db: Session, now: datetime) -> int:
                     )
                 except Exception:
                     pass
-            try:
-                clear_google_calendar_for_booking(db, booking.id)
-            except Exception:
-                pass
             changes += 1
             continue
 
