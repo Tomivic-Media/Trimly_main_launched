@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
 
+import requests
+
 from sqlalchemy.orm import Session, joinedload
 
 from app.enums.booking_status import BookingStatus
@@ -8,15 +10,18 @@ from app.models.barber import Barber
 from app.models.booking import Booking
 from app.models.user import UserRole
 from app.services.notification_service import create_notifications, format_notification_time
-from app.core.config import BOOKINGS_REQUIRE_BARBER_APPROVAL
+from app.core.config import BOOKINGS_REQUIRE_BARBER_APPROVAL, PAYSTACK_SECRET_KEY
+from app.services.escrow_service import apply_paid_booking_state
 from app.services.booking_email_service import (
     send_booking_expired_email,
     send_booking_payment_reminder_email,
 )
+from app.services.google_calendar_service import clear_google_calendar_for_booking, sync_google_calendar_for_booking
 
 REMINDER_WINDOW_MINUTES = 120
 PAYMENT_REMINDER_MINUTES = (15, 60)
 FINAL_PAYMENT_REMINDER_BUFFER_MINUTES = 15
+RECENT_EXPIRED_PAYMENT_RECHECK_HOURS = 24
 
 
 def _booking_logic_status(status) -> str:
@@ -80,26 +85,84 @@ def dispatch_due_booking_reminders(db: Session) -> int:
     return reminders_created
 
 
+def _recover_paid_booking_if_possible(db: Session, booking: Booking) -> bool:
+    payment_reference = str(getattr(booking, "payment_reference", "") or "").strip()
+    if not PAYSTACK_SECRET_KEY or not payment_reference:
+        return False
+
+    try:
+        response = requests.get(
+            f"https://api.paystack.co/transaction/verify/{payment_reference}",
+            headers={"Authorization": f"Bearer {PAYSTACK_SECRET_KEY}"},
+            timeout=20,
+        )
+        payload = response.json()
+    except (requests.RequestException, ValueError):
+        return False
+
+    if response.status_code != 200:
+        return False
+
+    if str(payload.get("data", {}).get("status") or "").lower() != "success":
+        return False
+
+    already_paid = booking.payment_status == PaymentStatus.paid
+    apply_paid_booking_state(booking)
+    if not already_paid:
+        recipient_ids = [booking.customer_id]
+        barber_user_id = booking.barber.user_id if booking.barber and booking.barber.user_id else None
+        if barber_user_id:
+            recipient_ids.append(barber_user_id)
+        create_notifications(
+            db,
+            user_ids=recipient_ids,
+            notification_type="booking_paid",
+            title="Payment confirmed",
+            message=(
+                f"Payment for {booking.service_name} on "
+                f"{format_notification_time(booking.scheduled_time)} has been confirmed and your slot is now locked."
+            ),
+            link=f"/static/dashboard-bookings.html?booking={booking.id}&focus=booking",
+            booking_id=booking.id,
+        )
+    return True
+
+
 def _reconcile_approved_payment_windows(db: Session, now: datetime) -> int:
     bookings = (
         db.query(Booking)
         .options(joinedload(Booking.barber).joinedload(Barber.user), joinedload(Booking.customer))
         .filter(
             Booking.payment_status == PaymentStatus.unpaid,
-            Booking.status.in_([BookingStatus.approved, BookingStatus.accepted]),
+            Booking.status.in_([BookingStatus.approved, BookingStatus.accepted, BookingStatus.expired]),
         )
         .all()
     )
 
     changes = 0
     for booking in bookings:
-        payment_due_at = booking.payment_due_at
+        logic_status = _booking_logic_status(booking.status)
         approved_at = booking.approved_at
+        if logic_status == BookingStatus.expired.value and approved_at and approved_at < now - timedelta(hours=RECENT_EXPIRED_PAYMENT_RECHECK_HOURS):
+            continue
+
+        if _recover_paid_booking_if_possible(db, booking):
+            try:
+                sync_google_calendar_for_booking(db, booking.id)
+            except Exception:
+                pass
+            changes += 1
+            continue
+
+        payment_due_at = booking.payment_due_at
         reminder_count = int(booking.payment_reminder_count or 0)
         barber_user_id = booking.barber.user_id if booking.barber and booking.barber.user_id else None
         customer_name = booking.customer.full_name if booking.customer else "there"
         booking_link = f"/static/dashboard-bookings.html?booking={booking.id}&focus=payment"
         rebook_link = f"/static/booking.html?barber={booking.barber_id}"
+
+        if logic_status == BookingStatus.expired.value:
+            continue
 
         if payment_due_at and payment_due_at <= now:
             booking.status = BookingStatus.expired
@@ -128,6 +191,10 @@ def _reconcile_approved_payment_windows(db: Session, now: datetime) -> int:
                     )
                 except Exception:
                     pass
+            try:
+                clear_google_calendar_for_booking(db, booking.id)
+            except Exception:
+                pass
             changes += 1
             continue
 
