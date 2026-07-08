@@ -5165,6 +5165,16 @@ label {
     justify-content: flex-start;
   }
 
+  .btn {
+    min-height: 46px;
+    padding: 12px 16px;
+  }
+
+  .btn-sm {
+    min-height: 42px;
+    padding: 9px 12px;
+  }
+
   .section {
     padding: 20px 0 28px;
   }
@@ -5401,6 +5411,93 @@ label {
     border-radius: 18px;
   }
 
+  body[data-page="payment-status"] .section {
+    padding-top: 18px;
+    padding-bottom: 24px;
+  }
+
+  body[data-page="payment-status"] .payment-status-shell {
+    gap: 16px;
+  }
+
+  body[data-page="payment-status"] .payment-status-card-page {
+    gap: 16px;
+  }
+
+  body[data-page="payment-status"] .section-title {
+    margin-bottom: 4px;
+  }
+
+  body[data-page="payment-status"] .section-subtitle {
+    margin-bottom: 0;
+  }
+
+  body[data-page="payment-status"] .payment-action-row {
+    gap: 12px;
+    margin-top: 4px;
+  }
+
+  body[data-page="payment-status"] .payment-action-row .btn {
+    min-height: 46px;
+  }
+
+  body[data-page="booking"] .booking-primary-panel,
+  body[data-page="booking"] .booking-guide-panel,
+  body[data-page="booking"] .booking-payment-panel,
+  body[data-page="booking"] .booking-trust-panel,
+  body[data-page="booking"] .booking-summary-card,
+  body[data-page="payment-status"] .payment-status-card,
+  body[data-page="messages"] .chat-page-card,
+  body[data-page="messages"] .chat-context-card,
+  body[data-page="messages"] .chat-composer {
+    border-radius: 18px;
+    box-shadow: 0 14px 28px rgba(24, 57, 43, 0.08);
+  }
+
+  body[data-page="booking"] .section {
+    padding-top: 16px;
+    padding-bottom: 24px;
+  }
+
+  body[data-page="booking"] .booking-page-grid,
+  body[data-page="booking"] .booking-sidebar-stack {
+    gap: 16px;
+  }
+
+  body[data-page="booking"] .booking-summary-shell {
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  body[data-page="booking"] .booking-summary-card {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  body[data-page="booking"] .booking-form-grid {
+    gap: 18px;
+  }
+
+  body[data-page="booking"] .booking-service-block,
+  body[data-page="booking"] .booking-trust-list,
+  body[data-page="booking"] .booking-list {
+    gap: 12px;
+  }
+
+  body[data-page="booking"] .booking-service-option {
+    gap: 10px;
+    padding: 15px 14px;
+  }
+
+  body[data-page="booking"] .booking-service-summary,
+  body[data-page="booking"] .booking-trust-item {
+    padding: 14px;
+  }
+
+  body[data-page="booking"] .panel-head-row {
+    gap: 12px;
+  }
+
   .payment-summary-grid,
   .booking-summary-card,
   .booking-summary-shell {
@@ -5440,6 +5537,63 @@ label {
     justify-content: flex-start;
     text-align: left;
   }
+
+  body[data-page="messages"] .section {
+    padding-top: 18px;
+    padding-bottom: 24px;
+  }
+
+  body[data-page="messages"] .chat-page-shell {
+    gap: 16px;
+  }
+
+  body[data-page="messages"] .chat-page-hero {
+    margin-bottom: 0;
+    gap: 8px;
+  }
+
+  body[data-page="messages"] .chat-page-card {
+    gap: 16px;
+    min-height: auto;
+  }
+
+  body[data-page="messages"] .chat-page-head {
+    gap: 12px;
+  }
+
+  body[data-page="messages"] .chat-context-strip {
+    gap: 10px;
+  }
+
+  body[data-page="messages"] .chat-context-card {
+    padding: 13px 14px;
+  }
+
+  body[data-page="messages"] .chat-thread {
+    min-height: 320px;
+    max-height: none;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  body[data-page="messages"] .chat-bubble {
+    max-width: 92%;
+    padding: 12px 13px;
+  }
+
+  body[data-page="messages"] .chat-composer {
+    gap: 10px;
+    padding: 14px;
+  }
+
+  body[data-page="messages"] .chat-composer-controls {
+    gap: 10px;
+  }
+
+  body[data-page="messages"] .chat-composer-input,
+  body[data-page="messages"] .chat-send-btn {
+    min-height: 46px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -5468,6 +5622,16 @@ label {
     font-size: 0.88rem;
   }
 
+  .btn {
+    min-height: 44px;
+    padding: 11px 14px;
+  }
+
+  .btn-sm {
+    min-height: 40px;
+    padding: 8px 11px;
+  }
+
   .panel,
   .settings-card,
   .chat-page-card,
@@ -5487,6 +5651,72 @@ label {
   .booking-trust-panel {
     padding: 14px;
     border-radius: 16px;
+  }
+
+  body[data-page="payment-status"] .section {
+    padding-top: 16px;
+    padding-bottom: 20px;
+  }
+
+  body[data-page="payment-status"] .payment-status-card-page {
+    gap: 14px;
+  }
+
+  body[data-page="payment-status"] .payment-action-row {
+    gap: 10px;
+  }
+
+  body[data-page="booking"] .booking-page-grid,
+  body[data-page="booking"] .booking-sidebar-stack {
+    gap: 14px;
+  }
+
+  body[data-page="booking"] .booking-summary-shell {
+    margin-bottom: 16px;
+  }
+
+  body[data-page="booking"] .booking-summary-card,
+  body[data-page="booking"] .booking-service-summary,
+  body[data-page="booking"] .booking-trust-item {
+    padding: 13px;
+  }
+
+  body[data-page="booking"] .booking-service-option {
+    padding: 14px 13px;
+  }
+
+  body[data-page="messages"] .section {
+    padding-top: 16px;
+    padding-bottom: 20px;
+  }
+
+  body[data-page="messages"] .chat-page-shell,
+  body[data-page="messages"] .chat-page-card {
+    gap: 14px;
+  }
+
+  body[data-page="messages"] .chat-thread,
+  body[data-page="messages"] .chat-composer,
+  body[data-page="messages"] .chat-context-card {
+    padding: 13px;
+  }
+
+  body[data-page="messages"] .chat-bubble {
+    max-width: 94%;
+    padding: 11px 12px;
+  }
+
+  body[data-page="booking"] .booking-primary-panel,
+  body[data-page="booking"] .booking-guide-panel,
+  body[data-page="booking"] .booking-payment-panel,
+  body[data-page="booking"] .booking-trust-panel,
+  body[data-page="booking"] .booking-summary-card,
+  body[data-page="payment-status"] .payment-status-card,
+  body[data-page="messages"] .chat-page-card,
+  body[data-page="messages"] .chat-context-card,
+  body[data-page="messages"] .chat-composer {
+    border-radius: 16px;
+    box-shadow: 0 12px 24px rgba(24, 57, 43, 0.08);
   }
 
   .section-title {
