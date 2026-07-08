@@ -1,4 +1,4 @@
-ï»¿import {
+import {
   adminSessionLogin,
   adminSessionLogout,
   adminRefundBooking,
@@ -38,9 +38,11 @@
   changeCurrentUserPassword,
   createBarberService,
   deactivateBarberService,
+  disconnectGoogleCalendar,
   deleteNotification,
   updateBarberProfile,
   updateBarberService,
+  getGoogleCalendarStatus,
   getNotifications,
   getToken,
   getWebSocketUrl,
@@ -65,11 +67,12 @@
   updateBookingStatus,
   verifyPayment,
   verifyPaymentPublic,
-} from "./api.js?v=20260411a";
+  startGoogleCalendarConnect,
+} from "./api.js?v=20260708m4";
 import {
   enterDemoMode,
   getDemoSessionInfo,
-} from "./demo-data.js";
+} from "./demo-data.js?v=20260708m2";
 
 const DAY_ORDER = [
   "monday",
@@ -814,15 +817,16 @@ function serviceLabel(service) {
 
 
 function barberCardTemplate(barber, ctaLabel = "View Profile") {
-  const ctaHref =
-    ctaLabel === "Book Now"
-      ? `/static/booking.html?barber=${barber.id}`
-      : `/static/barber-profile.html?id=${barber.id}`;
+  const profileHref = `/static/barber-profile.html?id=${barber.id}`;
+  const bookingHref = `/static/booking.html?barber=${barber.id}`;
+  const ctaHref = ctaLabel === "Book Now" ? bookingHref : profileHref;
   const ratingLabel = barber.reviewCount
     ? `${barber.rating.toFixed(1)} (${barber.reviewCount} review${barber.reviewCount === 1 ? "" : "s"})`
     : "New barber";
   const ratingStars = barber.reviewCount ? renderStars(barber.rating) : "";
   const servicePreview = Array.isArray(barber.services) ? barber.services.slice(0, 3) : [];
+  const portfolioPreview = Array.isArray(barber.portfolioImages) ? barber.portfolioImages.slice(0, 3) : [];
+  const showProfileFirst = ctaLabel !== "Book Now";
 
   return `
     <article class="card barber-card">
@@ -832,13 +836,13 @@ function barberCardTemplate(barber, ctaLabel = "View Profile") {
         <p class="muted">${escapeHtml(barber.location)}</p>
         <div class="barber-meta">
           <span>${escapeHtml(ratingLabel)}</span>
-          <span>${priceText(barber.price)}</span>
+          <span>${portfolioPreview.length ? `${portfolioPreview.length} portfolio photo${portfolioPreview.length === 1 ? "" : "s"}` : "Portfolio coming soon"}</span>
         </div>
         ${
           barber.reviewCount
             ? `<div class="barber-rating-line"><span class="review-stars" aria-label="${escapeHtml(
                 `${barber.rating.toFixed(1)} out of 5 stars`
-              )}">${renderStars(barber.rating)}</span><span class="muted">${escapeHtml(
+              )}">${ratingStars}</span><span class="muted">${escapeHtml(
                 `${barber.reviewCount} verified rating${barber.reviewCount === 1 ? "" : "s"}`
               )}</span></div>`
             : `<p class="muted barber-review-meta">Be one of the first to rate this barber.</p>`
@@ -849,13 +853,37 @@ function barberCardTemplate(barber, ctaLabel = "View Profile") {
             : "Be one of the first to book this barber"
         )}</p>
         ${
+          portfolioPreview.length
+            ? `<div class="barber-portfolio-strip">
+                ${portfolioPreview
+                  .map(
+                    (image, index) =>
+                      `<a class="barber-portfolio-thumb" href="${escapeHtml(profileHref)}" aria-label="${escapeHtml(
+                        `${barber.shopName} portfolio ${index + 1}`
+                      )}">
+                        <img src="${escapeHtml(image)}" alt="${escapeHtml(`${barber.shopName} portfolio ${index + 1}`)}" />
+                      </a>`
+                  )
+                  .join("")}
+              </div>`
+            : `<div class="barber-portfolio-empty">Profile photo and service list ready. Portfolio images will appear here.</div>`
+        }
+        ${
           servicePreview.length
             ? `<div class="pill-row barber-service-pill-row">${servicePreview
                 .map((service) => `<span class="pill">${escapeHtml(service.name)}</span>`)
                 .join("")}</div>`
             : ""
         }
-        <a class="btn btn-primary btn-block" href="${ctaHref}">${ctaLabel}</a>
+        <p class="muted barber-price-hint">Prices appear after you begin booking so you can choose by style, quality, and reviews first.</p>
+        <div class="barber-card-actions">
+          <a class="btn ${showProfileFirst ? "btn-primary" : "btn-ghost"} btn-block" href="${escapeHtml(
+            showProfileFirst ? profileHref : ctaHref
+          )}">${showProfileFirst ? "View Portfolio" : escapeHtml(ctaLabel)}</a>
+          <a class="btn ${showProfileFirst ? "btn-ghost" : "btn-primary"} btn-block" href="${escapeHtml(
+            bookingHref
+          )}">Book Now</a>
+        </div>
       </div>
     </article>
   `;
@@ -933,8 +961,6 @@ async function initBarbersPage() {
   const barbersGrid = document.getElementById("barbersGrid");
   const searchInput = document.getElementById("listSearch");
   const locationInput = document.getElementById("listLocation");
-  const minPriceInput = document.getElementById("listMinPrice");
-  const maxPriceInput = document.getElementById("listMaxPrice");
   const filterForm = document.getElementById("barberFilterForm");
 
   if (!barbersGrid) return;
@@ -949,8 +975,6 @@ async function initBarbersPage() {
     try {
       const filters = {
         location: (locationInput?.value || "").trim(),
-        min_price: minPriceInput?.value || "",
-        max_price: maxPriceInput?.value || "",
         available: true,
       };
 
@@ -1085,12 +1109,12 @@ async function initBarberProfilePage() {
 
           <div class="profile-stat-grid">
             <article class="profile-stat-card">
-              <small>Haircut</small>
-              <strong>${priceText(barber.price)}</strong>
+              <small>Portfolio</small>
+              <strong>${barber.portfolioImages.length} photo${barber.portfolioImages.length === 1 ? "" : "s"}</strong>
             </article>
             <article class="profile-stat-card">
-              <small>Beard Trim</small>
-              <strong>${barber.beardTrimPrice ? priceText(barber.beardTrimPrice) : "On request"}</strong>
+              <small>Services</small>
+              <strong>${serviceChips.length} listed</strong>
             </article>
             <article class="profile-stat-card">
               <small>Availability</small>
@@ -1109,8 +1133,9 @@ async function initBarberProfilePage() {
           <section class="profile-section-block">
             <div class="panel-head-row">
               <h3>Services</h3>
-              <span class="pill">${serviceChips.length} listed</span>
+              <span class="pill">Prices show in booking</span>
             </div>
+            <p class="muted">Browse the service mix first. Trimly reveals the exact amount once you start the booking flow so you can confirm it before payment.</p>
             <div class="profile-service-list">
               ${serviceChips.length
                 ? serviceChips
@@ -1121,7 +1146,7 @@ async function initBarberProfilePage() {
                             <strong>${escapeHtml(service.name)}</strong>
                             <p class="muted">${service.isHomeService ? "Available for home service" : "Shop visit available"} - ${Math.max(Number(service.durationMinutes || 60), 15)} mins</p>
                           </div>
-                          <span class="pill">${escapeHtml(priceText(service.price))}</span>
+                          <span class="pill">Price shown in booking</span>
                         </article>
                       `
                     )
@@ -1362,7 +1387,7 @@ async function initBookingPage() {
               <strong>${escapeHtml(service.name)}</strong>
               <span class="muted">${service.isHomeService ? "Home service available" : "Shop visit available"} - ${Math.max(Number(service.durationMinutes || service.duration_minutes || 60), 15)} mins</span>
             </div>
-            <span class="pill">${escapeHtml(priceText(service.price))}</span>
+            <span class="pill">Price shown in booking</span>
           </label>
         `
       )
@@ -1816,6 +1841,24 @@ function applyAdminDashboardView(role = state.currentRole) {
   }
 }
 
+function consumeGoogleCalendarConnectNotice() {
+  const url = new URL(window.location.href);
+  const status = String(url.searchParams.get("google_calendar") || "").trim().toLowerCase();
+  if (!status) return;
+
+  const messages = {
+    connected: "Google Calendar connected. Your paid bookings will now drop into your calendar automatically.",
+    error: "Google Calendar could not be connected right now. Please try again.",
+    missing: "Google Calendar callback was incomplete. Please try connecting again.",
+    invalid: "Google Calendar connection expired. Please start the connection again.",
+    "missing-user": "We could not match this Google Calendar request to your Trimly account.",
+  };
+
+  toast(messages[status] || "Google Calendar update received.", status !== "connected");
+  url.searchParams.delete("google_calendar");
+  window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
 async function initAdminDashboardPage() {
   stopBarberAlertPolling();
   const token = getToken();
@@ -2031,6 +2074,7 @@ function syncDashboardSubnav() {
 
 async function initSettingsPage() {
   stopBarberAlertPolling();
+  consumeGoogleCalendarConnectNotice();
   const token = getToken();
   if (!token) {
     const next = encodeURIComponent("/static/settings.html");
@@ -2514,7 +2558,7 @@ async function hydrateCustomerDashboard() {
       const nextConfirmedBarber = confirmedUpcoming[0] ? barberMap.get(Number(confirmedUpcoming[0].barber_id)) : null;
       const nextAwaitingBarber = awaitingPayment[0] ? barberMap.get(Number(awaitingPayment[0].barber_id)) : null;
       nextBarberSummaryEl.textContent = nextConfirmedBarber
-        ? `${nextConfirmedBarber.shopName} Â· ${formatTime(confirmedUpcoming[0].scheduled_time)}`
+        ? `${nextConfirmedBarber.shopName} · ${formatTime(confirmedUpcoming[0].scheduled_time)}`
         : nextAwaitingBarber
         ? `Pay ${nextAwaitingBarber.shopName} to lock ${formatTime(awaitingPayment[0].scheduled_time)}`
         : "Pick your next barber";
@@ -2522,7 +2566,7 @@ async function hydrateCustomerDashboard() {
     if (lastBookingSummaryEl) {
       const lastBarber = lastBooking ? barberMap.get(Number(lastBooking.barber_id)) : null;
       lastBookingSummaryEl.textContent = lastBooking
-        ? `${lastBarber?.shopName || "Recent barber"} Â· ${formatDateTime(lastBooking.scheduled_time)}`
+        ? `${lastBarber?.shopName || "Recent barber"} · ${formatDateTime(lastBooking.scheduled_time)}`
         : "No recent booking yet";
     }
     if (fastActionSummaryEl) {
@@ -2908,7 +2952,7 @@ async function hydrateBarberDashboard() {
     }
     if (nextAppointmentSummaryEl) {
       nextAppointmentSummaryEl.textContent = upcomingAppointments.length
-        ? `${formatDateTime(upcomingAppointments[0].scheduled_time)} Â· ${upcomingAppointments[0].customer_name || `Customer #${upcomingAppointments[0].customer_id}`}`
+        ? `${formatDateTime(upcomingAppointments[0].scheduled_time)} · ${upcomingAppointments[0].customer_name || `Customer #${upcomingAppointments[0].customer_id}`}`
         : "No upcoming appointments";
     }
     if (awaitingPaymentSummaryEl) {
@@ -2916,7 +2960,7 @@ async function hydrateBarberDashboard() {
         .slice()
         .sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time))[0];
       awaitingPaymentSummaryEl.textContent = nextAwaitingPayment
-        ? `${nextAwaitingPayment.customer_name || `Customer #${nextAwaitingPayment.customer_id}`} Â· ${formatPaymentDeadline(nextAwaitingPayment)}`
+        ? `${nextAwaitingPayment.customer_name || `Customer #${nextAwaitingPayment.customer_id}`} · ${formatPaymentDeadline(nextAwaitingPayment)}`
         : "No bookings waiting for payment";
     }
     if (queueSummaryEl) {
@@ -3816,6 +3860,12 @@ function hydrateSettingsPanel() {
   const barberAvailabilityCard = document.getElementById("settingsBarberAvailabilityCard");
   const barberKycCard = document.getElementById("settingsBarberKycCard");
   const barberCalendarCard = document.getElementById("settingsBarberCalendarCard");
+  const googleCalendarStatusEl = document.getElementById("settingsGoogleCalendarStatus");
+  const googleCalendarEmailEl = document.getElementById("settingsGoogleCalendarEmail");
+  const googleCalendarCopyEl = document.getElementById("settingsGoogleCalendarCopy");
+  const googleCalendarConnectBtn = document.getElementById("settingsGoogleCalendarConnectBtn");
+  const googleCalendarDisconnectBtn = document.getElementById("settingsGoogleCalendarDisconnectBtn");
+  const googleCalendarNotice = document.getElementById("settingsGoogleCalendarNotice");
 
   if (barberShortcuts) {
     barberShortcuts.classList.toggle("hidden", state.currentRole !== "barber");
@@ -4007,6 +4057,7 @@ function hydrateSettingsPanel() {
   Promise.all([
     getReferralSummary().catch(() => null),
     getMySessions().catch(() => null),
+    getGoogleCalendarStatus().catch(() => null),
     state.currentRole === "customer" ? getCustomerInsights().catch(() => null) : Promise.resolve(null),
     state.currentRole === "barber" ? getBarberInsights().catch(() => null) : Promise.resolve(null),
     state.currentRole === "barber"
@@ -4021,6 +4072,7 @@ function hydrateSettingsPanel() {
     ([
       referralSummary,
       sessionResponse,
+      googleCalendarStatus,
       customerInsights,
       barberInsights,
       payoutReport,
@@ -4080,6 +4132,76 @@ function hydrateSettingsPanel() {
           revokeOtherSessionsBtn.disabled = false;
         }
       });
+    }
+
+    if (googleCalendarStatusEl) {
+      const configured = Boolean(googleCalendarStatus?.configured);
+      const connected = Boolean(googleCalendarStatus?.connected);
+      googleCalendarStatusEl.textContent = !configured
+        ? "Not configured"
+        : connected
+          ? "Connected"
+          : "Not connected";
+      googleCalendarStatusEl.className = `status-badge ${!configured ? "status-pending" : connected ? "status-approved" : "status-draft"}`;
+    }
+    if (googleCalendarEmailEl) {
+      googleCalendarEmailEl.textContent = googleCalendarStatus?.connected_email || state.currentEmail || "Not connected yet";
+    }
+    if (googleCalendarCopyEl) {
+      googleCalendarCopyEl.textContent = !googleCalendarStatus?.configured
+        ? "Trimly still needs the Google Calendar keys before account connection can be turned on."
+        : googleCalendarStatus?.connected
+          ? "Your paid bookings will be added to your Google Calendar automatically with Trimly reminders 24 hours before and 1 hour before the appointment."
+          : "Connect Google Calendar once, then every paid booking will land in your own calendar with automatic 24-hour and 1-hour reminders.";
+    }
+    if (googleCalendarConnectBtn) {
+      googleCalendarConnectBtn.disabled = !googleCalendarStatus?.configured;
+      googleCalendarConnectBtn.classList.toggle("hidden", Boolean(googleCalendarStatus?.connected));
+      googleCalendarConnectBtn.onclick = async () => {
+        googleCalendarConnectBtn.disabled = true;
+        if (googleCalendarNotice) {
+          googleCalendarNotice.textContent = "";
+          googleCalendarNotice.className = "notice";
+        }
+        try {
+          const result = await startGoogleCalendarConnect();
+          if (!result?.auth_url) {
+            throw new Error("Google Calendar did not return a connection link.");
+          }
+          window.location.href = result.auth_url;
+        } catch (error) {
+          if (googleCalendarNotice) {
+            googleCalendarNotice.textContent = error.message;
+            googleCalendarNotice.className = "notice error";
+          }
+          googleCalendarConnectBtn.disabled = false;
+        }
+      };
+    }
+    if (googleCalendarDisconnectBtn) {
+      googleCalendarDisconnectBtn.classList.toggle("hidden", !Boolean(googleCalendarStatus?.connected));
+      googleCalendarDisconnectBtn.onclick = async () => {
+        googleCalendarDisconnectBtn.disabled = true;
+        if (googleCalendarNotice) {
+          googleCalendarNotice.textContent = "";
+          googleCalendarNotice.className = "notice";
+        }
+        try {
+          const result = await disconnectGoogleCalendar();
+          if (googleCalendarNotice) {
+            googleCalendarNotice.textContent = result?.message || "Google Calendar disconnected.";
+            googleCalendarNotice.className = "notice success";
+          }
+          hydrateSettingsPanel();
+        } catch (error) {
+          if (googleCalendarNotice) {
+            googleCalendarNotice.textContent = error.message;
+            googleCalendarNotice.className = "notice error";
+          }
+        } finally {
+          googleCalendarDisconnectBtn.disabled = false;
+        }
+      };
     }
 
     if (insightAppointmentsEl) insightAppointmentsEl.textContent = String(Number(customerInsights?.total_appointments || 0));
@@ -6760,14 +6882,19 @@ async function renderBookingPaymentActions(bookingId, container) {
           <div class="payment-status-head">
             <div class="payment-status-copy">
               <strong>Payment received</strong>
-              <p class="payment-helper">Your appointment is locked in and already paid for.</p>
+              <p class="payment-helper">Your appointment is locked in, already paid for, and ready for automatic calendar reminders if you connect Google Calendar.</p>
             </div>
             <span class="status-badge status-completed">Paid</span>
           </div>
           ${renderPaymentTimeline(statusValue, paymentStatus)}
           ${renderPaymentSummary(booking)}
+          <div class="payment-next-step">
+            <strong>Keep this appointment on your calendar</strong>
+            <p class="muted">Connect Google Calendar to receive Trimly reminder prompts 24 hours before and again 1 hour before this appointment.</p>
+          </div>
           <div class="payment-action-row">
             <a class="btn btn-ghost" href="${buildDashboardLink(state.currentRole || "customer", normalizeRole(state.currentRole || "customer") === "barber" ? "queue" : "bookings", { booking: Number(booking.id) })}">View Booking</a>
+            <a class="btn btn-ghost" href="/static/settings.html?tab=notifications">Calendar Reminders</a>
           </div>
         </div>
       `;
@@ -6830,7 +6957,7 @@ async function renderBookingPaymentActions(bookingId, container) {
           ${renderPaymentSummary(booking)}
           <div class="payment-next-step">
             <strong>What happens next</strong>
-            <p class="muted">Once you pay, this booking moves into the confirmed schedule, stays visible in your dashboard, and remains available for chat coordination.</p>
+            <p class="muted">Once you pay, this booking moves into the confirmed schedule, stays visible in your dashboard, remains available for chat coordination, and can be sent to Google Calendar reminders.</p>
           </div>
           <div class="payment-action-row">
             <button class="btn btn-primary" type="button" data-pay-booking-id="${Number(booking.id)}">Pay Now</button>
@@ -7555,6 +7682,8 @@ async function refreshChatMessages(bookingId, list, context = {}) {
   list.innerHTML = messages.map(renderChatBubble).join("");
   list.scrollTop = list.scrollHeight;
 }
+
+
 
 
 

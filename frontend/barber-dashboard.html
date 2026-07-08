@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Sora:wght@100..800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./style.css?v=20260402h" />
+    <link rel="stylesheet" href="/static/style.css?v=20260708m5" />
   </head>
   <body data-page="dashboard" data-dashboard-role="barber">
     <header class="site-header">
@@ -20,13 +20,13 @@
         <nav class="nav-main" data-nav-menu>
           <div class="nav-links">
             <a href="/">Home</a>
-            <a href="./barbers.html">Barbers</a>
-            <a class="active" href="./barber-dashboard.html">Dashboard</a>
+            <a href="/static/barbers.html">Barbers</a>
+            <a class="active" href="/static/barber-dashboard.html">Dashboard</a>
           </div>
           <div class="auth-actions" data-auth-actions>
-            <a class="btn btn-ghost" href="./login.html">Login</a>
-            <a class="btn btn-primary" href="./register.html">Register</a>
-            <a class="auth-admin-link" href="./admin-login.html">Admin Login</a>
+            <a class="btn btn-ghost" href="/static/login.html">Login</a>
+            <a class="btn btn-primary" href="/static/register.html">Register</a>
+            <a class="auth-admin-link" href="/static/admin-login.html">Admin Login</a>
           </div>
         </nav>
       </div>
@@ -41,9 +41,9 @@
         </p>
 
         <nav id="barberDashboardSubnav" class="dashboard-subnav hidden" aria-label="Barber dashboard sections">
-          <a class="dashboard-subnav-link" href="./barber-dashboard.html">Overview</a>
-          <a class="dashboard-subnav-link" href="./barber-queue.html">Queue</a>
-          <a class="dashboard-subnav-link" href="./barber-records.html">Records</a>
+          <a class="dashboard-subnav-link" href="/static/barber-dashboard.html">Overview</a>
+          <a class="dashboard-subnav-link" href="/static/barber-queue.html">Queue</a>
+          <a class="dashboard-subnav-link" href="/static/barber-records.html">Records</a>
         </nav>
 
         <section id="barberDashboard" class="barber-hub hidden">
@@ -123,7 +123,7 @@
                   Your barber page is currently under review. Customers will not see your public listing until approval is complete.
                 </p>
               </div>
-              <a class="btn btn-ghost" href="./settings.html?tab=operations">Open Operations</a>
+              <a class="btn btn-ghost" href="/static/settings.html?tab=operations">Open Operations</a>
             </section>
 
             <section class="barber-stat-grid">
@@ -161,6 +161,12 @@
     </footer>
 
     <div id="toast" class="toast"></div>
-    <script type="module" src="./main.js?v=20260411a"></script>
+    <script type="module" src="/static/main.js?v=20260708m3"></script>
   </body>
 </html>
+
+
+
+
+
+

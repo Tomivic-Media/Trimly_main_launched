@@ -29,6 +29,7 @@ from app.routes import barber as barber_routes
 from app.routes import booking as booking_routes
 from app.routes import chat as chat_routes
 from app.routes import dispute as dispute_routes
+from app.routes import integrations as integration_routes
 from app.routes import notification as notification_routes
 from app.routes import payment
 from app.routes import policy as policy_routes
@@ -96,6 +97,9 @@ def ensure_runtime_schema() -> None:
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS payment_due_at TIMESTAMP",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS payment_reminder_count INTEGER DEFAULT 0",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_google_calendar_event_id VARCHAR",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS barber_google_calendar_event_id VARCHAR",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS calendar_last_synced_at TIMESTAMP",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS payout_status VARCHAR(64)",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS transfer_reference VARCHAR",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS transferred_at TIMESTAMP",
@@ -155,6 +159,12 @@ def ensure_runtime_schema() -> None:
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS address_area VARCHAR",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS address_landmark VARCHAR",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS address_note VARCHAR",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS google_calendar_connected BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS google_calendar_email VARCHAR",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS google_calendar_access_token TEXT",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS google_calendar_refresh_token TEXT",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS google_calendar_token_expires_at TIMESTAMP",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS google_calendar_connected_at TIMESTAMP",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS accepted_terms BOOLEAN DEFAULT FALSE",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_approved BOOLEAN DEFAULT FALSE",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_approved_at TIMESTAMP",
@@ -167,6 +177,7 @@ def ensure_runtime_schema() -> None:
         "UPDATE users SET admin_approved = FALSE WHERE admin_approved IS NULL",
         "UPDATE users SET loyalty_points = 0 WHERE loyalty_points IS NULL",
         "UPDATE users SET referral_reward_granted = FALSE WHERE referral_reward_granted IS NULL",
+        "UPDATE users SET google_calendar_connected = FALSE WHERE google_calendar_connected IS NULL",
         "ALTER TABLE barber_services ADD COLUMN IF NOT EXISTS duration_minutes INTEGER",
         "UPDATE barber_services SET duration_minutes = 60 WHERE duration_minutes IS NULL OR duration_minutes <= 0",
         "ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS receiver_id INTEGER",
@@ -293,6 +304,7 @@ app.include_router(barber_routes.router)
 app.include_router(booking_routes.router)
 app.include_router(chat_routes.router)
 app.include_router(dispute_routes.router)
+app.include_router(integration_routes.router)
 app.include_router(notification_routes.router)
 app.include_router(policy_routes.router)
 app.include_router(payment.router)

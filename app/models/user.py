@@ -1,6 +1,6 @@
 import enum
 
-from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Integer, String, Time
+from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Integer, String, Text, Time
 from sqlalchemy.sql import func
 
 from app.db.session import Base
@@ -41,4 +41,10 @@ class User(Base):
     address_area = Column(String, nullable=True)
     address_landmark = Column(String, nullable=True)
     address_note = Column(String, nullable=True)
+    google_calendar_connected = Column(Boolean, default=False, nullable=False)
+    google_calendar_email = Column(String, nullable=True)
+    google_calendar_access_token = Column(Text, nullable=True)
+    google_calendar_refresh_token = Column(Text, nullable=True)
+    google_calendar_token_expires_at = Column(DateTime, nullable=True)
+    google_calendar_connected_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -19,6 +19,7 @@ from app.services.escrow_service import (
     PAYOUT_STATUS_REFUND_REQUESTED,
     apply_paid_booking_state,
 )
+from app.services.google_calendar_service import clear_google_calendar_for_booking, sync_google_calendar_for_booking
 from app.services.notification_service import create_notifications, format_notification_time, notify_admins
 
 router = APIRouter()
@@ -100,6 +101,10 @@ async def paystack_webhook(request: Request, db: Session = Depends(get_db)):
                     booking_id=booking.id,
                 )
             db.commit()
+            try:
+                sync_google_calendar_for_booking(db, booking.id)
+            except Exception:
+                pass
 
     return {"status": "ok"}
 
@@ -184,5 +189,9 @@ def admin_refund_booking(
         booking_id=booking.id,
     )
     db.commit()
+    try:
+        clear_google_calendar_for_booking(db, booking.id)
+    except Exception:
+        pass
 
     return {"message": "Booking refunded successfully", "booking_id": booking.id}

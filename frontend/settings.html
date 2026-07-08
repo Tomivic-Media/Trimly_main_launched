@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Sora:wght@100..800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./style.css?v=20260402h" />
+    <link rel="stylesheet" href="/static/style.css?v=20260707m1" />
   </head>
   <body data-page="settings">
     <header class="site-header">
@@ -23,14 +23,14 @@
         <nav class="nav-main" data-nav-menu>
           <div class="nav-links">
             <a href="/">Home</a>
-            <a href="./barbers.html">Barbers</a>
-            <a href="./dashboard.html">Dashboard</a>
-            <a class="active" href="./settings.html">Settings</a>
+            <a href="/static/barbers.html">Barbers</a>
+            <a href="/static/dashboard.html">Dashboard</a>
+            <a class="active" href="/static/settings.html">Settings</a>
           </div>
           <div class="auth-actions" data-auth-actions>
-            <a class="btn btn-ghost" href="./login.html">Login</a>
-            <a class="btn btn-primary" href="./register.html">Register</a>
-            <a class="auth-admin-link" href="./admin-login.html">Admin Login</a>
+            <a class="btn btn-ghost" href="/static/login.html">Login</a>
+            <a class="btn btn-primary" href="/static/register.html">Register</a>
+            <a class="auth-admin-link" href="/static/admin-login.html">Admin Login</a>
           </div>
         </nav>
       </div>
@@ -124,6 +124,33 @@
               <button class="btn btn-ghost" type="submit">Save Preferences</button>
             </form>
             <p id="settingsPreferencesNotice" class="notice"></p>
+          </article>
+
+          <article class="settings-card" data-settings-group="account">
+            <div class="panel-head-row">
+              <div>
+                <h4>Google Calendar</h4>
+                <p class="muted">Connect once so your paid Trimly bookings automatically appear in your own Google Calendar with reminders.</p>
+              </div>
+              <span class="status-badge status-pending" id="settingsGoogleCalendarStatus">Checking</span>
+            </div>
+            <div class="settings-link-list">
+              <div class="settings-inline-stat">
+                <span class="muted">Connected account</span>
+                <strong id="settingsGoogleCalendarEmail">Not connected yet</strong>
+              </div>
+              <div class="share-link-panel">
+                <strong>How it works</strong>
+                <p class="muted" id="settingsGoogleCalendarCopy">
+                  Connect Google Calendar once, then every paid Trimly booking will land in your calendar with automatic reminders.
+                </p>
+              </div>
+              <div class="settings-chip-row">
+                <button class="btn btn-primary" type="button" id="settingsGoogleCalendarConnectBtn">Connect Google Calendar</button>
+                <button class="btn btn-ghost hidden" type="button" id="settingsGoogleCalendarDisconnectBtn">Disconnect</button>
+              </div>
+            </div>
+            <p id="settingsGoogleCalendarNotice" class="notice"></p>
           </article>
 
           <article class="settings-card" data-settings-group="security">
@@ -220,7 +247,7 @@
                 <h4>Booking History</h4>
                 <p class="muted">Completed, cancelled, and past bookings now live in settings instead of the dashboard.</p>
               </div>
-              <a class="muted" href="./settings.html?tab=activity">Refresh</a>
+              <a class="muted" href="/static/settings.html?tab=activity">Refresh</a>
             </div>
             <div id="settingsCustomerRecentActivity" class="booking-list"></div>
           </article>
@@ -459,7 +486,7 @@
 
               <div class="settings-action-row">
                 <button class="btn btn-primary" type="submit">Save Profile Changes</button>
-                <a class="btn btn-ghost" href="./barber-profile.html" id="settingsProfilePreviewLink">Preview Public Profile</a>
+                <a class="btn btn-ghost" href="/static/barber-profile.html" id="settingsProfilePreviewLink">Preview Public Profile</a>
               </div>
             </form>
 
@@ -573,11 +600,11 @@
           <article class="settings-card" data-settings-group="account">
             <h4>Policies & Support</h4>
             <div class="settings-link-list">
-              <a class="quick-action-card" href="./acceptable-use.html">
+              <a class="quick-action-card" href="/static/acceptable-use.html">
                 <strong>Acceptable Use Policy</strong>
                 <span class="muted">Review marketplace rules and platform standards</span>
               </a>
-              <a class="quick-action-card" href="./refund-cancellation-policy.html">
+              <a class="quick-action-card" href="/static/refund-cancellation-policy.html">
                 <strong>Refund & Cancellation Policy</strong>
                 <span class="muted">Understand refunds, cancellations, and booking protection</span>
               </a>
@@ -590,9 +617,9 @@
                 <div class="settings-chip-row">
                   <a class="pill" href="#barberProfileStudioPanel">Profile Studio</a>
                   <a class="pill" href="#settingsBarberBusinessCard">Share Links</a>
-                  <a class="pill" href="./settings.html?tab=operations">Operations</a>
-                  <a class="pill" href="./settings.html?tab=operations#barberKycBadge">KYC</a>
-                  <a class="pill" href="./settings.html?tab=operations#availabilityForm">Availability</a>
+                  <a class="pill" href="/static/settings.html?tab=operations">Operations</a>
+                  <a class="pill" href="/static/settings.html?tab=operations#barberKycBadge">KYC</a>
+                  <a class="pill" href="/static/settings.html?tab=operations#availabilityForm">Availability</a>
                 </div>
               </div>
             </div>
@@ -609,9 +636,12 @@
     </footer>
 
     <div id="toast" class="toast"></div>
-    <script type="module" src="./main.js?v=20260411a"></script>
+    <script type="module" src="/static/main.js?v=20260708m1"></script>
   </body>
 </html>
+
+
+
 
 
 

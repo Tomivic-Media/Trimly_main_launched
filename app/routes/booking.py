@@ -27,6 +27,7 @@ from app.services.escrow_service import (
 )
 from app.services.notification_service import create_notifications, format_notification_time, notify_admins
 from app.services.booking_email_service import send_booking_approved_payment_email, send_booking_payment_ready_email
+from app.services.google_calendar_service import clear_google_calendar_for_booking, sync_google_calendar_for_booking
 from app.services.referral_service import award_completion_points, maybe_award_referral_bonus
 from app.services.reminder_service import dispatch_due_booking_reminders
 from app.services.paystack_subaccount_service import ensure_barber_subaccount
@@ -620,6 +621,10 @@ def _verify_paystack_payment_reference(db: Session, booking: Booking, reference:
     if not already_paid:
         _notify_payment_confirmed(db, booking)
     db.commit()
+    try:
+        sync_google_calendar_for_booking(db, booking.id)
+    except Exception:
+        pass
 
     return {
         "message": "Payment verified successfully",
@@ -856,6 +861,10 @@ def reject_booking(
     booking.status = BookingStatus.rejected
     _notify_booking_rejected(db, booking)
     db.commit()
+    try:
+        clear_google_calendar_for_booking(db, booking.id)
+    except Exception:
+        pass
     db.refresh(booking)
     return _booking_to_response(
         _get_booking_or_404(db, booking.id),
@@ -877,6 +886,10 @@ def cancel_booking(
     _notify_booking_cancelled(db, booking, actor_role)
 
     db.commit()
+    try:
+        clear_google_calendar_for_booking(db, booking.id)
+    except Exception:
+        pass
     db.refresh(booking)
     return _booking_to_response(
         _get_booking_or_404(db, booking.id),
@@ -931,6 +944,11 @@ def update_booking_status(
         raise HTTPException(status_code=400, detail="Use dedicated endpoints for this status change")
 
     db.commit()
+    if normalized_target in {BookingStatus.cancelled, BookingStatus.rejected, BookingStatus.no_show}:
+        try:
+            clear_google_calendar_for_booking(db, booking.id)
+        except Exception:
+            pass
     db.refresh(booking)
     return _booking_to_response(
         _get_booking_or_404(db, booking.id),

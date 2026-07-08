@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Sora:wght@100..800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./style.css?v=20260402h" />
+    <link rel="stylesheet" href="/static/style.css?v=20260708m2" />
   </head>
   <body data-page="dashboard" data-dashboard-role="customer">
     <header class="site-header">
@@ -20,13 +20,13 @@
         <nav class="nav-main" data-nav-menu>
           <div class="nav-links">
             <a href="/">Home</a>
-            <a href="./barbers.html">Barbers</a>
-            <a class="active" href="./dashboard.html">Dashboard</a>
+            <a href="/static/barbers.html">Barbers</a>
+            <a class="active" href="/static/dashboard.html">Dashboard</a>
           </div>
           <div class="auth-actions" data-auth-actions>
-            <a class="btn btn-ghost" href="./login.html">Login</a>
-            <a class="btn btn-primary" href="./register.html">Register</a>
-            <a class="auth-admin-link" href="./admin-login.html">Admin Login</a>
+            <a class="btn btn-ghost" href="/static/login.html">Login</a>
+            <a class="btn btn-primary" href="/static/register.html">Register</a>
+            <a class="auth-admin-link" href="/static/admin-login.html">Admin Login</a>
           </div>
         </nav>
       </div>
@@ -41,9 +41,9 @@
         </p>
 
         <nav id="customerDashboardSubnav" class="dashboard-subnav hidden" aria-label="Customer dashboard sections">
-          <a class="dashboard-subnav-link" href="./dashboard.html">Overview</a>
-          <a class="dashboard-subnav-link" href="./dashboard-discover.html">Discover</a>
-          <a class="dashboard-subnav-link" href="./dashboard-bookings.html">Bookings</a>
+          <a class="dashboard-subnav-link" href="/static/dashboard.html">Overview</a>
+          <a class="dashboard-subnav-link" href="/static/dashboard-discover.html">Discover</a>
+          <a class="dashboard-subnav-link" href="/static/dashboard-bookings.html">Bookings</a>
         </nav>
 
         <section id="customerDashboard" class="customer-marketplace hidden">
@@ -104,7 +104,7 @@
                 </div>
                 <div class="panel-head-actions">
                   <span class="pill" id="customerTrendingCountSecondary">Top picks</span>
-                  <a href="./barbers.html" class="muted">See all</a>
+                  <a href="/static/barbers.html" class="muted">See all</a>
                 </div>
               </div>
               <div id="customerTrending" class="grid grid-4"></div>
@@ -146,6 +146,12 @@
     </footer>
 
     <div id="toast" class="toast"></div>
-    <script type="module" src="./main.js?v=20260411a"></script>
+    <script type="module" src="/static/main.js?v=20260708m3"></script>
   </body>
 </html>
+
+
+
+
+
+

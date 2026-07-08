@@ -506,8 +506,57 @@ textarea:focus {
   margin: 10px 0 14px;
   display: flex;
   justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
   color: var(--muted);
   font-weight: 500;
+}
+
+.barber-portfolio-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 12px 0 10px;
+}
+
+.barber-portfolio-thumb {
+  display: block;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: rgba(255, 250, 242, 0.86);
+  min-height: 82px;
+}
+
+.barber-portfolio-thumb img {
+  width: 100%;
+  height: 82px;
+  object-fit: cover;
+  display: block;
+}
+
+.barber-portfolio-empty {
+  margin: 12px 0 10px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px dashed rgba(46, 106, 79, 0.22);
+  background: rgba(255, 255, 255, 0.42);
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.barber-price-hint {
+  margin: 10px 0 0;
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+
+.barber-card-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
 }
 
 .muted {
@@ -1639,12 +1688,20 @@ label {
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 14px;
-  background: linear-gradient(160deg, rgba(24, 33, 44, 0.72), rgba(14, 18, 24, 0.88));
+  background:
+    radial-gradient(circle at top right, rgba(46, 106, 79, 0.08), transparent 36%),
+    linear-gradient(160deg, rgba(255, 250, 242, 0.98), rgba(242, 247, 244, 0.94));
+  color: var(--text);
+  box-shadow: 0 12px 26px rgba(24, 57, 43, 0.08);
   min-height: 180px;
 }
 
 .upcoming-appointment-card h4 {
   margin: 0 0 6px;
+}
+
+.upcoming-appointment-card .muted {
+  color: rgba(56, 69, 61, 0.82);
 }
 
 .upcoming-meta {
@@ -4337,6 +4394,11 @@ label {
     max-width: 100%;
   }
 
+  .payment-service-pill-row .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
   .payment-trust-list,
   .booking-trust-list {
     gap: 8px;
@@ -4357,6 +4419,11 @@ label {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
+  }
+
+  .barber-card-actions,
+  .barber-portfolio-strip {
+    grid-template-columns: 1fr;
   }
 
   .payment-action-row .btn {
@@ -4708,8 +4775,25 @@ label {
     max-width: 90%;
   }
 
+  .chat-bubble-meta {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
   .chat-composer-controls {
     flex-direction: column;
+  }
+
+  .chat-thread {
+    padding: 14px;
+  }
+
+  .chat-composer {
+    padding: 14px;
+  }
+
+  .chat-composer-input {
+    width: 100%;
   }
 
   .chat-send-btn {
@@ -5010,3 +5094,432 @@ label {
     gap: 8px;
   }
 }
+
+/* Mobile cleanup override: July 2026 */
+@media (max-width: 760px) {
+  .container,
+  .dashboard-container,
+  .settings-page-shell,
+  .policy-shell {
+    width: min(100%, calc(100vw - 20px));
+  }
+
+  .site-header {
+    backdrop-filter: blur(14px);
+  }
+
+  .nav-shell {
+    position: relative;
+    min-height: 60px;
+    gap: 10px;
+    padding-block: 8px;
+    align-items: center;
+  }
+
+  .brand {
+    gap: 10px;
+    min-width: 0;
+    font-size: 1.06rem;
+    line-height: 1;
+  }
+
+  .brand-badge {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    font-size: 0.88rem;
+    flex: 0 0 auto;
+  }
+
+  .nav-toggle {
+    min-width: 40px;
+    height: 40px;
+    padding: 0 12px;
+    border-radius: 11px;
+    flex: 0 0 auto;
+    font-size: 0.92rem;
+    line-height: 1;
+  }
+
+  .nav-main {
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    border-radius: 18px;
+    padding: 14px;
+    gap: 14px;
+  }
+
+  .nav-links,
+  .auth-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .nav-links a,
+  .auth-actions .btn,
+  .auth-admin-link {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .section {
+    padding: 20px 0 28px;
+  }
+
+  .section-title {
+    font-size: clamp(1.8rem, 8.8vw, 2.35rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+  }
+
+  .section-subtitle {
+    margin-bottom: 18px;
+    font-size: 0.96rem;
+    line-height: 1.55;
+  }
+
+  .panel,
+  .settings-card,
+  .chat-page-card,
+  .form-card,
+  .hero-panel,
+  .policy-card,
+  .settings-hero-card,
+  .customer-focus-card,
+  .barber-focus-card,
+  .barber-status-card,
+  .customer-upcoming-shell,
+  .upcoming-appointment-card {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .dashboard-subnav {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .dashboard-subnav-link {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .booking-page-grid,
+  .booking-sidebar-stack,
+  .customer-main-grid,
+  .customer-secondary-grid,
+  .customer-overview-grid,
+  .barber-main-grid,
+  .barber-support-grid,
+  .barber-bottom-grid,
+  .settings-grid,
+  .stats-summary-grid,
+  .hero-stats,
+  .profile-stat-grid,
+  .kpi-grid,
+  .quick-actions-grid,
+  .filter-bar,
+  .customer-overview-highlights,
+  .barber-overview-highlights,
+  .barber-stat-grid,
+  .customer-stat-grid,
+  .booking-summary-brief,
+  .form-grid-2,
+  .portfolio-add-row,
+  .share-link-copy-row,
+  .portfolio-chip-actions,
+  .review-rating-picker,
+  .booking-service-option,
+  .profile-service-card,
+  .booking-service-summary-head,
+  .chat-head-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .booking-page-grid,
+  .booking-sidebar-stack,
+  .customer-marketplace,
+  .barber-hub,
+  .barber-main-grid,
+  .barber-support-grid,
+  .barber-bottom-grid,
+  .customer-main-grid,
+  .customer-secondary-grid,
+  .customer-overview-grid,
+  .barber-overview-grid,
+  .settings-grid {
+    gap: 16px;
+  }
+
+  body[data-page="dashboard"] .section {
+    padding-top: 16px;
+  }
+
+  body[data-page="dashboard"] .dashboard-container > .section-title {
+    font-size: clamp(1.5rem, 7vw, 1.95rem);
+    line-height: 1.12;
+    margin-bottom: 8px;
+  }
+
+  body[data-page="dashboard"] .section-subtitle {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  body[data-page="dashboard"] .section-subtitle .pill {
+    justify-self: start;
+  }
+
+  .barber-overview-copy h2,
+  .customer-overview-copy h2 {
+    font-size: clamp(1.45rem, 6.6vw, 1.9rem);
+    line-height: 1.12;
+  }
+
+  .barber-overview-badges {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .customer-overview-highlights,
+  .barber-overview-highlights,
+  .customer-focus-list,
+  .barber-focus-list {
+    gap: 10px;
+  }
+
+  .customer-highlight-card,
+  .barber-highlight-card,
+  .customer-focus-card,
+  .barber-focus-card,
+  .barber-support-card,
+  .customer-upcoming-shell {
+    padding: 14px;
+  }
+
+  .booking-item strong {
+    font-size: 0.98rem;
+    line-height: 1.25;
+  }
+
+  .upcoming-actions,
+  .booking-action-stack,
+  .booking-item-side .action-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .upcoming-actions .btn,
+  .booking-item-side .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .barber-stat-card-primary,
+  .customer-stat-card-primary {
+    grid-column: auto;
+  }
+
+  .panel-head-row,
+  .payment-status-head,
+  .notification-heading-row,
+  .notification-popover-head,
+  .calendar-toolbar,
+  .review-card-head,
+  .search-row,
+  .history-row,
+  .profile-cta-panel {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 10px;
+  }
+
+  .booking-item,
+  .notification-item,
+  .admin-review-card,
+  .client-row,
+  .calendar-event,
+  .history-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .booking-item > div:first-child {
+    flex: 1 1 auto;
+  }
+
+  .booking-item-copy,
+  .client-row-copy {
+    gap: 6px;
+  }
+
+  .booking-item-side {
+    justify-items: start;
+    width: 100%;
+    min-width: 0;
+    gap: 8px;
+  }
+
+  .booking-tags,
+  .booking-tags-expanded,
+  .booking-action-stack,
+  .settings-action-row,
+  .action-row,
+  .search-row,
+  .notification-popover-actions {
+    width: 100%;
+  }
+
+  .notification-popover-actions > *,
+  .settings-action-row > *,
+  .search-row > *,
+  .action-row > * {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .payment-status-card,
+  .booking-primary-panel,
+  .booking-guide-panel,
+  .booking-payment-panel,
+  .booking-trust-panel {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .payment-summary-grid,
+  .booking-summary-card,
+  .booking-summary-shell {
+    padding: 14px;
+  }
+
+  .payment-summary-row,
+  .payment-action-row {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-action-row {
+    display: grid;
+    gap: 10px;
+  }
+
+  .payment-action-row .btn,
+  .booking-form-grid .btn,
+  .booking-payment-panel .btn,
+  .location-cta-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .booking-service-block,
+  .setup-block,
+  .booking-trust-item,
+  .payment-next-step,
+  .booking-summary-brief-item {
+    padding: 14px;
+  }
+
+  .footer-row,
+  .footer-links-inline {
+    display: grid;
+    gap: 8px;
+    justify-content: flex-start;
+    text-align: left;
+  }
+}
+
+@media (max-width: 480px) {
+  .container,
+  .dashboard-container,
+  .settings-page-shell,
+  .policy-shell {
+    width: min(100%, calc(100vw - 14px));
+  }
+
+  .brand {
+    font-size: 1rem;
+    gap: 8px;
+  }
+
+  .brand-badge {
+    width: 28px;
+    height: 28px;
+    font-size: 0.82rem;
+  }
+
+  .nav-toggle {
+    min-width: 38px;
+    height: 38px;
+    padding: 0 10px;
+    font-size: 0.88rem;
+  }
+
+  .panel,
+  .settings-card,
+  .chat-page-card,
+  .form-card,
+  .hero-panel,
+  .policy-card,
+  .settings-hero-card,
+  .customer-focus-card,
+  .barber-focus-card,
+  .barber-status-card,
+  .customer-upcoming-shell,
+  .upcoming-appointment-card,
+  .payment-status-card,
+  .booking-primary-panel,
+  .booking-guide-panel,
+  .booking-payment-panel,
+  .booking-trust-panel {
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .section-title {
+    font-size: clamp(1.65rem, 9vw, 2.05rem);
+  }
+
+  body[data-page="dashboard"] .dashboard-container > .section-title {
+    font-size: clamp(1.42rem, 8vw, 1.8rem);
+    line-height: 1.16;
+  }
+
+  .dashboard-subnav-link {
+    min-height: 40px;
+    padding: 0 14px;
+  }
+
+  .customer-highlight-card strong,
+  .barber-highlight-card strong {
+    font-size: 1rem;
+  }
+
+  .booking-item,
+  .notification-item,
+  .admin-review-card,
+  .client-row,
+  .calendar-event,
+  .history-row {
+    padding: 12px;
+  }
+
+  .portfolio-gallery-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* End mobile cleanup override */
+

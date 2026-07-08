@@ -40,6 +40,9 @@ class Booking(Base):
     payment_due_at = Column(DateTime, nullable=True)
     payment_reminder_count = Column(Integer, default=0, nullable=False)
     paid_at = Column(DateTime, nullable=True)
+    customer_google_calendar_event_id = Column(String, nullable=True)
+    barber_google_calendar_event_id = Column(String, nullable=True)
+    calendar_last_synced_at = Column(DateTime, nullable=True)
 
     payout_status = Column(String(64), default="pending", nullable=False)
     transfer_reference = Column(String, nullable=True)

@@ -2,18 +2,98 @@ import {
   clearDemoSession,
   demoApiFetch,
   isDemoMode,
-} from "./demo-data.js";
+} from "./demo-data.js?v=20260708m2";
 
 const API_BASE_URL =
   (typeof window !== "undefined" && window.__TRIMLY_API_BASE_URL) ||
-  "https://api.trimly.com.ng";
+  (typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname)
+    ? window.location.origin
+    : "https://api.trimly.com.ng");
 const API_REQUEST_TIMEOUT_MS = 15000;
 
+function buildFallbackResponse(xhr) {
+  const rawHeaders = xhr.getAllResponseHeaders ? xhr.getAllResponseHeaders() : "";
+  const headerMap = new Map();
+  rawHeaders
+    .trim()
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .forEach((line) => {
+      const separatorIndex = line.indexOf(":");
+      if (separatorIndex === -1) return;
+      const key = line.slice(0, separatorIndex).trim().toLowerCase();
+      const value = line.slice(separatorIndex + 1).trim();
+      headerMap.set(key, value);
+    });
+
+  return {
+    ok: xhr.status >= 200 && xhr.status < 300,
+    status: xhr.status,
+    statusText: xhr.statusText,
+    headers: {
+      get(name) {
+        return headerMap.get(String(name || "").toLowerCase()) || null;
+      },
+    },
+    async text() {
+      return xhr.responseText || "";
+    },
+    async json() {
+      return JSON.parse(xhr.responseText || "null");
+    },
+  };
+}
+
+function fetchWithXhr(url, options = {}, timeoutMs = API_REQUEST_TIMEOUT_MS) {
+  return new Promise((resolve, reject) => {
+    if (typeof XMLHttpRequest !== "function") {
+      reject(new Error("Trimly services are temporarily unavailable. Please try again shortly."));
+      return;
+    }
+
+    const xhr = new XMLHttpRequest();
+    xhr.open(options.method || "GET", url, true);
+    xhr.timeout = timeoutMs;
+    xhr.withCredentials = options.credentials === "include";
+
+    Object.entries(options.headers || {}).forEach(([key, value]) => {
+      if (value === undefined || value === null) return;
+      xhr.setRequestHeader(key, value);
+    });
+
+    xhr.onload = () => resolve(buildFallbackResponse(xhr));
+    xhr.onerror = () => reject(new TypeError("Network request failed"));
+    xhr.ontimeout = () => {
+      const timeoutError = new Error("Request timed out");
+      timeoutError.name = "AbortError";
+      reject(timeoutError);
+    };
+
+    xhr.send(options.body ?? null);
+  });
+}
+
 async function fetchWithTimeout(url, options = {}, timeoutMs = API_REQUEST_TIMEOUT_MS) {
+  const runtimeFetch =
+    typeof globalThis !== "undefined" && typeof globalThis.fetch === "function"
+      ? globalThis.fetch.bind(globalThis)
+      : null;
+
+  if (!runtimeFetch) {
+    try {
+      return await fetchWithXhr(url, options, timeoutMs);
+    } catch (error) {
+      if (error?.name === "AbortError") {
+        throw new Error("Trimly is taking too long to respond right now. Please try again shortly.");
+      }
+      throw new Error("Trimly services are temporarily unavailable. Please try again shortly.");
+    }
+  }
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, {
+    return await runtimeFetch(url, {
       ...options,
       signal: controller.signal,
     });
@@ -233,6 +313,18 @@ async function updateCurrentUserProfile(data) {
     },
     true
   );
+}
+
+async function getGoogleCalendarStatus() {
+  return apiFetch("/integrations/google-calendar/status", { method: "GET" }, true);
+}
+
+async function startGoogleCalendarConnect() {
+  return apiFetch("/integrations/google-calendar/connect", { method: "POST" }, true);
+}
+
+async function disconnectGoogleCalendar() {
+  return apiFetch("/integrations/google-calendar/connection", { method: "DELETE" }, true);
 }
 
 async function changeCurrentUserPassword(data) {
@@ -602,6 +694,7 @@ export {
   getBookings,
   getCustomerInsights,
   getCurrentUser,
+  getGoogleCalendarStatus,
   getMySessions,
   getNotifications,
   getMyBarberKyc,
@@ -643,7 +736,12 @@ export {
   verifyPayment,
   verifyPaymentPublic,
   adminRefundBooking,
+  startGoogleCalendarConnect,
+  disconnectGoogleCalendar,
 };
+
+
+
 
 
 
