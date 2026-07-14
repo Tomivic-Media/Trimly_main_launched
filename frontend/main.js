@@ -290,7 +290,7 @@ function renderSharedFooter() {
 
   const year = String(new Date().getFullYear());
   const currentPath = window.location.pathname.toLowerCase();
-  const isContactPage = currentPath.endsWith('/static/contact.html');
+  const isContactPage = currentPath.endsWith('/static/contact.html') || currentPath.endsWith('/static/contact');
   const supportCtaHref = isContactPage ? 'mailto:support@trimly.com.ng' : '/static/contact.html';
   const supportCtaLabel = isContactPage ? 'Email Support' : 'Open Contact Page';
 
@@ -2669,7 +2669,7 @@ async function hydrateCustomerDashboard() {
       const nextConfirmedBarber = confirmedUpcoming[0] ? barberMap.get(Number(confirmedUpcoming[0].barber_id)) : null;
       const nextAwaitingBarber = awaitingPayment[0] ? barberMap.get(Number(awaitingPayment[0].barber_id)) : null;
       nextBarberSummaryEl.textContent = nextConfirmedBarber
-        ? `${nextConfirmedBarber.shopName} · ${formatTime(confirmedUpcoming[0].scheduled_time)}`
+        ? `${nextConfirmedBarber.shopName} ï¿½ ${formatTime(confirmedUpcoming[0].scheduled_time)}`
         : nextAwaitingBarber
         ? `Pay ${nextAwaitingBarber.shopName} to lock ${formatTime(awaitingPayment[0].scheduled_time)}`
         : "Pick your next barber";
@@ -2677,7 +2677,7 @@ async function hydrateCustomerDashboard() {
     if (lastBookingSummaryEl) {
       const lastBarber = lastBooking ? barberMap.get(Number(lastBooking.barber_id)) : null;
       lastBookingSummaryEl.textContent = lastBooking
-        ? `${lastBarber?.shopName || "Recent barber"} · ${formatDateTime(lastBooking.scheduled_time)}`
+        ? `${lastBarber?.shopName || "Recent barber"} ï¿½ ${formatDateTime(lastBooking.scheduled_time)}`
         : "No recent booking yet";
     }
     if (fastActionSummaryEl) {
@@ -3063,7 +3063,7 @@ async function hydrateBarberDashboard() {
     }
     if (nextAppointmentSummaryEl) {
       nextAppointmentSummaryEl.textContent = upcomingAppointments.length
-        ? `${formatDateTime(upcomingAppointments[0].scheduled_time)} · ${upcomingAppointments[0].customer_name || `Customer #${upcomingAppointments[0].customer_id}`}`
+        ? `${formatDateTime(upcomingAppointments[0].scheduled_time)} ï¿½ ${upcomingAppointments[0].customer_name || `Customer #${upcomingAppointments[0].customer_id}`}`
         : "No upcoming appointments";
     }
     if (awaitingPaymentSummaryEl) {
@@ -3071,7 +3071,7 @@ async function hydrateBarberDashboard() {
         .slice()
         .sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time))[0];
       awaitingPaymentSummaryEl.textContent = nextAwaitingPayment
-        ? `${nextAwaitingPayment.customer_name || `Customer #${nextAwaitingPayment.customer_id}`} · ${formatPaymentDeadline(nextAwaitingPayment)}`
+        ? `${nextAwaitingPayment.customer_name || `Customer #${nextAwaitingPayment.customer_id}`} ï¿½ ${formatPaymentDeadline(nextAwaitingPayment)}`
         : "No bookings waiting for payment";
     }
     if (queueSummaryEl) {
