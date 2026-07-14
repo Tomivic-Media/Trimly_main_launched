@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trimly | Contact Support</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Sora:wght@100..800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/style.css?v=20260714f2" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav-shell">
+        <a class="brand" href="/">
+          <span class="brand-badge">T</span>
+          <span>Trimly</span>
+        </a>
+        <button class="nav-toggle" data-nav-toggle aria-label="Toggle menu">Menu</button>
+        <nav class="nav-main" data-nav-menu>
+          <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/static/barbers.html">Barbers</a>
+            <a class="active" href="/static/contact.html">Contact</a>
+          </div>
+          <div class="auth-actions" data-auth-actions>
+            <a class="btn btn-ghost" href="/static/login.html">Login</a>
+            <a class="btn btn-primary" href="/static/register.html">Register</a>
+            <a class="auth-admin-link" href="/static/admin-login.html">Admin Login</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main class="section">
+      <div class="container contact-shell">
+        <section class="contact-hero contact-card">
+          <span class="pill">Contact Trimly</span>
+          <h1 class="section-title">Get support for customers, barbers, and platform questions.</h1>
+          <p class="section-subtitle">
+            Reach the Trimly team for booking issues, payment questions, barber onboarding, account access,
+            partnerships, and general support.
+          </p>
+        </section>
+
+        <section class="contact-grid">
+          <article class="contact-card">
+            <span class="contact-card-kicker">Customer support</span>
+            <h2>Help with bookings and payments</h2>
+            <p>
+              Contact us if you need help with appointment changes, payment status, booking flow issues, refunds,
+              or customer account questions.
+            </p>
+            <div class="contact-channel-list">
+              <a class="contact-channel-pill" href="mailto:support@trimly.com.ng">support@trimly.com.ng</a>
+            </div>
+          </article>
+
+          <article class="contact-card">
+            <span class="contact-card-kicker">Barber support</span>
+            <h2>Help with onboarding and barber accounts</h2>
+            <p>
+              Reach out for service setup, barber profile support, listing issues, account verification questions,
+              or payout-related follow-up.
+            </p>
+            <div class="contact-channel-list">
+              <a class="contact-channel-pill" href="mailto:hello@trimly.com.ng">hello@trimly.com.ng</a>
+            </div>
+          </article>
+        </section>
+
+        <section class="contact-response-band">
+          <div class="contact-response-copy">
+            <span class="contact-card-kicker">Response expectations</span>
+            <h2>Send the right topic and we will route it faster.</h2>
+            <p>
+              Use the support email that best matches your issue so the team can respond faster and keep booking help organized.
+            </p>
+          </div>
+          <div class="contact-response-points">
+            <div class="contact-response-point">
+              <strong>Booking help</strong>
+              <span>Changes, delays, payment visibility, and customer-side support.</span>
+            </div>
+            <div class="contact-response-point">
+              <strong>Barber help</strong>
+              <span>Profile setup, services, listing visibility, and barber account support.</span>
+            </div>
+            <div class="contact-response-point">
+              <strong>General questions</strong>
+              <span>Partnerships, platform questions, and broader Trimly enquiries.</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="contact-grid contact-grid-secondary">
+          <article class="contact-card">
+            <span class="contact-card-kicker">Common topics</span>
+            <ul class="contact-list">
+              <li>Booking approved but payment not updating</li>
+              <li>Need to change an appointment time</li>
+              <li>Home-service arrival or location issues</li>
+              <li>Account access or dashboard support</li>
+            </ul>
+          </article>
+
+          <article class="contact-card">
+            <span class="contact-card-kicker">Useful pages</span>
+            <div class="contact-links-list">
+              <a href="/static/barbers.html">Browse barbers</a>
+              <a href="/static/acceptable-use.html">Acceptable Use</a>
+              <a href="/static/refund-cancellation-policy.html">Refund &amp; Cancellation</a>
+            </div>
+          </article>
+        </section>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-row">
+        <span>&copy; <span data-current-year></span> Trimly</span>
+        <div class="footer-links-inline"><a href="/static/contact.html">Contact</a><a href="/static/acceptable-use.html">Acceptable Use</a><a href="/static/refund-cancellation-policy.html">Refund &amp; Cancellation</a></div>
+      </div>
+    </footer>
+
+    <div id="toast" class="toast"></div>
+    <script type="module" src="/static/main.js?v=20260714f2"></script>
+  </body>
+</html>

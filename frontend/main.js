@@ -289,6 +289,10 @@ function renderSharedFooter() {
   ).join("");
 
   const year = String(new Date().getFullYear());
+  const currentPath = window.location.pathname.toLowerCase();
+  const isContactPage = currentPath.endsWith('/static/contact.html');
+  const supportCtaHref = isContactPage ? 'mailto:support@trimly.com.ng' : '/static/contact.html';
+  const supportCtaLabel = isContactPage ? 'Email Support' : 'Open Contact Page';
 
   footers.forEach((footer) => {
     footer.innerHTML = `
@@ -309,20 +313,32 @@ function renderSharedFooter() {
           </div>
         </div>
         <div class="footer-support-row">
-          <div class="footer-support-copy">
-            <span class="footer-support-title">Need help?</span>
-            <p class="footer-support-note">
-              For booking issues, payment questions, or account support, contact the Trimly team directly.
-            </p>
+          <div class="footer-support-panel">
+            <div class="footer-support-copy">
+              <span class="footer-support-kicker">Support</span>
+              <span class="footer-support-title">Need help with a booking, payment, or barber account?</span>
+              <p class="footer-support-note">
+                Talk to the Trimly team for customer booking help, barber onboarding questions, payment issues, and account support.
+              </p>
+            </div>
+            <div class="footer-support-meta">
+              <span class="footer-support-chip">Customer support</span>
+              <span class="footer-support-chip">Barber support</span>
+              <span class="footer-support-chip">Response by email</span>
+            </div>
           </div>
-          <div class="footer-support-links">
-            <a class="footer-support-link" href="mailto:support@trimly.com.ng">support@trimly.com.ng</a>
-            <a class="footer-support-link footer-support-link-secondary" href="mailto:hello@trimly.com.ng">hello@trimly.com.ng</a>
+          <div class="footer-support-actions">
+            <a class="footer-contact-cta" href="${supportCtaHref}">${supportCtaLabel}</a>
+            <div class="footer-support-links">
+              <a class="footer-support-link" href="mailto:support@trimly.com.ng">support@trimly.com.ng</a>
+              <a class="footer-support-link footer-support-link-secondary" href="mailto:hello@trimly.com.ng">hello@trimly.com.ng</a>
+            </div>
           </div>
         </div>
         <div class="footer-row">
           <span>&copy; <span data-current-year>${year}</span> Trimly</span>
           <div class="footer-links-inline">
+            <a href="/static/contact.html">Contact</a>
             <a href="/static/acceptable-use.html">Acceptable Use</a>
             <a href="/static/refund-cancellation-policy.html">Refund &amp; Cancellation</a>
           </div>
