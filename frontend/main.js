@@ -165,6 +165,49 @@ const BARBER_SOUND_PREF_KEY = "trimly_barber_notification_sound";
 const BARBER_HIGHLIGHT_PREF_KEY = "trimly_barber_notification_highlight";
 const LANGUAGE_PREF_KEY = "trimly_language";
 const TIME_FORMAT_PREF_KEY = "trimly_time_format";
+const SHARED_FOOTER_SOCIALS = [
+  {
+    label: "LinkedIn",
+    href: "https://www.linkedin.com/company/trimlydigitalgrooming/",
+    icon: `
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M6.94 8.5H3.56V20h3.38V8.5Zm.22-3.56A1.97 1.97 0 0 0 5.2 3a1.98 1.98 0 0 0 0 3.94 1.98 1.98 0 0 0 1.96-2Zm5.02 3.56H8.96V20h3.22v-6.03c0-1.6.3-3.15 2.29-3.15 1.95 0 1.98 1.82 1.98 3.25V20h3.23v-6.6c0-3.24-.7-5.72-4.48-5.72-1.81 0-3.03 1-3.52 1.95h-.05V8.5Z"></path>
+      </svg>`,
+  },
+  {
+    label: "Facebook",
+    href: "https://www.facebook.com/share/1AdDXoz1eC/",
+    icon: `
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M13.5 21v-7.6h2.55l.38-2.96H13.5V8.56c0-.86.24-1.44 1.47-1.44h1.57V4.48c-.27-.04-1.2-.12-2.28-.12-2.25 0-3.79 1.37-3.79 3.9v2.18H7.92v2.96h2.55V21h3.03Z"></path>
+      </svg>`,
+  },
+  {
+    label: "Instagram",
+    href: "https://www.instagram.com/officialtrimly.ng",
+    icon: `
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M7.75 3h8.5A4.75 4.75 0 0 1 21 7.75v8.5A4.75 4.75 0 0 1 16.25 21h-8.5A4.75 4.75 0 0 1 3 16.25v-8.5A4.75 4.75 0 0 1 7.75 3Zm0 1.75a3 3 0 0 0-3 3v8.5a3 3 0 0 0 3 3h8.5a3 3 0 0 0 3-3v-8.5a3 3 0 0 0-3-3h-8.5Zm8.88 1.31a1.06 1.06 0 1 1 0 2.12 1.06 1.06 0 0 1 0-2.12ZM12 7.5A4.5 4.5 0 1 1 7.5 12 4.5 4.5 0 0 1 12 7.5Zm0 1.75A2.75 2.75 0 1 0 14.75 12 2.75 2.75 0 0 0 12 9.25Z"></path>
+      </svg>`,
+  },
+  {
+    label: "TikTok",
+    href: "https://www.tiktok.com/@trimly.ng",
+    icon: `
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M14.9 3c.15 1.24.84 2.42 1.9 3.23a5.6 5.6 0 0 0 3.2 1.1v2.63a8.08 8.08 0 0 1-2.56-.42 8.47 8.47 0 0 1-1.9-.96v6.04a5.41 5.41 0 1 1-4.68-5.37v2.7a2.72 2.72 0 1 0 1.97 2.61V3h2.07Z"></path>
+      </svg>`,
+  },
+  {
+    label: "YouTube",
+    href: "https://youtube.com/@trimlydigitalgrooming?si=xpDd5glXMvdK7YU8",
+    icon: `
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M21.58 7.2a2.87 2.87 0 0 0-2.02-2.03C17.8 4.7 12 4.7 12 4.7s-5.8 0-7.56.47A2.87 2.87 0 0 0 2.42 7.2 29.4 29.4 0 0 0 2 12a29.4 29.4 0 0 0 .42 4.8 2.87 2.87 0 0 0 2.02 2.03c1.76.47 7.56.47 7.56.47s5.8 0 7.56-.47a2.87 2.87 0 0 0 2.02-2.03A29.4 29.4 0 0 0 22 12a29.4 29.4 0 0 0-.42-4.8ZM10.1 15.01V8.99L15.3 12l-5.2 3.01Z"></path>
+      </svg>`,
+  },
+];
+
 
 document.addEventListener("DOMContentLoaded", () => {
   bindGlobalUi();
@@ -227,14 +270,66 @@ function routePage() {
 }
 
 function bindGlobalUi() {
+  renderSharedFooter();
   hydrateAuthActions();
   bindMobileMenu();
   bindPasswordToggles();
+}
 
-  const yearEl = document.querySelector("[data-current-year]");
-  if (yearEl) {
-    yearEl.textContent = String(new Date().getFullYear());
-  }
+function renderSharedFooter() {
+  const footers = document.querySelectorAll(".site-footer");
+  if (!footers.length) return;
+
+  const socialMarkup = SHARED_FOOTER_SOCIALS.map(
+    (social) => `
+      <a class="footer-social-link" href="${social.href}" target="_blank" rel="noreferrer" aria-label="Trimly on ${social.label}" title="${social.label}">
+        ${social.icon}
+      </a>
+    `,
+  ).join("");
+
+  const year = String(new Date().getFullYear());
+
+  footers.forEach((footer) => {
+    footer.innerHTML = `
+      <div class="container footer-shell">
+        <div class="footer-brand-block">
+          <a class="footer-brand" href="/">
+            <span class="brand-badge">T</span>
+            <span>Trimly</span>
+          </a>
+          <p class="footer-summary">
+            Find nearby barbers, choose a time that works, pay securely online, and chat before the appointment.
+          </p>
+        </div>
+        <div class="footer-social-block">
+          <span class="footer-label">Follow Trimly</span>
+          <div class="footer-social-links">
+            ${socialMarkup}
+          </div>
+        </div>
+        <div class="footer-support-row">
+          <div class="footer-support-copy">
+            <span class="footer-support-title">Need help?</span>
+            <p class="footer-support-note">
+              For booking issues, payment questions, or account support, contact the Trimly team directly.
+            </p>
+          </div>
+          <div class="footer-support-links">
+            <a class="footer-support-link" href="mailto:support@trimly.com.ng">support@trimly.com.ng</a>
+            <a class="footer-support-link footer-support-link-secondary" href="mailto:hello@trimly.com.ng">hello@trimly.com.ng</a>
+          </div>
+        </div>
+        <div class="footer-row">
+          <span>&copy; <span data-current-year>${year}</span> Trimly</span>
+          <div class="footer-links-inline">
+            <a href="/static/acceptable-use.html">Acceptable Use</a>
+            <a href="/static/refund-cancellation-policy.html">Refund &amp; Cancellation</a>
+          </div>
+        </div>
+      </div>
+    `;
+  });
 }
 
 function bindMobileMenu() {
