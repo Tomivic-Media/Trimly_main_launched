@@ -5212,12 +5212,17 @@ label {
   justify-content: center;
   min-height: 42px;
   width: fit-content;
+  max-width: 100%;
   padding: 0 16px;
   border-radius: 999px;
   border: 1px solid rgba(28, 77, 58, 0.14);
   background: rgba(255, 255, 255, 0.82);
   color: var(--primary);
   font-weight: 600;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .contact-response-band {
@@ -5341,6 +5346,9 @@ label {
   .contact-channel-pill {
     width: 100%;
     justify-content: center;
+    padding: 10px 14px;
+    min-height: 48px;
+    line-height: 1.35;
   }
 
   .hero {
@@ -5983,6 +5991,86 @@ label {
     justify-content: center;
   }
 
+  .site-footer {
+    padding: 24px 0 18px;
+  }
+
+  .footer-shell {
+    gap: 14px;
+  }
+
+  .footer-support-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding-top: 10px;
+  }
+
+  .footer-support-panel,
+  .footer-support-actions {
+    min-width: 0;
+  }
+
+  .footer-support-panel {
+    gap: 10px;
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .footer-support-copy {
+    gap: 6px;
+  }
+
+  .footer-support-title {
+    font-size: 1rem;
+    line-height: 1.35;
+  }
+
+  .footer-support-note {
+    font-size: 0.94rem;
+    line-height: 1.6;
+  }
+
+  .footer-support-meta {
+    gap: 8px;
+  }
+
+  .footer-support-chip {
+    min-height: 30px;
+    padding: 0 12px;
+    font-size: 0.79rem;
+  }
+
+  .footer-support-actions {
+    gap: 10px;
+    width: 100%;
+    align-content: stretch;
+  }
+
+  .footer-contact-cta {
+    width: 100%;
+    min-height: 46px;
+  }
+
+  .footer-support-links {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .footer-support-link {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 14px;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.35;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
   .booking-service-block,
   .setup-block,
   .booking-trust-item,
@@ -6091,6 +6179,31 @@ label {
   .btn-sm {
     min-height: 40px;
     padding: 8px 11px;
+  }
+
+  .footer-support-panel {
+    padding: 14px;
+  }
+
+  .footer-support-title {
+    font-size: 0.96rem;
+  }
+
+  .footer-support-note,
+  .footer-support-link,
+  .contact-card p,
+  .contact-response-copy p,
+  .contact-response-point span {
+    font-size: 0.92rem;
+  }
+
+  .contact-card,
+  .contact-response-band {
+    padding: 16px;
+  }
+
+  .contact-channel-pill {
+    font-size: 0.94rem;
   }
 
   .panel,
