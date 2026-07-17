@@ -61,6 +61,38 @@ body {
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  overflow-x: hidden;
+}
+
+html {
+  overflow-x: hidden;
+}
+
+body {
+  min-width: 320px;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+a,
+button,
+.btn,
+.input,
+select,
+textarea {
+  touch-action: manipulation;
 }
 
 a {
@@ -71,6 +103,21 @@ a {
 .container {
   width: min(1160px, 92vw);
   margin: 0 auto;
+}
+
+.container > *,
+.grid > *,
+.form-grid > *,
+.form-grid-2 > *,
+.booking-form-grid > *,
+.settings-grid > *,
+.settings-tab-bar > *,
+.panel-head-row > *,
+.nav-shell > *,
+.booking-item > *,
+.chat-head > *,
+.footer-shell > * {
+  min-width: 0;
 }
 
 .section {
@@ -90,6 +137,7 @@ a {
   color: var(--muted);
   max-width: 520px;
   font-size: 0.98rem;
+  overflow-wrap: anywhere;
 }
 
 .site-header {
@@ -117,6 +165,10 @@ a {
   font-weight: 700;
   letter-spacing: -0.03em;
   font-family: var(--font-heading);
+}
+
+.brand span:last-child {
+  min-width: 0;
 }
 
 .brand-badge {
@@ -453,6 +505,9 @@ textarea:focus {
   justify-content: center;
   gap: 7px;
   font-weight: 600;
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
 }
 
 .btn:hover {
@@ -4583,8 +4638,18 @@ label {
     padding: 18px 0 26px;
   }
 
+  .site-header {
+    backdrop-filter: blur(8px);
+  }
+
+  .nav-shell {
+    min-height: 64px;
+    gap: 12px;
+  }
+
   .section-title {
     font-size: 1.9rem;
+    line-height: 1.08;
   }
 
   .section-subtitle {
@@ -6128,6 +6193,13 @@ label {
     gap: 8px;
   }
 
+  .brand span:last-child {
+    max-width: calc(100vw - 126px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .brand-badge {
     width: 28px;
     height: 28px;
@@ -6222,6 +6294,23 @@ label {
   .contact-card,
   .contact-response-band {
     padding: 16px;
+  }
+
+  .panel-head-row,
+  .settings-action-row,
+  .booking-tags,
+  .booking-tags-expanded,
+  .search-row,
+  .action-row {
+    gap: 10px;
+  }
+
+  .footer-contact-pill-value,
+  .contact-card a,
+  .contact-response-copy a,
+  .notice {
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .contact-channel-pill {
@@ -6345,6 +6434,34 @@ label {
 
   .portfolio-gallery-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 360px) {
+  .container,
+  .dashboard-container,
+  .settings-page-shell,
+  .policy-shell {
+    width: min(100%, calc(100vw - 10px));
+  }
+
+  .section-title {
+    font-size: 1.68rem;
+  }
+
+  .section-subtitle {
+    font-size: 0.92rem;
+  }
+
+  .btn,
+  .input,
+  select,
+  textarea {
+    font-size: 0.95rem;
+  }
+
+  .brand span:last-child {
+    max-width: calc(100vw - 112px);
   }
 }
 /* End mobile cleanup override */
