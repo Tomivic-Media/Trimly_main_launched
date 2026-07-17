@@ -104,6 +104,11 @@ const state = {
   barberUrgentUnreadIds: null,
 };
 
+const BARBER_UPLOAD_MAX_BYTES = 7 * 1024 * 1024;
+const BARBER_UPLOAD_COMPRESS_THRESHOLD_BYTES = 2 * 1024 * 1024;
+const BARBER_UPLOAD_MAX_DIMENSION = 1800;
+const BARBER_SUPPORTED_UPLOAD_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
+
 const DASHBOARD_ROUTES = {
   customer: {
     overview: "/static/dashboard.html",
@@ -1302,6 +1307,113 @@ function collectSelectedFiles(...inputs) {
   return inputs
     .flatMap((input) => Array.from(input?.files || []))
     .filter((file) => file && typeof file === "object" && file.name);
+}
+
+function fileExtension(name = "") {
+  const match = String(name || "").toLowerCase().match(/(\.[a-z0-9]+)$/i);
+  return match?.[1] || "";
+}
+
+function replaceFileExtension(name = "trimly-upload", nextExtension = ".jpg") {
+  const trimmed = String(name || "trimly-upload").trim() || "trimly-upload";
+  return trimmed.replace(/\.[a-z0-9]+$/i, "") + nextExtension;
+}
+
+function readImageElementFromFile(file) {
+  return new Promise((resolve, reject) => {
+    if (typeof URL === "undefined") {
+      reject(new Error("This browser cannot prepare image uploads."));
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("We could not read that photo. Please choose another one."));
+    };
+    image.src = objectUrl;
+  });
+}
+
+function canvasToBlob(canvas, type, quality) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) {
+        resolve(blob);
+        return;
+      }
+      reject(new Error("We could not prepare that photo for upload."));
+    }, type, quality);
+  });
+}
+
+async function prepareBarberImageForUpload(file) {
+  if (!(file instanceof File)) return file;
+
+  const mimeType = String(file.type || "").toLowerCase();
+  if (!mimeType.startsWith("image/")) {
+    throw new Error("Only image uploads are supported.");
+  }
+
+  const extension = fileExtension(file.name);
+  const extensionSupported = BARBER_SUPPORTED_UPLOAD_EXTENSIONS.has(extension);
+  const shouldNormalize =
+    !extensionSupported ||
+    file.size > BARBER_UPLOAD_COMPRESS_THRESHOLD_BYTES ||
+    mimeType === "image/heic" ||
+    mimeType === "image/heif";
+
+  if (!shouldNormalize) {
+    return file;
+  }
+
+  let image;
+  try {
+    image = await readImageElementFromFile(file);
+  } catch (error) {
+    if (!extensionSupported) {
+      throw new Error("This photo format is not supported yet on Trimly. Please choose a JPG, PNG, or WEBP image.");
+    }
+    throw error;
+  }
+
+  const width = Number(image.naturalWidth || image.width || 0);
+  const height = Number(image.naturalHeight || image.height || 0);
+  if (!width || !height) {
+    throw new Error("We could not read that photo. Please choose another one.");
+  }
+
+  const scale = Math.min(1, BARBER_UPLOAD_MAX_DIMENSION / Math.max(width, height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(width * scale));
+  canvas.height = Math.max(1, Math.round(height * scale));
+  const context = canvas.getContext("2d", { alpha: false });
+  if (!context) {
+    throw new Error("This browser cannot prepare image uploads.");
+  }
+
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+  let quality = 0.9;
+  let output = await canvasToBlob(canvas, "image/jpeg", quality);
+  while (output.size > BARBER_UPLOAD_MAX_BYTES && quality > 0.55) {
+    quality -= 0.08;
+    output = await canvasToBlob(canvas, "image/jpeg", quality);
+  }
+
+  if (output.size > BARBER_UPLOAD_MAX_BYTES) {
+    throw new Error("This photo is still too large after processing. Please choose a smaller image.");
+  }
+
+  return new File([output], replaceFileExtension(file.name, ".jpg"), {
+    type: "image/jpeg",
+    lastModified: Date.now(),
+  });
 }
 
 function customerAddressText(source) {
@@ -5100,10 +5212,12 @@ function hydrateBarberProfileEditor(
       profileUploadInputs.forEach((field) => {
         field.disabled = true;
       });
-      notice.textContent = "Uploading profile photo...";
+      notice.textContent = "Preparing profile photo...";
       notice.className = "notice";
       try {
-        const response = await uploadBarberImage(file);
+        const preparedFile = await prepareBarberImageForUpload(file);
+        notice.textContent = "Uploading profile photo...";
+        const response = await uploadBarberImage(preparedFile);
         const imageUrl = String(response?.url || "").trim();
         if (!imageUrl) throw new Error("Image upload failed");
         form.elements.profile_image_url.value = imageUrl;
@@ -5138,10 +5252,12 @@ function hydrateBarberProfileEditor(
       coverUploadInputs.forEach((field) => {
         field.disabled = true;
       });
-      notice.textContent = "Uploading barber card photo...";
+      notice.textContent = "Preparing barber card photo...";
       notice.className = "notice";
       try {
-        const response = await uploadBarberImage(file);
+        const preparedFile = await prepareBarberImageForUpload(file);
+        notice.textContent = "Uploading barber card photo...";
+        const response = await uploadBarberImage(preparedFile);
         const imageUrl = String(response?.url || "").trim();
         if (!imageUrl) throw new Error("Barber card photo upload failed");
         form.elements.cover_image_url.value = imageUrl;
@@ -5192,10 +5308,12 @@ function hydrateBarberProfileEditor(
       }
 
       uploadPortfolioBtn.disabled = true;
-      notice.textContent = "Uploading portfolio photos...";
+      notice.textContent = "Preparing portfolio photos...";
       notice.className = "notice";
       try {
-        const uploads = await Promise.all(files.map((file) => uploadBarberImage(file)));
+        const preparedFiles = await Promise.all(files.map((file) => prepareBarberImageForUpload(file)));
+        notice.textContent = "Uploading portfolio photos...";
+        const uploads = await Promise.all(preparedFiles.map((file) => uploadBarberImage(file)));
         const urls = uploads
           .map((item) => String(item?.url || "").trim())
           .filter(Boolean)
