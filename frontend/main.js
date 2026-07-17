@@ -208,6 +208,57 @@ const SHARED_FOOTER_SOCIALS = [
   },
 ];
 
+const SIDEBAR_BREAKPOINT = 980;
+const SIDEBAR_COLLAPSE_KEY = "trimly_sidebar_collapsed";
+const SIDEBAR_NAV_ID = "trimlyPrimarySidebar";
+const SIDEBAR_FLYOUT_ID = "trimlySidebarFlyout";
+const SIDEBAR_BACKDROP_ID = "trimlySidebarBackdrop";
+const SIDEBAR_ICONS = {
+  home: `
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M4 10.75 12 4l8 6.75V20a1 1 0 0 1-1 1h-4.75v-6.25h-4.5V21H5a1 1 0 0 1-1-1v-9.25Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
+    </svg>`,
+  barber: `
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M6 7.5h12M7.5 4h9M8.25 11.5l7.5 7.5M15.75 11.5l-7.5 7.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+    </svg>`,
+  customer: `
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M12 12.5a4.25 4.25 0 1 0 0-8.5 4.25 4.25 0 0 0 0 8.5Zm-7 7c.95-3.1 3.78-5 7-5s6.05 1.9 7 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+    </svg>`,
+  dashboard: `
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M4.5 5.5h6v6h-6Zm9 0h6v4h-6Zm0 7h6v6h-6Zm-9 9h6v-4h-6Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
+    </svg>`,
+  support: `
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M9.25 9a2.75 2.75 0 1 1 5.5 0c0 1.8-2.25 2.25-2.25 4M12 18.2h.01M12 3.8a8.2 8.2 0 1 0 0 16.4 8.2 8.2 0 0 0 0-16.4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+    </svg>`,
+  legal: `
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M8 4.75h8M8 8.75h8M8 12.75h5.5M6.5 3h11A1.5 1.5 0 0 1 19 4.5v15a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 19.5v-15A1.5 1.5 0 0 1 6.5 3Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+    </svg>`,
+  chevron: `
+    <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+      <path d="m6.25 7.75 3.75 4 3.75-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+    </svg>`,
+  menu: `
+    <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+      <path d="M4 5.5h12M4 10h12M4 14.5h12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+    </svg>`,
+  collapse: `
+    <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+      <path d="M6 4.5h8a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 14 15.5H6A1.5 1.5 0 0 1 4.5 14V6A1.5 1.5 0 0 1 6 4.5Zm5 0V15.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path>
+    </svg>`,
+};
+
+const sidebarState = {
+  bound: false,
+  openGroupId: null,
+  flyoutGroupId: null,
+  flyoutHideTimer: null,
+};
+
 
 document.addEventListener("DOMContentLoaded", () => {
   bindGlobalUi();
@@ -270,10 +321,316 @@ function routePage() {
 }
 
 function bindGlobalUi() {
+  enhanceSharedSidebar();
   renderSharedFooter();
   hydrateAuthActions();
   bindMobileMenu();
   bindPasswordToggles();
+}
+
+function normalizePathname(value = window.location.pathname || "/") {
+  const normalized = String(value || "/").trim().toLowerCase();
+  if (!normalized || normalized === "/index.html") return "/";
+  return normalized.replace(/\/+$/, "") || "/";
+}
+
+function isDesktopSidebarViewport() {
+  return window.innerWidth > SIDEBAR_BREAKPOINT;
+}
+
+function isSidebarCollapsed() {
+  return document.body.classList.contains("sidebar-collapsed");
+}
+
+function buildSidebarConfig() {
+  const token = getToken();
+  const role = normalizeRole(localStorage.getItem("trimly_role") || document.body.dataset.dashboardRole || "");
+  const isAdmin = ["admin", "super_admin"].includes(role);
+  const supportChildren = [
+    { id: "contact", label: "Contact", href: "/static/contact.html", activePaths: ["/static/contact.html"] },
+    { id: "privacy", label: "Privacy & use", href: "/static/acceptable-use.html", activePaths: ["/static/acceptable-use.html"] },
+    { id: "refund", label: "Refund policy", href: "/static/refund-cancellation-policy.html", activePaths: ["/static/refund-cancellation-policy.html"] },
+  ];
+
+  if (token && !isAdmin) {
+    supportChildren.unshift({
+      id: "settings",
+      label: "Settings",
+      href: "/static/settings.html",
+      activePaths: ["/static/settings.html"],
+    });
+  }
+
+  const items = [
+    {
+      id: "home",
+      label: "Home",
+      href: "/",
+      icon: "home",
+      activePaths: ["/"],
+    },
+    {
+      id: "barbers",
+      label: "Barbers",
+      href: "/static/barbers.html",
+      icon: "barber",
+      activePaths: [
+        "/static/barbers.html",
+        "/static/barber-profile.html",
+        "/static/favourite.html",
+      ],
+    },
+    {
+      id: "customer",
+      label: "Customer",
+      icon: "customer",
+      extraActivePaths: [
+        "/static/booking.html",
+        "/static/payment-status.html",
+        "/static/messages.html",
+        "/static/message.html",
+      ],
+      children: [
+        { id: "customer-overview", label: "Overview", href: "/static/dashboard.html", activePaths: ["/static/dashboard.html"] },
+        { id: "customer-discover", label: "Discover", href: "/static/dashboard-discover.html", activePaths: ["/static/dashboard-discover.html"] },
+        { id: "customer-bookings", label: "Bookings", href: "/static/dashboard-bookings.html", activePaths: ["/static/dashboard-bookings.html"] },
+      ],
+    },
+    {
+      id: "barber",
+      label: "Barber",
+      icon: "dashboard",
+      extraActivePaths: [
+        "/static/messages_barber.html",
+        "/static/setup-barber.html",
+        "/static/create_barber.html",
+      ],
+      children: [
+        { id: "barber-overview", label: "Overview", href: "/static/barber-dashboard.html", activePaths: ["/static/barber-dashboard.html"] },
+        { id: "barber-queue", label: "Queue", href: "/static/barber-queue.html", activePaths: ["/static/barber-queue.html"] },
+        { id: "barber-records", label: "Records", href: "/static/barber-records.html", activePaths: ["/static/barber-records.html"] },
+      ],
+    },
+    {
+      id: "support",
+      label: "Support",
+      icon: "support",
+      children: supportChildren,
+    },
+  ];
+
+  if (isAdmin) {
+    items.push({
+      id: "admin",
+      label: "Admin",
+      href: "/admin",
+      icon: "legal",
+      activePaths: ["/admin"],
+    });
+  }
+
+  return items;
+}
+
+function isSidebarItemActive(item, pathname = normalizePathname()) {
+  if (item.href && [item.href, ...(item.activePaths || [])].map(normalizePathname).includes(pathname)) {
+    return true;
+  }
+  if (Array.isArray(item.children)) {
+    return item.children.some((child) => isSidebarItemActive(child, pathname)) ||
+      (item.extraActivePaths || []).map(normalizePathname).includes(pathname);
+  }
+  return false;
+}
+
+function renderSidebarLink(item, pathname) {
+  const isActive = isSidebarItemActive(item, pathname);
+  return `
+    <a
+      class="sidebar-link${isActive ? " active" : ""}"
+      href="${item.href}"
+      data-sidebar-link
+      data-tooltip="${escapeHtml(item.label)}"
+    >
+      <span class="sidebar-link-icon">${SIDEBAR_ICONS[item.icon] || SIDEBAR_ICONS.home}</span>
+      <span class="sidebar-link-label">${escapeHtml(item.label)}</span>
+    </a>
+  `;
+}
+
+function renderSidebarGroup(item, pathname) {
+  const isActive = isSidebarItemActive(item, pathname);
+  const isOpen = sidebarState.openGroupId
+    ? sidebarState.openGroupId === item.id
+    : isActive;
+  const submenuId = `sidebar-submenu-${item.id}`;
+  const childrenMarkup = item.children
+    .map((child) => {
+      const childActive = isSidebarItemActive(child, pathname);
+      return `
+        <a
+          class="sidebar-sublink${childActive ? " active" : ""}"
+          href="${child.href}"
+          data-sidebar-link
+        >
+          <span>${escapeHtml(child.label)}</span>
+        </a>
+      `;
+    })
+    .join("");
+
+  return `
+    <div class="sidebar-group${isOpen ? " is-open" : ""}" data-sidebar-group="${item.id}">
+      <button
+        class="sidebar-link sidebar-link-parent${isActive ? " active" : ""}"
+        type="button"
+        data-sidebar-group-toggle
+        data-sidebar-group-id="${item.id}"
+        data-sidebar-group-label="${escapeHtml(item.label)}"
+        data-tooltip="${escapeHtml(item.label)}"
+        aria-expanded="${isOpen ? "true" : "false"}"
+        aria-controls="${submenuId}"
+      >
+        <span class="sidebar-link-icon">${SIDEBAR_ICONS[item.icon] || SIDEBAR_ICONS.dashboard}</span>
+        <span class="sidebar-link-label">${escapeHtml(item.label)}</span>
+        <span class="sidebar-link-chevron">${SIDEBAR_ICONS.chevron}</span>
+      </button>
+      <div class="sidebar-submenu" id="${submenuId}" ${isOpen ? "" : "hidden"}>
+        ${childrenMarkup}
+      </div>
+    </div>
+  `;
+}
+
+function renderSidebarMenu() {
+  const pathname = normalizePathname();
+  const items = buildSidebarConfig();
+  const markup = items
+    .map((item) => (item.children ? renderSidebarGroup(item, pathname) : renderSidebarLink(item, pathname)))
+    .join("");
+
+  if (!sidebarState.openGroupId) {
+    const activeGroup = items.find((item) => item.children && isSidebarItemActive(item, pathname));
+    sidebarState.openGroupId = activeGroup?.id || "customer";
+  }
+
+  return `
+    <div class="sidebar-scroll">
+      <div class="sidebar-nav-list">
+        ${markup}
+      </div>
+    </div>
+    <div class="sidebar-footer-actions">
+      <div class="auth-actions sidebar-auth-actions" data-auth-actions></div>
+    </div>
+  `;
+}
+
+function ensureSidebarSupportNodes() {
+  let backdrop = document.getElementById(SIDEBAR_BACKDROP_ID);
+  if (!backdrop) {
+    backdrop = document.createElement("button");
+    backdrop.type = "button";
+    backdrop.id = SIDEBAR_BACKDROP_ID;
+    backdrop.className = "sidebar-backdrop";
+    backdrop.setAttribute("aria-label", "Close navigation");
+    document.body.appendChild(backdrop);
+  }
+
+  let flyout = document.getElementById(SIDEBAR_FLYOUT_ID);
+  if (!flyout) {
+    flyout = document.createElement("div");
+    flyout.id = SIDEBAR_FLYOUT_ID;
+    flyout.className = "sidebar-flyout";
+    flyout.setAttribute("hidden", "");
+    document.body.appendChild(flyout);
+  }
+
+  return { backdrop, flyout };
+}
+
+function applySidebarCollapsedState(collapsed) {
+  document.body.classList.toggle("sidebar-collapsed", Boolean(collapsed) && isDesktopSidebarViewport());
+  localStorage.setItem(SIDEBAR_COLLAPSE_KEY, collapsed ? "1" : "0");
+  const toggleLabel = document.querySelector(".nav-toggle-label");
+  if (toggleLabel) {
+    toggleLabel.textContent = "Menu";
+  }
+}
+
+function closeSidebarFlyout() {
+  const flyout = document.getElementById(SIDEBAR_FLYOUT_ID);
+  if (!flyout) return;
+  sidebarState.flyoutGroupId = null;
+  flyout.innerHTML = "";
+  flyout.setAttribute("hidden", "");
+  flyout.classList.remove("is-open");
+}
+
+function positionSidebarFlyout(button, group) {
+  const flyout = document.getElementById(SIDEBAR_FLYOUT_ID);
+  if (!flyout || !button || !group) return;
+
+  const label = button.dataset.sidebarGroupLabel || "Menu";
+  const submenu = group.querySelector(".sidebar-submenu");
+  if (!submenu) return;
+
+  flyout.innerHTML = `
+    <div class="sidebar-flyout-card">
+      <div class="sidebar-flyout-title">${escapeHtml(label)}</div>
+      <div class="sidebar-flyout-links">${submenu.innerHTML}</div>
+    </div>
+  `;
+
+  const rect = button.getBoundingClientRect();
+  flyout.style.top = `${Math.max(20, rect.top)}px`;
+  flyout.style.left = `${rect.right + 14}px`;
+  flyout.removeAttribute("hidden");
+  flyout.classList.add("is-open");
+  sidebarState.flyoutGroupId = group.dataset.sidebarGroup || null;
+}
+
+function setSidebarOpenGroup(groupId) {
+  const groups = document.querySelectorAll("[data-sidebar-group]");
+  sidebarState.openGroupId = groupId;
+
+  groups.forEach((group) => {
+    const isOpen = group.dataset.sidebarGroup === groupId;
+    const button = group.querySelector("[data-sidebar-group-toggle]");
+    const submenu = group.querySelector(".sidebar-submenu");
+    group.classList.toggle("is-open", isOpen);
+    button?.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    if (submenu) {
+      submenu.hidden = !isOpen;
+    }
+  });
+}
+
+function enhanceSharedSidebar() {
+  const header = document.querySelector(".site-header");
+  const shell = header?.querySelector(".nav-shell");
+  const toggle = header?.querySelector("[data-nav-toggle]");
+  const menu = header?.querySelector("[data-nav-menu]");
+  if (!header || !shell || !toggle || !menu || document.body.dataset.page === "admin-dashboard") return;
+
+  document.body.classList.add("sidebar-ready");
+  const { backdrop } = ensureSidebarSupportNodes();
+  backdrop.setAttribute("hidden", "");
+
+  toggle.type = "button";
+  toggle.innerHTML = `
+    <span class="nav-toggle-icon">${SIDEBAR_ICONS.menu}</span>
+    <span class="nav-toggle-label">Menu</span>
+  `;
+  toggle.setAttribute("aria-expanded", "false");
+  toggle.setAttribute("aria-controls", SIDEBAR_NAV_ID);
+
+  menu.id = SIDEBAR_NAV_ID;
+  menu.innerHTML = renderSidebarMenu();
+
+  const persistedCollapsed = localStorage.getItem(SIDEBAR_COLLAPSE_KEY) === "1";
+  applySidebarCollapsedState(persistedCollapsed);
+  setSidebarOpenGroup(sidebarState.openGroupId);
 }
 
 function renderSharedFooter() {
@@ -289,50 +646,62 @@ function renderSharedFooter() {
   ).join("");
 
   const year = String(new Date().getFullYear());
-  const currentPath = window.location.pathname.toLowerCase();
-  const isContactPage = currentPath.endsWith('/static/contact.html') || currentPath.endsWith('/static/contact');
-  const supportCtaHref = isContactPage ? 'mailto:support@trimly.com.ng' : '/static/contact.html';
-  const supportCtaLabel = isContactPage ? 'Email Support' : 'Open Contact Page';
 
   footers.forEach((footer) => {
     footer.innerHTML = `
       <div class="container footer-shell">
-        <div class="footer-brand-block">
-          <a class="footer-brand" href="/">
-            <span class="brand-badge">T</span>
-            <span>Trimly</span>
+        <div class="footer-top">
+          <div class="footer-brand-block">
+            <a class="footer-brand" href="/">
+              <span class="brand-badge"><img class="brand-badge-image" src="/static/trimly-logo.png" alt="" /></span>
+              <span class="footer-wordmark">TRIMLY</span>
+            </a>
+            <p class="footer-summary">
+              Find a barber fast, pick a slot, pay online, and chat before the appointment.
+            </p>
+          </div>
+        </div>
+        <div class="footer-nav-grid">
+          <div class="footer-nav-group">
+            <span class="footer-nav-title">Legal</span>
+            <div class="footer-nav-links">
+              <a href="/static/acceptable-use.html">Privacy Policy</a>
+              <a href="/static/refund-cancellation-policy.html">Terms of service</a>
+              <a href="/static/acceptable-use.html">Terms of use</a>
+            </div>
+          </div>
+          <div class="footer-nav-group">
+            <span class="footer-nav-title">About us</span>
+            <div class="footer-nav-links">
+              <a href="/">Company</a>
+              <a href="/static/contact.html">Contact</a>
+            </div>
+          </div>
+          <div class="footer-nav-group">
+            <span class="footer-nav-title">Support</span>
+            <div class="footer-nav-links">
+              <a href="/static/contact.html">Customers</a>
+              <a href="/static/contact.html">Barbers</a>
+              <a href="/static/acceptable-use.html">Support and Safety</a>
+              <a href="/">About Trimly</a>
+              <a href="/static/contact.html">Other questions</a>
+            </div>
+          </div>
+        </div>
+        <div class="footer-contact-row">
+          <a class="footer-contact-pill" href="mailto:support@trimly.com.ng">
+            <span class="footer-contact-pill-label">Customer support</span>
+            <span class="footer-contact-pill-value">support@trimly.com.ng</span>
           </a>
-          <p class="footer-summary">
-            Find nearby barbers, choose a time that works, pay securely online, and chat before the appointment.
-          </p>
+          <a class="footer-contact-pill footer-contact-pill-secondary" href="mailto:hello@trimly.com.ng">
+            <span class="footer-contact-pill-label">General enquiries</span>
+            <span class="footer-contact-pill-value">hello@trimly.com.ng</span>
+          </a>
         </div>
         <div class="footer-social-block">
           <span class="footer-label">Follow Trimly</span>
           <div class="footer-social-links">
             ${socialMarkup}
-          </div>
-        </div>
-        <div class="footer-support-row">
-          <div class="footer-support-panel">
-            <div class="footer-support-copy">
-              <span class="footer-support-kicker">Support</span>
-              <span class="footer-support-title">Need help with a booking, payment, or barber account?</span>
-              <p class="footer-support-note">
-                Talk to the Trimly team for customer booking help, barber onboarding questions, payment issues, and account support.
-              </p>
-            </div>
-            <div class="footer-support-meta">
-              <span class="footer-support-chip">Customer support</span>
-              <span class="footer-support-chip">Barber support</span>
-              <span class="footer-support-chip">Response by email</span>
-            </div>
-          </div>
-          <div class="footer-support-actions">
-            <a class="footer-contact-cta" href="${supportCtaHref}">${supportCtaLabel}</a>
-            <div class="footer-support-links">
-              <a class="footer-support-link" href="mailto:support@trimly.com.ng">support@trimly.com.ng</a>
-              <a class="footer-support-link footer-support-link-secondary" href="mailto:hello@trimly.com.ng">hello@trimly.com.ng</a>
-            </div>
           </div>
         </div>
         <div class="footer-row">
@@ -351,11 +720,147 @@ function renderSharedFooter() {
 function bindMobileMenu() {
   const toggle = document.querySelector("[data-nav-toggle]");
   const menu = document.querySelector("[data-nav-menu]");
-  if (!toggle || !menu) return;
+  const backdrop = document.getElementById(SIDEBAR_BACKDROP_ID);
+  const flyout = document.getElementById(SIDEBAR_FLYOUT_ID);
+  if (!toggle || !menu || !backdrop || sidebarState.bound) return;
+
+  const closeMobileSidebar = () => {
+    menu.classList.remove("is-open");
+    document.body.classList.remove("menu-open");
+    toggle.setAttribute("aria-expanded", "false");
+    backdrop.setAttribute("hidden", "");
+  };
+
+  const openMobileSidebar = () => {
+    closeSidebarFlyout();
+    menu.classList.add("is-open");
+    document.body.classList.add("menu-open");
+    toggle.setAttribute("aria-expanded", "true");
+    backdrop.removeAttribute("hidden");
+  };
+
+  if (isDesktopSidebarViewport()) {
+    closeMobileSidebar();
+    applySidebarCollapsedState(localStorage.getItem(SIDEBAR_COLLAPSE_KEY) === "1");
+  } else {
+    closeMobileSidebar();
+    document.body.classList.remove("sidebar-collapsed");
+    toggle.querySelector(".nav-toggle-label")?.replaceChildren(document.createTextNode("Menu"));
+  }
+
+  const toggleInlineGroup = (button) => {
+    const nextGroupId = button.dataset.sidebarGroupId;
+    const currentlyOpen = sidebarState.openGroupId === nextGroupId;
+    setSidebarOpenGroup(currentlyOpen ? null : nextGroupId);
+  };
+
+  const openFlyoutForButton = (button) => {
+    if (!isDesktopSidebarViewport() || !isSidebarCollapsed()) return;
+    const group = button.closest("[data-sidebar-group]");
+    if (!group) return;
+    positionSidebarFlyout(button, group);
+  };
 
   toggle.addEventListener("click", () => {
-    menu.classList.toggle("is-open");
+    if (!isDesktopSidebarViewport()) {
+      if (menu.classList.contains("is-open")) {
+        closeMobileSidebar();
+      } else {
+        openMobileSidebar();
+      }
+      return;
+    }
+
+    closeSidebarFlyout();
+    applySidebarCollapsedState(!isSidebarCollapsed());
   });
+
+  menu.addEventListener("click", (event) => {
+    const groupButton = event.target.closest("[data-sidebar-group-toggle]");
+    if (groupButton) {
+      event.preventDefault();
+      if (isDesktopSidebarViewport() && isSidebarCollapsed()) {
+        openFlyoutForButton(groupButton);
+      } else {
+        toggleInlineGroup(groupButton);
+      }
+      return;
+    }
+
+    const sidebarLink = event.target.closest("[data-sidebar-link]");
+    if (sidebarLink && !isDesktopSidebarViewport()) {
+      closeMobileSidebar();
+    }
+  });
+
+  menu.addEventListener("mouseenter", (event) => {
+    const groupButton = event.target.closest?.("[data-sidebar-group-toggle]");
+    if (groupButton && isDesktopSidebarViewport() && isSidebarCollapsed()) {
+      clearTimeout(sidebarState.flyoutHideTimer);
+      openFlyoutForButton(groupButton);
+    }
+  }, true);
+
+  menu.addEventListener("mouseleave", (event) => {
+    if (!isDesktopSidebarViewport() || !isSidebarCollapsed()) return;
+    const groupButton = event.target.closest?.("[data-sidebar-group-toggle]");
+    if (!groupButton) return;
+    sidebarState.flyoutHideTimer = window.setTimeout(() => {
+      const hoverInsideFlyout = flyout?.matches(":hover");
+      const hoverInsideMenu = menu.matches(":hover");
+      if (!hoverInsideFlyout && !hoverInsideMenu) {
+        closeSidebarFlyout();
+      }
+    }, 120);
+  }, true);
+
+  flyout?.addEventListener("mouseenter", () => {
+    clearTimeout(sidebarState.flyoutHideTimer);
+  });
+
+  flyout?.addEventListener("mouseleave", () => {
+    sidebarState.flyoutHideTimer = window.setTimeout(() => {
+      closeSidebarFlyout();
+    }, 120);
+  });
+
+  backdrop.addEventListener("click", () => {
+    closeMobileSidebar();
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!menu.contains(event.target) && !toggle.contains(event.target) && !flyout?.contains(event.target)) {
+      closeSidebarFlyout();
+      if (!isDesktopSidebarViewport() && menu.classList.contains("is-open")) {
+        closeMobileSidebar();
+      }
+    }
+  });
+
+  window.addEventListener("resize", () => {
+    if (isDesktopSidebarViewport()) {
+      closeMobileSidebar();
+      applySidebarCollapsedState(localStorage.getItem(SIDEBAR_COLLAPSE_KEY) === "1");
+      if (!isSidebarCollapsed()) {
+        setSidebarOpenGroup(sidebarState.openGroupId);
+      }
+      return;
+    }
+
+    closeSidebarFlyout();
+    document.body.classList.remove("sidebar-collapsed");
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeSidebarFlyout();
+      if (menu.classList.contains("is-open")) {
+        closeMobileSidebar();
+      }
+    }
+  });
+
+  sidebarState.bound = true;
 }
 
 function hydrateAuthActions() {
@@ -931,38 +1436,40 @@ function barberCardTemplate(barber, ctaLabel = "View Profile") {
   const profileHref = `/static/barber-profile.html?id=${barber.id}`;
   const bookingHref = `/static/booking.html?barber=${barber.id}`;
   const ctaHref = ctaLabel === "Book Now" ? bookingHref : profileHref;
-  const ratingLabel = barber.reviewCount
-    ? `${barber.rating.toFixed(1)} (${barber.reviewCount} review${barber.reviewCount === 1 ? "" : "s"})`
-    : "New barber";
-  const ratingStars = barber.reviewCount ? renderStars(barber.rating) : "";
-  const servicePreview = Array.isArray(barber.services) ? barber.services.slice(0, 3) : [];
   const portfolioPreview = Array.isArray(barber.portfolioImages) ? barber.portfolioImages.slice(0, 3) : [];
   const showProfileFirst = ctaLabel !== "Book Now";
+  const isSaved = getFavoriteIds().includes(Number(barber.id));
+  const reviewCopy = barber.reviewCount
+    ? `${barber.reviewCount} review${barber.reviewCount === 1 ? "" : "s"}`
+    : "New barber";
 
   return `
     <article class="card barber-card">
-      ${barberImageMarkup(barber, "barber-photo", barber.shopName)}
+      <div class="barber-card-media">
+        ${barberImageMarkup(barber, "barber-photo", barber.shopName)}
+        <button
+          class="barber-save-btn ${isSaved ? "active" : ""}"
+          type="button"
+          data-favorite-toggle
+          data-barber-id="${Number(barber.id)}"
+          data-barber-name="${escapeHtml(barber.shopName)}"
+          aria-label="${isSaved ? "Remove from saved barbers" : "Save barber"}"
+        >${isSaved ? "♥" : "♡"}</button>
+      </div>
       <div class="barber-body">
         <h3>${escapeHtml(barber.shopName)}</h3>
-        <p class="muted">${escapeHtml(barber.location)}</p>
-        <div class="barber-meta">
-          <span>${escapeHtml(ratingLabel)}</span>
-          <span>${portfolioPreview.length ? `${portfolioPreview.length} portfolio photo${portfolioPreview.length === 1 ? "" : "s"}` : "Portfolio coming soon"}</span>
-        </div>
+        <p class="muted barber-location">${escapeHtml(barber.location)}</p>
         ${
           barber.reviewCount
-            ? `<div class="barber-rating-line"><span class="review-stars" aria-label="${escapeHtml(
-                `${barber.rating.toFixed(1)} out of 5 stars`
-              )}">${ratingStars}</span><span class="muted">${escapeHtml(
-                `${barber.reviewCount} verified rating${barber.reviewCount === 1 ? "" : "s"}`
-              )}</span></div>`
-            : `<p class="muted barber-review-meta">Be one of the first to rate this barber.</p>`
+            ? `<div class="barber-card-rating">
+                <div class="barber-card-rating-main">
+                  <span class="barber-card-rating-star" aria-hidden="true">&#9733;</span>
+                  <span>${escapeHtml(barber.rating.toFixed(1))}</span>
+                </div>
+                <span class="barber-card-rating-sub">${escapeHtml(reviewCopy)}</span>
+              </div>`
+            : `<div class="barber-card-rating-empty">New barber</div>`
         }
-        <p class="muted barber-review-meta">${escapeHtml(
-          barber.reviewCount
-            ? `Average rating calculated from completed booking reviews`
-            : "Be one of the first to book this barber"
-        )}</p>
         ${
           portfolioPreview.length
             ? `<div class="barber-portfolio-strip">
@@ -977,20 +1484,12 @@ function barberCardTemplate(barber, ctaLabel = "View Profile") {
                   )
                   .join("")}
               </div>`
-            : `<div class="barber-portfolio-empty">Profile photo and service list ready. Portfolio images will appear here.</div>`
+            : `<div class="barber-portfolio-empty">Portfolio photos coming soon</div>`
         }
-        ${
-          servicePreview.length
-            ? `<div class="pill-row barber-service-pill-row">${servicePreview
-                .map((service) => `<span class="pill">${escapeHtml(service.name)}</span>`)
-                .join("")}</div>`
-            : ""
-        }
-        <p class="muted barber-price-hint">Prices appear after you begin booking so you can choose by style, quality, and reviews first.</p>
         <div class="barber-card-actions">
           <a class="btn ${showProfileFirst ? "btn-primary" : "btn-ghost"} btn-block" href="${escapeHtml(
             showProfileFirst ? profileHref : ctaHref
-          )}">${showProfileFirst ? "View Portfolio" : escapeHtml(ctaLabel)}</a>
+          )}">${showProfileFirst ? "View Profile" : escapeHtml(ctaLabel)}</a>
           <a class="btn ${showProfileFirst ? "btn-ghost" : "btn-primary"} btn-block" href="${escapeHtml(
             bookingHref
           )}">Book Now</a>
@@ -7290,13 +7789,18 @@ function bindFavoriteButtons(container = document) {
       const isSaved = toggleFavoriteBarber(barberId);
 
       button.classList.toggle("active", isSaved);
-      button.textContent = isSaved
-        ? button.classList.contains("favorite-profile-btn")
-          ? "Saved to Favorites"
-          : "Saved"
-        : button.classList.contains("favorite-profile-btn")
-          ? "Save Barber"
-          : "Save";
+      if (button.classList.contains("barber-save-btn")) {
+        button.textContent = isSaved ? "♥" : "♡";
+        button.setAttribute("aria-label", isSaved ? "Remove from saved barbers" : "Save barber");
+      } else {
+        button.textContent = isSaved
+          ? button.classList.contains("favorite-profile-btn")
+            ? "Saved to Favorites"
+            : "Saved"
+          : button.classList.contains("favorite-profile-btn")
+            ? "Save Barber"
+            : "Save";
+      }
 
       toast(isSaved ? `${barberName} saved` : `${barberName} removed from favorites`);
     });

@@ -5,16 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="trustpilot-one-time-domain-verification-id" content="dbfbe3e2-a523-4e23-bee5-60327bc8a48a" />
     <title>Trimly | Barber Overview</title>
+    <link rel="icon" type="image/png" href="/static/trimly-logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Sora:wght@100..800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/static/style.css?v=20260715m1" />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/static/style.css?v=20260717sidebar1" />
   </head>
   <body data-page="dashboard" data-dashboard-role="barber">
     <header class="site-header">
       <div class="container nav-shell">
         <a class="brand" href="/">
-          <span class="brand-badge">T</span>
+          <span class="brand-badge"><img class="brand-badge-image" src="/static/trimly-logo.png" alt="" /></span>
           <span>Trimly</span>
         </a>
         <button class="nav-toggle" data-nav-toggle aria-label="Toggle menu">Menu</button>
@@ -52,9 +53,9 @@
             <div class="barber-overview-grid">
               <div class="barber-overview-copy">
                 <span class="dashboard-eyebrow">Barber dashboard</span>
-                <h2>Run your bookings, earnings, and visibility from one place.</h2>
+                <h2>Run bookings, earnings, and availability from one place.</h2>
                 <p class="muted">
-                  Keep the work queue moving, stay visible to customers, and know exactly what needs attention today.
+                  Stay visible, manage the queue, and know what needs attention today.
                 </p>
                 <div class="barber-overview-badges">
                   <span class="pill" id="barberChecklistProgress">0 / 5 done</span>
@@ -121,7 +122,7 @@
               <div class="barber-approval-banner-copy">
                 <strong id="barberApprovalBannerTitle">Profile review in progress</strong>
                 <p id="barberApprovalBannerText" class="muted">
-                  Your barber page is currently under review. Customers will not see your public listing until approval is complete.
+                  Your public page is under review. Customers will not see it until approval is complete.
                 </p>
               </div>
               <a class="btn btn-ghost" href="/static/settings.html?tab=operations">Open Operations</a>
@@ -162,9 +163,12 @@
     </footer>
 
     <div id="toast" class="toast"></div>
-    <script type="module" src="/static/main.js?v=20260714f2"></script>
+    <script type="module" src="/static/main.js?v=20260717sidebar1"></script>
   </body>
 </html>
+
+
+
 
 
 
