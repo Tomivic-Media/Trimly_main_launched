@@ -47,6 +47,11 @@ function resolveApiBaseCandidates() {
 
 const API_BASE_CANDIDATES = resolveApiBaseCandidates();
 
+function isHtmlLikeResponse(response) {
+  const contentType = String(response?.headers?.get?.("content-type") || "").toLowerCase();
+  return contentType.includes("text/html") || contentType.includes("application/xhtml+xml");
+}
+
 function shouldRetryAlternateApiBase(response, baseUrl, needsAuth = false) {
   if (needsAuth || API_BASE_CANDIDATES.length < 2) return false;
   if (typeof window === "undefined") return false;
@@ -55,12 +60,16 @@ function shouldRetryAlternateApiBase(response, baseUrl, needsAuth = false) {
   const currentOrigin = String(window.location.origin || "").replace(/\/+$/, "");
   if (!normalizedBase || normalizedBase !== currentOrigin) return false;
 
+  if (response?.ok && isHtmlLikeResponse(response)) {
+    return true;
+  }
+
   if (![404, 405, 501, 502, 503, 504].includes(Number(response?.status || 0))) {
     return false;
   }
 
   const contentType = String(response?.headers?.get?.("content-type") || "").toLowerCase();
-  return contentType.includes("text/html") || !contentType;
+  return isHtmlLikeResponse(response) || !contentType;
 }
 
 async function requestWithApiFallback(path, options = {}, needsAuth = false) {
@@ -417,7 +426,14 @@ async function changeCurrentUserPassword(data) {
 }
 
 async function getBarbers(filters = {}) {
-  return apiFetch(`/barbers${toQuery(filters)}`, { method: "GET" });
+  const payload = await apiFetch(`/barbers${toQuery(filters)}`, { method: "GET" });
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+  if (payload && Array.isArray(payload.items)) {
+    return payload.items;
+  }
+  throw new Error("Trimly services are temporarily unavailable. Please try again shortly.");
 }
 
 async function getBarberById(barberId) {
