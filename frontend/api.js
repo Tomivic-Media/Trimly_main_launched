@@ -11,6 +11,81 @@ const API_BASE_URL =
     : "https://api.trimly.com.ng");
 const API_REQUEST_TIMEOUT_MS = 15000;
 
+function uniqueApiBases(values = []) {
+  return [...new Set(values.filter(Boolean).map((value) => String(value).trim()).filter(Boolean))];
+}
+
+function resolveApiBaseCandidates() {
+  if (typeof window === "undefined") {
+    return ["https://api.trimly.com.ng"];
+  }
+
+  const explicitBase = String(window.__TRIMLY_API_BASE_URL || "").trim();
+  if (explicitBase) {
+    return [explicitBase];
+  }
+
+  const hostname = String(window.location.hostname || "").toLowerCase();
+  const origin = String(window.location.origin || "").trim();
+
+  if (["localhost", "127.0.0.1"].includes(hostname)) {
+    return [origin];
+  }
+
+  if (
+    hostname === "trimly.com.ng" ||
+    hostname === "www.trimly.com.ng" ||
+    hostname === "app.trimly.com.ng" ||
+    hostname === "api.trimly.com.ng" ||
+    hostname.endsWith(".trimly.com.ng")
+  ) {
+    return uniqueApiBases([origin, "https://api.trimly.com.ng"]);
+  }
+
+  return ["https://api.trimly.com.ng"];
+}
+
+const API_BASE_CANDIDATES = resolveApiBaseCandidates();
+
+function shouldRetryAlternateApiBase(response, baseUrl, needsAuth = false) {
+  if (needsAuth || API_BASE_CANDIDATES.length < 2) return false;
+  if (typeof window === "undefined") return false;
+
+  const normalizedBase = String(baseUrl || "").replace(/\/+$/, "");
+  const currentOrigin = String(window.location.origin || "").replace(/\/+$/, "");
+  if (!normalizedBase || normalizedBase !== currentOrigin) return false;
+
+  if (![404, 405, 501, 502, 503, 504].includes(Number(response?.status || 0))) {
+    return false;
+  }
+
+  const contentType = String(response?.headers?.get?.("content-type") || "").toLowerCase();
+  return contentType.includes("text/html") || !contentType;
+}
+
+async function requestWithApiFallback(path, options = {}, needsAuth = false) {
+  let lastError = null;
+
+  for (const baseUrl of API_BASE_CANDIDATES) {
+    try {
+      const response = await fetchWithTimeout(`${baseUrl}${path}`, options);
+      if (shouldRetryAlternateApiBase(response, baseUrl, needsAuth)) {
+        continue;
+      }
+      return response;
+    } catch (error) {
+      lastError = error;
+      continue;
+    }
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
+
+  throw new Error("Trimly services are temporarily unavailable. Please try again shortly.");
+}
+
 function buildFallbackResponse(xhr) {
   const rawHeaders = xhr.getAllResponseHeaders ? xhr.getAllResponseHeaders() : "";
   const headerMap = new Map();
@@ -132,11 +207,13 @@ async function apiFetch(path, options = {}, needsAuth = false) {
     Object.assign(headers, authHeaders());
   }
 
-  const response = await fetchWithTimeout(`${API_BASE_URL}${path}`, {
+  const requestOptions = {
     ...options,
     credentials: options.credentials || "include",
     headers,
-  });
+  };
+
+  const response = await requestWithApiFallback(path, requestOptions, needsAuth);
 
   let payload = null;
   const contentType = response.headers.get("content-type") || "";
