@@ -68,7 +68,7 @@ import {
   verifyPayment,
   verifyPaymentPublic,
   startGoogleCalendarConnect,
-} from "./api.js?v=20260724barberfix1";
+} from "./api.js?v=20260724barberfix2";
 import {
   enterDemoMode,
   getDemoSessionInfo,
@@ -2370,6 +2370,49 @@ function scrubCredentialParamsFromUrl() {
   }
 }
 
+function withTimeout(promise, timeoutMs, message) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(message || "Trimly is taking too long to respond right now. Please try again shortly."));
+    }, timeoutMs);
+
+    Promise.resolve(promise)
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
+}
+
+async function resolvePostLoginTarget(role, next) {
+  const normalizedRole = normalizeRole(role);
+  const fallbackTarget = next || getDashboardPath(normalizedRole || "customer");
+
+  if (normalizedRole !== "barber") {
+    return fallbackTarget;
+  }
+
+  try {
+    const hasProfile = await withTimeout(
+      checkBarberProfileExists(),
+      8000,
+      "Trimly is taking too long to finish your barber setup check. Please try again shortly."
+    );
+
+    if (!hasProfile && !String(fallbackTarget).includes("setup-barber.html")) {
+      return "/static/setup-barber.html";
+    }
+
+    return fallbackTarget;
+  } catch (_error) {
+    return "/static/setup-barber.html";
+  }
+}
+
 function initLoginPage() {
   const loginForm = document.getElementById("loginForm");
   const notice = document.getElementById("authNotice");
@@ -2413,16 +2456,9 @@ function initLoginPage() {
 
       const urlParams = new URLSearchParams(window.location.search);
       const next = urlParams.get("next") || getDashboardPath(role || "customer");
+      const target = await resolvePostLoginTarget(role, next);
 
-      if (role === "barber") {
-        const hasProfile = await checkBarberProfileExists();
-        if (!hasProfile && !next.includes("setup-barber.html")) {
-          window.location.href = "/static/setup-barber.html";
-          return;
-        }
-      }
-
-      window.location.href = next;
+      window.location.href = target;
     } catch (error) {
       notice.textContent = error.message;
       notice.className = "notice error";
