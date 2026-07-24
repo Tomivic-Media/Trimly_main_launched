@@ -53,7 +53,7 @@ function isHtmlLikeResponse(response) {
 }
 
 function shouldRetryAlternateApiBase(response, baseUrl, needsAuth = false) {
-  if (needsAuth || API_BASE_CANDIDATES.length < 2) return false;
+  if (API_BASE_CANDIDATES.length < 2) return false;
   if (typeof window === "undefined") return false;
 
   const normalizedBase = String(baseUrl || "").replace(/\/+$/, "");

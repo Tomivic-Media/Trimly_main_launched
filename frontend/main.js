@@ -68,7 +68,7 @@ import {
   verifyPayment,
   verifyPaymentPublic,
   startGoogleCalendarConnect,
-} from "./api.js?v=20260708m4";
+} from "./api.js?v=20260724barberfix1";
 import {
   enterDemoMode,
   getDemoSessionInfo,
@@ -2856,6 +2856,11 @@ async function initSettingsPage() {
       } catch (_error) {
         state.barberKyc = null;
       }
+
+      if (!isBarberProfileSetupComplete(state.barberProfile)) {
+        window.location.href = "/static/setup-barber.html";
+        return;
+      }
     }
 
     hydrateSettingsPanel();
@@ -2904,10 +2909,16 @@ async function initSettingsPage() {
         document.getElementById("barberNotificationHighlightToggle")
       );
     }
-  } catch (_error) {
-    clearAuthSession();
-    const next = encodeURIComponent("/static/settings.html");
-    window.location.href = `/static/login.html?next=${next}`;
+  } catch (error) {
+    const message = String(error?.message || "").toLowerCase();
+    if (message.includes("session expired") || message.includes("log in again") || message.includes("401")) {
+      clearAuthSession();
+      const next = encodeURIComponent("/static/settings.html");
+      window.location.href = `/static/login.html?next=${next}`;
+      return;
+    }
+
+    toast("We could not open settings right now. Please try again.", true);
   }
 }
 
@@ -2926,6 +2937,7 @@ async function initSetupBarberPage() {
   const kycNotice = document.getElementById("barberKycNotice");
   const kycStatus = document.getElementById("setupKycStatus");
   if (!form || !notice) return;
+  const submitBtn = form.querySelector("button[type='submit']");
 
   let role = normalizeRole(localStorage.getItem("trimly_role") || "");
 
@@ -2949,6 +2961,15 @@ async function initSetupBarberPage() {
     if (kycBlock) kycBlock.classList.remove("hidden");
     await hydrateSetupKycForm();
     return;
+  }
+
+  if (state.barberProfile) {
+    prefillSetupBarberForm(form, state.barberProfile);
+    notice.textContent = "Continue your barber setup to finish your public profile.";
+    notice.className = "notice";
+    if (submitBtn) {
+      submitBtn.textContent = "Finish Barber Profile";
+    }
   }
 
   form.addEventListener("submit", async (event) => {
@@ -2988,11 +3009,16 @@ async function initSetupBarberPage() {
       return;
     }
 
-    const submitBtn = form.querySelector("button[type='submit']");
     submitBtn.disabled = true;
-    submitBtn.textContent = "Saving...";
+    submitBtn.textContent = state.barberProfile?.id ? "Finishing..." : "Saving...";
 
     try {
+      payload.profile_image_url = String(state.barberProfile?.profile_image_url || "").trim() || null;
+      payload.cover_image_url = String(state.barberProfile?.cover_image_url || "").trim() || null;
+      payload.portfolio_image_urls = Array.isArray(state.barberProfile?.portfolio_image_urls)
+        ? [...state.barberProfile.portfolio_image_urls]
+        : [];
+
       const profileImageFile =
         formData.get("profile_image_camera") && typeof formData.get("profile_image_camera") === "object" && formData.get("profile_image_camera").name
           ? formData.get("profile_image_camera")
@@ -3025,16 +3051,39 @@ async function initSetupBarberPage() {
       );
       if (portfolioFiles.length) {
         const uploads = await Promise.all(portfolioFiles.map((file) => uploadBarberImage(file)));
-        payload.portfolio_image_urls = uploads
+        const uploadedUrls = uploads
           .map((item) => String(item?.url || "").trim())
           .filter(Boolean);
+        payload.portfolio_image_urls = [...payload.portfolio_image_urls, ...uploadedUrls];
       }
 
-      await createBarberProfile(payload);
-      notice.textContent = "Profile created successfully. Submit KYC to complete onboarding.";
+      if (state.barberProfile?.id) {
+        state.barberProfile = await updateBarberProfile({
+          barber_name: payload.barber_name,
+          shop_name: payload.shop_name,
+          location: payload.location,
+          shop_address: null,
+          shop_landmark: null,
+          bio: payload.bio,
+          haircut_price: payload.haircut_price,
+          beard_trim_price: payload.beard_trim_price,
+          other_services: payload.other_services,
+          profile_image_url: payload.profile_image_url,
+          cover_image_url: payload.cover_image_url,
+          portfolio_image_urls: payload.portfolio_image_urls,
+        });
+        state.barberProfile = await updateBarberAvailability({
+          available_days: payload.available_days,
+          available_start_time: payload.available_start_time,
+          available_end_time: payload.available_end_time,
+        });
+      } else {
+        state.barberProfile = await createBarberProfile(payload);
+      }
+
+      notice.textContent = "Profile saved successfully. Submit KYC to complete onboarding.";
       notice.className = "notice success";
       form.classList.add("hidden");
-      await checkBarberProfileExists();
       if (kycBlock) kycBlock.classList.remove("hidden");
       await hydrateSetupKycForm();
       window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
@@ -3043,7 +3092,7 @@ async function initSetupBarberPage() {
       notice.className = "notice error";
     } finally {
       submitBtn.disabled = false;
-      submitBtn.textContent = "Create Barber Profile";
+      submitBtn.textContent = state.barberProfile?.id ? "Finish Barber Profile" : "Create Barber Profile";
     }
   });
 
@@ -7747,7 +7796,7 @@ async function checkBarberProfileExists() {
   try {
     const profile = await getMyBarberProfile();
     state.barberProfile = profile;
-    return true;
+    return isBarberProfileSetupComplete(profile);
   } catch (error) {
     const message = String(error.message || "").toLowerCase();
     if (message.includes("not found")) {
@@ -7755,6 +7804,62 @@ async function checkBarberProfileExists() {
       return false;
     }
     throw error;
+  }
+}
+
+function isBarberProfileSetupComplete(profile) {
+  if (!profile || typeof profile !== "object") return false;
+
+  const shopName = String(profile.shop_name || "").trim();
+  const location = String(profile.location || "").trim();
+  const barberName = String(profile.barber_name || "").trim();
+  const haircutPrice = Number(profile.haircut_price || 0);
+  const profileImageUrl = String(profile.profile_image_url || "").trim();
+  const coverImageUrl = String(profile.cover_image_url || "").trim();
+  const availableDays = Array.isArray(profile.available_days) ? profile.available_days.filter(Boolean) : [];
+
+  return Boolean(
+    shopName &&
+      location &&
+      barberName &&
+      haircutPrice > 0 &&
+      profileImageUrl &&
+      coverImageUrl &&
+      availableDays.length
+  );
+}
+
+function prefillSetupBarberForm(form, profile) {
+  if (!form || !profile) return;
+
+  form.elements.barber_name.value = profile.barber_name || "";
+  form.elements.shop_name.value = profile.shop_name || "";
+  form.elements.bio.value = profile.bio || "";
+  form.elements.haircut_price.value = Number(profile.haircut_price || 0) || "";
+  form.elements.beard_price.value =
+    profile.beard_trim_price === null || profile.beard_trim_price === undefined ? "" : Number(profile.beard_trim_price);
+  form.elements.other_services.value = profile.other_services || "";
+
+  const locationParts = String(profile.location || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  form.elements.city.value = locationParts[0] || "";
+  form.elements.area.value = locationParts[1] || "";
+  form.elements.address.value = locationParts.slice(2).join(", ");
+
+  const availableDays = Array.isArray(profile.available_days)
+    ? profile.available_days.map((day) => String(day).toLowerCase())
+    : [];
+  form.querySelectorAll("input[name='available_days']").forEach((checkbox) => {
+    checkbox.checked = availableDays.includes(String(checkbox.value).toLowerCase());
+  });
+
+  if (profile.available_start_time) {
+    form.elements.start_time.value = normalizeTimeForInput(profile.available_start_time) || "09:00";
+  }
+  if (profile.available_end_time) {
+    form.elements.end_time.value = normalizeTimeForInput(profile.available_end_time) || "18:00";
   }
 }
 
