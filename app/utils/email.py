@@ -3,12 +3,12 @@ from urllib.parse import urlencode
 
 from app.core.config import EMAIL_FROM, PASSWORD_RESET_URL, RESEND_API_KEY
 
+PASSWORD_RESET_EMAIL_FROM_FALLBACK = "Trimly <hello@trimly.com.ng>"
+
 
 async def send_password_reset_email(to_email: str, token: str) -> None:
     if not RESEND_API_KEY:
         raise RuntimeError("RESEND_API_KEY is not configured")
-    if not EMAIL_FROM:
-        raise RuntimeError("EMAIL_FROM is not configured")
 
     query = urlencode({"token": token})
     separator = "&" if "?" in PASSWORD_RESET_URL else "?"
@@ -36,29 +36,51 @@ async def send_password_reset_email(to_email: str, token: str) -> None:
     </div>
     """.strip()
 
-    def _send() -> None:
+    senders: list[str] = []
+    configured_sender = str(EMAIL_FROM or "").strip()
+    if configured_sender:
+        senders.append(configured_sender)
+    if PASSWORD_RESET_EMAIL_FROM_FALLBACK not in senders:
+        senders.append(PASSWORD_RESET_EMAIL_FROM_FALLBACK)
+
+    if not senders:
+        raise RuntimeError("No password reset sender is configured")
+
+    def _send_with_sender(from_address: str) -> None:
         try:
             import resend
         except ImportError as exc:
             raise RuntimeError("The resend package is not installed") from exc
 
         resend.api_key = RESEND_API_KEY
-        print(f"[resend] attempting send from {EMAIL_FROM} to {to_email}")
+        print(f"[resend] attempting password reset send from {from_address} to {to_email}")
         try:
             result = resend.Emails.send(
                 {
-                    "from": EMAIL_FROM,
+                    "from": from_address,
                     "to": [to_email],
                     "subject": "Reset your Trimly password",
                     "html": html,
                 }
             )
         except Exception as exc:
-            print(f"[resend] send failed: {exc}")
+            print(f"[resend] password reset send failed from {from_address}: {exc}")
             raise
 
         print(f"[resend] send result: {result}")
         if not result:
             raise RuntimeError("Resend returned an empty response")
 
-    await anyio.to_thread.run_sync(_send)
+    last_error: Exception | None = None
+    for from_address in senders:
+        try:
+            await anyio.to_thread.run_sync(_send_with_sender, from_address)
+            return
+        except Exception as exc:
+            last_error = exc
+            continue
+
+    if last_error:
+        raise last_error
+
+    raise RuntimeError("Unable to send password reset email")
