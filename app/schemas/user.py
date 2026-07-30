@@ -1,9 +1,23 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 
+from app.core.config import PASSWORD_MIN_LENGTH
 from app.models.user import UserRole
+
+
+def _validate_password_strength(value: str) -> str:
+    password = str(value or "")
+    if len(password) < PASSWORD_MIN_LENGTH:
+        raise ValueError(f"Password must be at least {PASSWORD_MIN_LENGTH} characters")
+    if not any(char.islower() for char in password):
+        raise ValueError("Password must include at least one lowercase letter")
+    if not any(char.isupper() for char in password):
+        raise ValueError("Password must include at least one uppercase letter")
+    if not any(char.isdigit() for char in password):
+        raise ValueError("Password must include at least one number")
+    return password
 
 
 class UserCreate(BaseModel):
@@ -14,6 +28,8 @@ class UserCreate(BaseModel):
     role: UserRole = UserRole.customer
     accepted_terms: bool
     referral_code: Optional[str] = None
+
+    _validate_password = field_validator("password")(_validate_password_strength)
 
 
 class UserResponse(BaseModel):
@@ -59,6 +75,8 @@ class AdminAccountCreate(BaseModel):
     password: str
     role: UserRole
 
+    _validate_password = field_validator("password")(_validate_password_strength)
+
 
 class AdminApprovalUpdate(BaseModel):
     approved: bool
@@ -89,6 +107,8 @@ class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
 
+    _validate_password = field_validator("new_password")(_validate_password_strength)
+
 
 class ResetPasswordResponse(BaseModel):
     message: str
@@ -106,6 +126,8 @@ class UserProfileUpdateRequest(BaseModel):
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str
+
+    _validate_password = field_validator("new_password")(_validate_password_strength)
 
 
 class ChangePasswordResponse(BaseModel):

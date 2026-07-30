@@ -8,7 +8,12 @@ from jose import ExpiredSignatureError, JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy import text
 
-from app.core.config import ACCESS_TOKEN_EXPIRE_MINUTES, ADMIN_SESSION_COOKIE_NAME, JWT_SECRET_KEY
+from app.core.config import (
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    ADMIN_SESSION_COOKIE_NAME,
+    JWT_SECRET_KEY,
+    USER_SESSION_COOKIE_NAME,
+)
 from app.db.session import SessionLocal
 from app.models.user_session import UserSession
 from app.models.user import User
@@ -16,10 +21,10 @@ from app.models.user import User
 ALGORITHM = "HS256"
 APP_SESSION_EPOCH = int(datetime.utcnow().timestamp())
 
-# Use pbkdf2_sha256 for new hashes to avoid the broken bcrypt backend in the
-# current runtime, while still verifying existing bcrypt hashes already stored.
-pwd_context = CryptContext(schemes=["pbkdf2_sha256", "bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+# Prefer Argon2 for all newly created hashes while still verifying legacy
+# PBKDF2 and bcrypt hashes already stored in production.
+pwd_context = CryptContext(schemes=["argon2", "pbkdf2_sha256", "bcrypt"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login", auto_error=False)
 
 
 def ensure_user_auth_schema(db) -> None:
@@ -28,6 +33,9 @@ def ensure_user_auth_schema(db) -> None:
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp_expires_at TIMESTAMP",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_token_hash VARCHAR",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_expires_at TIMESTAMP",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT TRUE",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_token_hash VARCHAR",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_expires_at TIMESTAMP",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS accepted_terms BOOLEAN DEFAULT FALSE",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_approved BOOLEAN DEFAULT FALSE",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_approved_at TIMESTAMP",
@@ -52,6 +60,10 @@ def hash_password(password: str):
 
 def verify_password(plain_password: str, hashed_password: str):
     return pwd_context.verify(plain_password, hashed_password)
+
+
+def verify_and_update_password(plain_password: str, hashed_password: str) -> tuple[bool, str | None]:
+    return pwd_context.verify_and_update(plain_password, hashed_password)
 
 
 def create_session_id() -> str:
@@ -135,10 +147,17 @@ def get_user_from_token(token: str, db) -> User:
     return user
 
 
-def get_current_user(token: str = Depends(oauth2_scheme)):
+def get_current_user(
+    token: str | None = Depends(oauth2_scheme),
+    session_token: str | None = Cookie(default=None, alias=USER_SESSION_COOKIE_NAME),
+    admin_token: str | None = Cookie(default=None, alias=ADMIN_SESSION_COOKIE_NAME),
+):
     db = SessionLocal()
     try:
-        user = get_user_from_token(token, db)
+        effective_token = token or session_token or admin_token
+        if not effective_token:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        user = get_user_from_token(effective_token, db)
         role_value = user.role.value if hasattr(user.role, "value") else str(user.role)
         if role_value in {"admin", "super_admin"} and not user.admin_approved:
             raise HTTPException(status_code=403, detail="Admin account awaiting super admin approval")

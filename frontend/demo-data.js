@@ -116,13 +116,14 @@ export function enterDemoMode(role = "customer") {
   localStorage.setItem(DEMO_FLAG_KEY, "true");
   localStorage.setItem(DEMO_ROLE_KEY, normalizedRole);
   localStorage.setItem(DEMO_STORE_KEY, JSON.stringify(store));
-  localStorage.setItem("trimly_token", `demo-token-${normalizedRole}`);
+  localStorage.setItem("trimly_session", "1");
   localStorage.setItem("trimly_role", normalizedRole);
   localStorage.setItem("trimly_email", store.users[normalizedRole].email);
   if (normalizedRole === "customer") localStorage.setItem("favourites", JSON.stringify([11, 13]));
 }
 export function clearDemoSession() {
   localStorage.removeItem(DEMO_FLAG_KEY); localStorage.removeItem(DEMO_ROLE_KEY); localStorage.removeItem(DEMO_STORE_KEY); localStorage.removeItem("favourites");
+  localStorage.removeItem("trimly_session");
 }
 
 export async function demoApiFetch(path, options = {}, needsAuth = false) {

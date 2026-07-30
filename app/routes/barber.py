@@ -1,14 +1,16 @@
 from datetime import datetime, time
+import logging
 from mimetypes import guess_type
 from pathlib import Path
 from typing import List, Optional
 from urllib.parse import urlencode
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session, joinedload
 
+from app.core.rate_limit import enforce_rate_limit
 from app.core.security import get_current_user, require_any_role, require_role
 from app.db.session import SessionLocal
 from app.models.barber_image import BarberImage
@@ -35,9 +37,28 @@ from app.services.notification_service import create_notifications, notify_admin
 from app.services.paystack_subaccount_service import ensure_barber_subaccount
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 BARBER_UPLOADS_DIR = BASE_DIR / "frontend" / "uploads" / "barbers"
 MAX_BARBER_IMAGE_BYTES = 8 * 1024 * 1024
+ALLOWED_IMAGE_SIGNATURES = {
+    "jpeg": {
+        "extensions": {".jpg", ".jpeg"},
+        "content_types": {"image/jpeg", "image/pjpeg"},
+    },
+    "png": {
+        "extensions": {".png"},
+        "content_types": {"image/png"},
+    },
+    "webp": {
+        "extensions": {".webp"},
+        "content_types": {"image/webp"},
+    },
+    "gif": {
+        "extensions": {".gif"},
+        "content_types": {"image/gif"},
+    },
+}
 
 DAY_ORDER = [
     "monday",
@@ -123,6 +144,18 @@ def _dashboard_link(section: str = "overview", **params) -> str:
         "records": "/static/barber-records.html",
     }.get(section, "/static/barber-dashboard.html")
     return f"{target}{f'?{query}' if query else ''}"
+
+
+def _detect_image_format(contents: bytes) -> Optional[str]:
+    if len(contents) >= 3 and contents.startswith(b"\xff\xd8\xff"):
+        return "jpeg"
+    if len(contents) >= 8 and contents.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "png"
+    if len(contents) >= 12 and contents[:4] == b"RIFF" and contents[8:12] == b"WEBP":
+        return "webp"
+    if len(contents) >= 6 and contents[:6] in {b"GIF87a", b"GIF89a"}:
+        return "gif"
+    return None
 
 
 def _parse_days(raw_days: Optional[str]) -> list[str]:
@@ -552,6 +585,7 @@ async def upload_barber_profile_image(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    enforce_rate_limit(None, action="barber-image-upload-user", limit=30, window_seconds=60 * 60, subject=str(current_user.id))
     if _normalize_role(current_user.role) != UserRole.barber.value:
         raise HTTPException(status_code=403, detail="Only barbers can upload images")
 
@@ -569,6 +603,22 @@ async def upload_barber_profile_image(
         raise HTTPException(status_code=400, detail="Uploaded image is empty")
     if len(contents) > MAX_BARBER_IMAGE_BYTES:
         raise HTTPException(status_code=400, detail="Image is too large. Keep uploads under 8MB.")
+
+    detected_format = _detect_image_format(contents)
+    if not detected_format:
+        raise HTTPException(status_code=400, detail="Uploaded file is not a supported image")
+
+    format_policy = ALLOWED_IMAGE_SIGNATURES[detected_format]
+    if extension not in format_policy["extensions"]:
+        raise HTTPException(status_code=400, detail="Image extension does not match the uploaded file")
+    if content_type not in format_policy["content_types"]:
+        logger.warning(
+            "Rejected barber image upload with mismatched content type for user_id=%s format=%s content_type=%s",
+            current_user.id,
+            detected_format,
+            content_type,
+        )
+        raise HTTPException(status_code=400, detail="Image content type does not match the uploaded file")
 
     stored_image = BarberImage(
         user_id=int(current_user.id),
@@ -1052,12 +1102,14 @@ def list_barbers_for_admin(
 
 @router.get("/barbers", response_model=List[BarberPublicResponse])
 def list_barbers(
+    request: Request,
     location: Optional[str] = Query(default=None),
     available: Optional[bool] = Query(default=None),
     min_price: Optional[float] = Query(default=None, ge=0),
     max_price: Optional[float] = Query(default=None, ge=0),
     db: Session = Depends(get_db),
 ):
+    enforce_rate_limit(request, action="barber-search", limit=120, window_seconds=5 * 60)
     query = db.query(Barber).options(joinedload(Barber.user), joinedload(Barber.reviews), joinedload(Barber.services)).filter(Barber.kyc_status == "verified")
 
     if location:

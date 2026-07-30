@@ -58,6 +58,7 @@ import {
   revokeSession,
   resolveDispute,
   resetPassword,
+  sessionLogout,
   sendBookingMessage,
   setAuthSession,
   submitBarberKyc,
@@ -66,7 +67,6 @@ import {
   updateBarberStatus,
   updateBookingStatus,
   verifyPayment,
-  verifyPaymentPublic,
   startGoogleCalendarConnect,
 } from "./api.js?v=20260724barberfix2";
 import {
@@ -914,6 +914,12 @@ function hydrateAuthActions() {
       if (["admin", "super_admin"].includes(role)) {
         try {
           await adminSessionLogout();
+        } catch (_error) {
+          // Clear local session even if cookie logout fails.
+        }
+      } else {
+        try {
+          await sessionLogout();
         } catch (_error) {
           // Clear local session even if cookie logout fails.
         }
@@ -8320,8 +8326,15 @@ async function initPaymentStatusPage() {
   try {
     if (token) {
       await verifyPayment(reference);
-    } else {
-      await verifyPaymentPublic(reference);
+    } else if (!confirmed) {
+      title.textContent = "Log in to confirm this payment";
+      copy.textContent =
+        "For security, payment rechecks now require you to sign in. If you just completed payment, use the button below.";
+      actions.innerHTML = `
+        <a class="btn btn-primary" href="/static/login.html?next=${encodeURIComponent(window.location.pathname + window.location.search)}">Log in to continue</a>
+        <a class="btn btn-ghost" href="/static/booking.html?barber=${barberId || ""}&booking=${bookingId || ""}">Open Booking</a>
+      `;
+      return;
     }
     title.textContent = "Payment successful";
     copy.textContent = "Your appointment has been paid for and secured successfully.";

@@ -179,10 +179,7 @@
               throw new Error(loginPayload.detail || loginPayload.message || "Admin login failed");
             }
 
-            localStorage.setItem("trimly_token", loginPayload.access_token || "");
-
             const meResponse = await fetchWithTimeout(`${API_BASE_URL}/me`, {
-                headers: { Authorization: "Bearer " + (loginPayload.access_token || "") },
                 credentials: "include",
               });
             const mePayload = await meResponse.json().catch(() => ({}));
@@ -192,10 +189,11 @@
 
             const role = String(mePayload.role || "").split(".").pop().toLowerCase();
             if (!["admin", "super_admin"].includes(role)) {
-              localStorage.removeItem("trimly_token");
+              localStorage.removeItem("trimly_session");
               throw new Error("This login is restricted to administrator accounts.");
             }
 
+            localStorage.setItem("trimly_session", "1");
             localStorage.setItem("trimly_role", role);
             localStorage.setItem("trimly_email", mePayload.logged_in_as || email);
             window.location.href = "/admin";

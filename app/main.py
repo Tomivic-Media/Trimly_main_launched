@@ -1,18 +1,25 @@
 from pathlib import Path
+import logging
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from sqlalchemy import text
 
 from app.core.config import (
+    ALLOWED_CORS_ORIGINS,
+    ALLOWED_CORS_ORIGIN_REGEX,
     BOOTSTRAP_SUPER_ADMIN_EMAIL,
     BOOTSTRAP_SUPER_ADMIN_NAME,
     BOOTSTRAP_SUPER_ADMIN_PASSWORD,
     BOOKINGS_REQUIRE_BARBER_APPROVAL,
+    IS_PRODUCTION,
+    SECURITY_CONFIGURATION_WARNINGS,
+    TRUSTED_HOSTS,
 )
 from app.core.security import get_admin_user_from_cookie, hash_password
 from app.db.session import Base, engine
@@ -37,22 +44,20 @@ from app.routes import review as review_routes
 
 load_dotenv()
 
-app = FastAPI()
+logger = logging.getLogger(__name__)
+
+app = FastAPI(docs_url=None if IS_PRODUCTION else "/docs", redoc_url=None if IS_PRODUCTION else "/redoc")
 BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BASE_DIR / "frontend"
 PROJECT_STATIC_DIR = BASE_DIR / "STATIC"
 PROTECTED_FRONTEND_DIR = BASE_DIR / "protected_frontend"
 
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=TRUSTED_HOSTS)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://trimly.com.ng",
-        "https://www.trimly.com.ng",
-        "https://app.trimly.com.ng",
-        "https://api.trimly.com.ng",
-    ],
-    allow_origin_regex=r"https://.*\.vercel\.app",
+    allow_origins=ALLOWED_CORS_ORIGINS,
+    allow_origin_regex=ALLOWED_CORS_ORIGIN_REGEX or None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -78,6 +83,46 @@ class HtmlNoCacheMiddleware(BaseHTTPMiddleware):
 
 
 app.add_middleware(HtmlNoCacheMiddleware)
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if IS_PRODUCTION:
+            forwarded_proto = request.headers.get("x-forwarded-proto", "").split(",")[0].strip().lower()
+            if forwarded_proto == "http":
+                secure_url = str(request.url).replace("http://", "https://", 1)
+                return RedirectResponse(url=secure_url, status_code=307)
+
+        response = await call_next(request)
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = (
+            "accelerometer=(), autoplay=(), camera=(), display-capture=(), "
+            "geolocation=(), gyroscope=(), microphone=(), payment=(), usb=()"
+        )
+        response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "base-uri 'self'; "
+            "object-src 'none'; "
+            "frame-ancestors 'none'; "
+            "img-src 'self' data: blob: https:; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' data: https://fonts.gstatic.com; "
+            "script-src 'self' 'unsafe-inline'; "
+            "connect-src 'self' https://api.trimly.com.ng https://*.vercel.app "
+            "http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:* "
+            "wss://api.trimly.com.ng; "
+            "form-action 'self'; "
+            "manifest-src 'self';"
+        )
+        if IS_PRODUCTION:
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
+        return response
+
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 def ensure_runtime_schema() -> None:
@@ -155,6 +200,9 @@ def ensure_runtime_schema() -> None:
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp_expires_at TIMESTAMP",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_token_hash VARCHAR",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_expires_at TIMESTAMP",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT TRUE",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_token_hash VARCHAR",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_expires_at TIMESTAMP",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS address_line VARCHAR",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS address_area VARCHAR",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS address_landmark VARCHAR",
@@ -174,6 +222,7 @@ def ensure_runtime_schema() -> None:
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS loyalty_points INTEGER DEFAULT 0",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_reward_granted BOOLEAN DEFAULT FALSE",
         "UPDATE users SET accepted_terms = FALSE WHERE accepted_terms IS NULL",
+        "UPDATE users SET email_verified = TRUE WHERE email_verified IS NULL",
         "UPDATE users SET admin_approved = FALSE WHERE admin_approved IS NULL",
         "UPDATE users SET loyalty_points = 0 WHERE loyalty_points IS NULL",
         "UPDATE users SET referral_reward_granted = FALSE WHERE referral_reward_granted IS NULL",
@@ -237,6 +286,8 @@ def ensure_bootstrap_super_admin() -> None:
             if not existing.full_name and BOOTSTRAP_SUPER_ADMIN_NAME:
                 existing.full_name = BOOTSTRAP_SUPER_ADMIN_NAME
             existing.admin_approved = True
+            existing.email_verified = True
+            existing.is_active = True
             existing.accepted_terms = True
             db.commit()
             return
@@ -246,6 +297,8 @@ def ensure_bootstrap_super_admin() -> None:
             email=BOOTSTRAP_SUPER_ADMIN_EMAIL,
             hashed_password=hash_password(BOOTSTRAP_SUPER_ADMIN_PASSWORD),
             role=UserRole.super_admin,
+            is_active=True,
+            email_verified=True,
             accepted_terms=True,
             admin_approved=True,
         )
@@ -297,6 +350,9 @@ ensure_bootstrap_super_admin()
 migrate_legacy_pending_bookings()
 backfill_legacy_barber_card_images()
 migrate_legacy_barber_image_urls()
+
+for warning in SECURITY_CONFIGURATION_WARNINGS:
+    logger.warning("Security configuration warning: %s", warning)
 
 app.include_router(auth.router)
 app.include_router(account_routes.router)

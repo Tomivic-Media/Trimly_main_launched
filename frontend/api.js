@@ -49,6 +49,7 @@ function resolveApiBaseCandidates() {
 }
 
 const API_BASE_CANDIDATES = resolveApiBaseCandidates();
+const AUTH_SESSION_KEY = "trimly_session";
 
 function isHtmlLikeResponse(response) {
   const contentType = String(response?.headers?.get?.("content-type") || "").toLowerCase();
@@ -221,12 +222,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = API_REQUEST_TIMEO
 }
 
 function getToken() {
-  return localStorage.getItem("trimly_token") || "";
-}
-
-function authHeaders() {
-  const token = getToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  return localStorage.getItem(AUTH_SESSION_KEY) || "";
 }
 
 async function apiFetch(path, options = {}, needsAuth = false) {
@@ -237,10 +233,6 @@ async function apiFetch(path, options = {}, needsAuth = false) {
   const headers = {
     ...(options.headers || {}),
   };
-
-  if (needsAuth) {
-    Object.assign(headers, authHeaders());
-  }
 
   const requestOptions = {
     ...options,
@@ -277,8 +269,9 @@ async function apiFetch(path, options = {}, needsAuth = false) {
   return payload;
 }
 
-function setAuthSession(token, role = "", email = "") {
-  localStorage.setItem("trimly_token", token);
+function setAuthSession(_token = "", role = "", email = "") {
+  localStorage.setItem(AUTH_SESSION_KEY, "1");
+  localStorage.removeItem("trimly_token");
   if (role) {
     localStorage.setItem("trimly_role", normalizeRole(role));
   }
@@ -288,6 +281,7 @@ function setAuthSession(token, role = "", email = "") {
 }
 
 function clearAuthSession() {
+  localStorage.removeItem(AUTH_SESSION_KEY);
   localStorage.removeItem("trimly_token");
   localStorage.removeItem("trimly_role");
   localStorage.removeItem("trimly_email");
@@ -357,6 +351,13 @@ async function adminSessionLogin(email, password) {
 
 async function adminSessionLogout() {
   return apiFetch("/admin/session-logout", {
+    method: "POST",
+    credentials: "include",
+  });
+}
+
+async function sessionLogout() {
+  return apiFetch("/session/logout", {
     method: "POST",
     credentials: "include",
   });
@@ -661,10 +662,6 @@ async function verifyPayment(reference) {
   return apiFetch(`/payment/verify/${encodeURIComponent(reference)}`, { method: "GET" }, true);
 }
 
-async function verifyPaymentPublic(reference) {
-  return apiFetch(`/payment/verify-public/${encodeURIComponent(reference)}`, { method: "GET" });
-}
-
 async function getBookings() {
   return apiFetch("/bookings", { method: "GET" }, true);
 }
@@ -791,6 +788,7 @@ export {
   API_BASE_URL,
   adminSessionLogin,
   adminSessionLogout,
+  sessionLogout,
   clearAuthSession,
   createAdminUser,
   createDispute,
@@ -855,7 +853,6 @@ export {
   updateBarberStatus,
   updateBookingStatus,
   verifyPayment,
-  verifyPaymentPublic,
   adminRefundBooking,
   startGoogleCalendarConnect,
   disconnectGoogleCalendar,

@@ -1082,10 +1082,7 @@ def verify_payment(
 
 @router.get("/payment/verify-public/{reference}")
 def verify_payment_public(reference: str, db: Session = Depends(get_db)):
-    booking = _booking_query(db).filter(Booking.payment_reference == reference).first()
-    if not booking:
-        raise HTTPException(status_code=404, detail="Booking not found")
-    return _verify_paystack_payment_reference(db, booking, reference)
+    raise HTTPException(status_code=403, detail="Please sign in to verify this payment.")
 
 
 @router.get("/payment-return")
