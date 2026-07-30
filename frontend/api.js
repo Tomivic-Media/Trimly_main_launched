@@ -32,14 +32,17 @@ function resolveApiBaseCandidates() {
     return [origin];
   }
 
+  if (hostname === "api.trimly.com.ng") {
+    return [origin];
+  }
+
   if (
     hostname === "trimly.com.ng" ||
     hostname === "www.trimly.com.ng" ||
     hostname === "app.trimly.com.ng" ||
-    hostname === "api.trimly.com.ng" ||
     hostname.endsWith(".trimly.com.ng")
   ) {
-    return uniqueApiBases([origin, "https://api.trimly.com.ng"]);
+    return ["https://api.trimly.com.ng"];
   }
 
   return ["https://api.trimly.com.ng"];
@@ -58,9 +61,14 @@ function shouldRetryAlternateApiBase(response, baseUrl, needsAuth = false) {
 
   const normalizedBase = String(baseUrl || "").replace(/\/+$/, "");
   const currentOrigin = String(window.location.origin || "").replace(/\/+$/, "");
+  const contentType = String(response?.headers?.get?.("content-type") || "").toLowerCase();
   if (!normalizedBase || normalizedBase !== currentOrigin) return false;
 
   if (response?.ok && isHtmlLikeResponse(response)) {
+    return true;
+  }
+
+  if (response?.ok && !contentType.includes("application/json")) {
     return true;
   }
 
@@ -68,8 +76,26 @@ function shouldRetryAlternateApiBase(response, baseUrl, needsAuth = false) {
     return false;
   }
 
-  const contentType = String(response?.headers?.get?.("content-type") || "").toLowerCase();
-  return isHtmlLikeResponse(response) || !contentType;
+  return isHtmlLikeResponse(response) || !contentType || !contentType.includes("application/json");
+}
+
+function normalizeApiErrorDetail(detail, status = 0) {
+  const rawText = String(detail || "").trim();
+  if (!rawText) return `Request failed (${status || "unknown"})`;
+
+  const compactText = rawText.replace(/\s+/g, " ").trim();
+  const lowered = compactText.toLowerCase();
+
+  if (
+    lowered.includes("the page could not be found") ||
+    lowered.includes("not_found") ||
+    lowered.includes("<!doctype html") ||
+    lowered.includes("<html")
+  ) {
+    return "Trimly services are temporarily unavailable. Please try again shortly.";
+  }
+
+  return compactText;
 }
 
 async function requestWithApiFallback(path, options = {}, needsAuth = false) {
@@ -234,9 +260,11 @@ async function apiFetch(path, options = {}, needsAuth = false) {
   }
 
   if (!response.ok) {
-    const detail =
+    const detail = normalizeApiErrorDetail(
       (payload && (payload.detail || payload.message)) ||
-      `Request failed (${response.status})`;
+        `Request failed (${response.status})`,
+      response.status
+    );
 
     if (response.status === 401) {
       clearAuthSession();

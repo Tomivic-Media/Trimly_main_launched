@@ -1675,7 +1675,7 @@ async function initLandingPage() {
     featuredEl.innerHTML = featured.map((barber) => barberCardTemplate(barber, "Book Now")).join("");
     bindFavoriteButtons(featuredEl);
   } catch (error) {
-    featuredEl.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
+    featuredEl.innerHTML = `<p class="error">${escapeHtml(getFriendlyTrimlyErrorMessage(error))}</p>`;
   }
 }
 
@@ -1722,7 +1722,7 @@ async function initBarbersPage() {
       barbersGrid.innerHTML = mapped.map((barber) => barberCardTemplate(barber, "View Profile")).join("");
       bindFavoriteButtons(barbersGrid);
     } catch (error) {
-      barbersGrid.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
+      barbersGrid.innerHTML = `<p class="error">${escapeHtml(getFriendlyTrimlyErrorMessage(error))}</p>`;
     }
   }
 
@@ -1952,7 +1952,7 @@ async function initBarberProfilePage() {
     `;
     bindCopyLinkButtons(profileView);
   } catch (error) {
-    profileView.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
+    profileView.innerHTML = `<p class="error">${escapeHtml(getFriendlyTrimlyErrorMessage(error, "This barber profile is unavailable right now. Please try again shortly."))}</p>`;
   }
 }
 
@@ -4713,6 +4713,10 @@ function hydrateSettingsPanel() {
   if (disputesCard) {
     disputesCard.dataset.roleHidden = String(!["customer", "barber"].includes(state.currentRole));
   }
+  if (profilePreviewLink) {
+    profilePreviewLink.href = "/static/setup-barber.html";
+    profilePreviewLink.textContent = "Complete Profile Setup";
+  }
   initSettingsTabs();
 
   if (state.currentRole === "barber" && state.barberProfile) {
@@ -4742,6 +4746,7 @@ function hydrateSettingsPanel() {
     }
     if (profilePreviewLink) {
       profilePreviewLink.href = `/static/barber-profile.html?id=${Number(profile.id)}`;
+      profilePreviewLink.textContent = "Preview Public Profile";
     }
   }
 
@@ -7981,6 +7986,26 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+function getFriendlyTrimlyErrorMessage(
+  error,
+  fallback = "Trimly services are temporarily unavailable. Please try again shortly."
+) {
+  const message = String(error?.message || "").trim();
+  if (!message) return fallback;
+
+  const lowered = message.toLowerCase();
+  if (
+    lowered.includes("the page could not be found") ||
+    lowered.includes("not_found") ||
+    lowered.includes("<!doctype html") ||
+    lowered.includes("<html")
+  ) {
+    return fallback;
+  }
+
+  return message;
+}
+
 function toast(message, isError = false) {
   const toastEl = document.getElementById("toast");
   if (!toastEl) return;
@@ -8184,7 +8209,10 @@ async function initResetPasswordPage() {
       notice.textContent = response.message || "If an account exists for that email, a reset link has been sent.";
       notice.className = "notice success";
     } catch (error) {
-      notice.textContent = error.message;
+      notice.textContent = getFriendlyTrimlyErrorMessage(
+        error,
+        "We could not send the reset link right now. Please try again shortly."
+      );
       notice.className = "notice error";
     } finally {
       submitBtn.disabled = false;
@@ -8225,7 +8253,10 @@ async function initResetPasswordPage() {
         window.location.href = "/static/login.html";
       }, 900);
     } catch (error) {
-      notice.textContent = error.message;
+      notice.textContent = getFriendlyTrimlyErrorMessage(
+        error,
+        "We could not reset your password right now. Please try the link again shortly."
+      );
       notice.className = "notice error";
     } finally {
       submitBtn.disabled = false;
