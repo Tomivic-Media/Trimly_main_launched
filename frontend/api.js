@@ -81,7 +81,39 @@ function shouldRetryAlternateApiBase(response, baseUrl, needsAuth = false) {
 }
 
 function normalizeApiErrorDetail(detail, status = 0) {
-  const rawText = String(detail || "").trim();
+  const toMessage = (value) => {
+    if (Array.isArray(value)) {
+      const parts = value
+        .map((entry) => toMessage(entry))
+        .filter(Boolean);
+      return parts.join(". ");
+    }
+
+    if (value && typeof value === "object") {
+      if (typeof value.msg === "string" && value.msg.trim()) {
+        if (Array.isArray(value.loc) && value.loc.length) {
+          const label = value.loc
+            .filter((segment) => segment !== "body")
+            .map((segment) => String(segment).replace(/_/g, " "))
+            .join(" ");
+          return label ? `${label}: ${value.msg.trim()}` : value.msg.trim();
+        }
+        return value.msg.trim();
+      }
+
+      if (typeof value.detail === "string" && value.detail.trim()) {
+        return value.detail.trim();
+      }
+
+      if (typeof value.message === "string" && value.message.trim()) {
+        return value.message.trim();
+      }
+    }
+
+    return String(value || "").trim();
+  };
+
+  const rawText = toMessage(detail);
   if (!rawText) return `Request failed (${status || "unknown"})`;
 
   const compactText = rawText.replace(/\s+/g, " ").trim();
