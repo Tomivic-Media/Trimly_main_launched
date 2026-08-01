@@ -140,6 +140,24 @@ a {
   overflow-wrap: anywhere;
 }
 
+.notice-link-button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font-weight: 600;
+  padding: 0;
+  margin-left: 6px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.notice-link-button:hover,
+.notice-link-button:focus-visible {
+  color: var(--primary-strong);
+}
+
 .site-header {
   position: sticky;
   top: 0;

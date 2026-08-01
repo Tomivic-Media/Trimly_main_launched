@@ -371,6 +371,14 @@ async function forgotPassword(email) {
   });
 }
 
+async function resendVerificationEmail(email) {
+  return apiFetch("/auth/resend-verification", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+}
+
 async function resetPassword(token, newPassword) {
   return apiFetch("/auth/reset-password", {
     method: "POST",
@@ -440,6 +448,10 @@ async function startGoogleCalendarConnect() {
 
 async function disconnectGoogleCalendar() {
   return apiFetch("/integrations/google-calendar/connection", { method: "DELETE" }, true);
+}
+
+async function getXeelaaEmbedConfig() {
+  return apiFetch("/integrations/xeelaa/embed-config", { method: "GET" }, true);
 }
 
 async function changeCurrentUserPassword(data) {
@@ -797,6 +809,7 @@ export {
   createBookingReview,
   cancelBooking,
   forgotPassword,
+  resendVerificationEmail,
   getAcceptableUsePolicy,
   getAdminUsers,
   getAdminBarbers,
@@ -814,6 +827,7 @@ export {
   getCustomerInsights,
   getCurrentUser,
   getGoogleCalendarStatus,
+  getXeelaaEmbedConfig,
   getMySessions,
   getNotifications,
   getMyBarberKyc,

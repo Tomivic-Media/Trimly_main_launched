@@ -143,6 +143,20 @@
           }
         }
 
+        async function resendVerification(email) {
+          const response = await fetchWithTimeout(`${API_BASE_URL}/auth/resend-verification`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ email }),
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(payload.detail || payload.message || "Unable to send verification email right now.");
+          }
+          return payload;
+        }
+
         const presetEmail = scrubCredentialParams();
         document.addEventListener("DOMContentLoaded", function () {
           const form = document.getElementById("loginForm");
@@ -207,8 +221,27 @@
               (role === "barber" ? "/static/barber-dashboard.html" : "/static/dashboard.html");
             window.location.href = next;
           } catch (error) {
-            notice.textContent = error.message || "Login failed";
-            notice.className = "notice error";
+            const message = String(error?.message || "Login failed");
+            if (message.toLowerCase().includes("verify your email")) {
+              notice.innerHTML = `${message} <button type="button" class="notice-link-button" id="resendVerificationBtn">Resend verification email</button>`;
+              notice.className = "notice error";
+              const resendBtn = document.getElementById("resendVerificationBtn");
+              resendBtn?.addEventListener("click", async function () {
+                resendBtn.disabled = true;
+                resendBtn.textContent = "Sending...";
+                try {
+                  const response = await resendVerification(email);
+                  notice.textContent = response.message || "Verification email sent. Please check your inbox.";
+                  notice.className = "notice success";
+                } catch (resendError) {
+                  notice.textContent = resendError.message || "Unable to send verification email right now.";
+                  notice.className = "notice error";
+                }
+              });
+            } else {
+              notice.textContent = message;
+              notice.className = "notice error";
+            }
           } finally {
             submitBtn.disabled = false;
             submitBtn.textContent = "Login";

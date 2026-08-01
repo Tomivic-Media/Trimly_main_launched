@@ -11,6 +11,7 @@ import {
   createBooking,
   createBookingReview,
   forgotPassword,
+  resendVerificationEmail,
   getAcceptableUsePolicy,
   getAdminBarbers,
   getAdminPayoutReport,
@@ -2466,8 +2467,27 @@ function initLoginPage() {
 
       window.location.href = target;
     } catch (error) {
-      notice.textContent = error.message;
-      notice.className = "notice error";
+      const message = String(error?.message || "Login failed");
+      if (message.toLowerCase().includes("verify your email")) {
+        notice.innerHTML = `${message} <button type="button" class="notice-link-button" id="resendVerificationBtn">Resend verification email</button>`;
+        notice.className = "notice error";
+        const resendBtn = document.getElementById("resendVerificationBtn");
+        resendBtn?.addEventListener("click", async () => {
+          resendBtn.disabled = true;
+          resendBtn.textContent = "Sending...";
+          try {
+            const response = await resendVerificationEmail(email);
+            notice.textContent = response?.message || "Verification email sent. Please check your inbox.";
+            notice.className = "notice success";
+          } catch (resendError) {
+            notice.textContent = String(resendError?.message || "Unable to send verification email right now.");
+            notice.className = "notice error";
+          }
+        });
+      } else {
+        notice.textContent = message;
+        notice.className = "notice error";
+      }
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = "Login";
@@ -2717,7 +2737,7 @@ function initRegisterPage() {
 
     try {
       await registerUser(payload);
-      notice.textContent = "Registration successful. Please login.";
+      notice.textContent = "Registration successful. Please check your email to verify your account before signing in.";
       notice.className = "notice success";
       setTimeout(() => {
         window.location.href = `/static/login.html?email=${encodeURIComponent(payload.email)}`;

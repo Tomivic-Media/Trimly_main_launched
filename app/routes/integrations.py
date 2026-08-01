@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
+from app.core.rate_limit import enforce_rate_limit
 from app.core.security import get_current_user
 from app.db.session import SessionLocal, get_db
 from app.models.user import User
@@ -17,6 +18,10 @@ from app.services.google_calendar_service import (
     is_google_calendar_configured,
     store_google_calendar_tokens,
     sync_connected_user_google_calendar_bookings,
+)
+from app.services.xeelaa_embed_service import (
+    build_xeelaa_embed_payload,
+    is_xeelaa_embed_configured,
 )
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
@@ -86,3 +91,17 @@ def remove_google_calendar_connection(
     db.add(user)
     db.commit()
     return {"message": "Google Calendar disconnected."}
+
+
+@router.get("/xeelaa/embed-config")
+def get_xeelaa_embed_config(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+):
+    enforce_rate_limit(request, action="xeelaa-embed-config", limit=30, window_seconds=5 * 60)
+    if not is_xeelaa_embed_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Xeelaa embed is not configured on Trimly yet.",
+        )
+    return build_xeelaa_embed_payload(current_user)

@@ -78,6 +78,11 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 PUBLIC_API_URL = os.getenv("PUBLIC_API_URL", "https://api.trimly.com.ng").rstrip("/")
 ADMIN_SESSION_COOKIE_NAME = os.getenv("ADMIN_SESSION_COOKIE_NAME", "trimly_admin_session")
 USER_SESSION_COOKIE_NAME = os.getenv("USER_SESSION_COOKIE_NAME", "trimly_session")
+XEELAA_WIDGET_BASE_URL = os.getenv("XEELAA_WIDGET_BASE_URL", "https://xeelaa.com").rstrip("/")
+XEELAA_PUBLIC_TOKEN = os.getenv("XEELAA_PUBLIC_TOKEN", "").strip()
+XEELAA_EMBED_SIGNING_SECRET = os.getenv("XEELAA_EMBED_SIGNING_SECRET", "").strip()
+XEELAA_EMBED_TOKEN_TTL_SECONDS = int(os.getenv("XEELAA_EMBED_TOKEN_TTL_SECONDS", "300"))
+XEELAA_EMBED_SHARE_EMAIL = _env_bool("XEELAA_EMBED_SHARE_EMAIL", False)
 SESSION_COOKIE_SECURE = _env_bool("SESSION_COOKIE_SECURE", IS_PRODUCTION)
 SESSION_COOKIE_SAMESITE = os.getenv(
     "SESSION_COOKIE_SAMESITE",
@@ -146,6 +151,10 @@ EMAIL_VERIFICATION_FAILURE_URL = os.getenv(
 
 
 BOOKINGS_REQUIRE_BARBER_APPROVAL = _env_bool("BOOKINGS_REQUIRE_BARBER_APPROVAL", False)
+
+
+def xeelaa_embed_is_configured() -> bool:
+    return bool(XEELAA_PUBLIC_TOKEN and XEELAA_EMBED_SIGNING_SECRET)
 
 
 def has_strong_jwt_secret() -> bool:

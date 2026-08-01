@@ -158,11 +158,14 @@ def _set_auth_cookie(response: Response, token: str) -> None:
     )
 
 
-async def _issue_email_verification(user: User, db: Session) -> None:
+async def _issue_email_verification(user: User, db: Session, *, commit: bool = True) -> None:
     raw_token = secrets.token_urlsafe(32)
     user.email_verification_token_hash = _hash_one_time_token(raw_token)
     user.email_verification_expires_at = datetime.utcnow() + timedelta(hours=EMAIL_VERIFICATION_TOKEN_EXPIRY_HOURS)
-    db.commit()
+    if commit:
+        db.commit()
+    else:
+        db.flush()
     await send_email_verification_email(user.email, raw_token)
 
 
@@ -209,18 +212,21 @@ async def register_user(request: Request, user: UserCreate, db: Session = Depend
     )
 
     db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    db.flush()
 
     if EMAIL_VERIFICATION_REQUIRED:
         try:
-            await _issue_email_verification(new_user, db)
+            await _issue_email_verification(new_user, db, commit=False)
         except Exception as exc:
-            logger.error("Email verification send failed for user_id=%s: %s", new_user.id, type(exc).__name__)
+            db.rollback()
+            logger.error("Email verification send failed for new registration email=%s: %s", new_user.email, type(exc).__name__)
             raise HTTPException(
                 status_code=500,
                 detail="We could not send your verification email right now. Please try again shortly.",
             ) from exc
+
+    db.commit()
+    db.refresh(new_user)
 
     role_value = new_user.role.value if hasattr(new_user.role, "value") else str(new_user.role)
     try:
