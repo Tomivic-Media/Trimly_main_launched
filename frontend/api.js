@@ -631,6 +631,18 @@ async function updateBarberStatus(isAvailable) {
   );
 }
 
+async function deleteCurrentAccount(data) {
+  return apiFetch(
+    "/me/delete-account",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    },
+    true
+  );
+}
+
 async function getBarberServices() {
   return apiFetch("/barber/services", { method: "GET" }, true);
 }
@@ -868,6 +880,7 @@ export {
   getReferralSummary,
   updateCurrentUserProfile,
   changeCurrentUserPassword,
+  deleteCurrentAccount,
   updateBarberProfile,
   createBarberService,
   updateBarberService,

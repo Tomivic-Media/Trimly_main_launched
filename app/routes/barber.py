@@ -184,6 +184,19 @@ def _serialize_portfolio(urls: list[str]) -> str:
     return ",".join([str(url).strip() for url in urls if str(url).strip()])
 
 
+def _count_unique_profile_images(
+    profile_image_url: str | None,
+    cover_image_url: str | None,
+    portfolio_urls: list[str],
+) -> int:
+    unique_urls = {
+        str(value or "").strip()
+        for value in [profile_image_url, cover_image_url, *(portfolio_urls or [])]
+        if str(value or "").strip()
+    }
+    return len(unique_urls)
+
+
 def _service_name_key(value: str | None) -> str:
     return str(value or "").strip().lower()
 
@@ -559,6 +572,15 @@ def update_my_barber_profile(
     db: Session = Depends(get_db),
 ):
     barber = _require_barber_profile(current_user, db)
+    profile_image_url = payload.profile_image_url.strip() if payload.profile_image_url else None
+    cover_image_url = payload.cover_image_url.strip() if payload.cover_image_url else None
+    portfolio_urls = [str(url or "").strip() for url in payload.portfolio_image_urls if str(url or "").strip()]
+
+    if _count_unique_profile_images(profile_image_url, cover_image_url, portfolio_urls) < 2:
+        raise HTTPException(
+            status_code=400,
+            detail="Keep at least 2 profile pictures on your Trimly profile before saving changes",
+        )
 
     barber.shop_name = payload.shop_name.strip()
     barber.location = payload.location.strip()
@@ -569,9 +591,9 @@ def update_my_barber_profile(
     barber.beard_trim_price = payload.beard_trim_price
     barber.other_services = payload.other_services.strip() if payload.other_services else None
     barber.barber_name = payload.barber_name.strip() if payload.barber_name else current_user.full_name
-    barber.profile_image_url = payload.profile_image_url.strip() if payload.profile_image_url else None
-    barber.cover_image_url = payload.cover_image_url.strip() if payload.cover_image_url else None
-    barber.portfolio_image_urls = _serialize_portfolio(payload.portfolio_image_urls)
+    barber.profile_image_url = profile_image_url
+    barber.cover_image_url = cover_image_url
+    barber.portfolio_image_urls = _serialize_portfolio(portfolio_urls)
 
     _sync_default_barber_services(barber, db)
     db.commit()

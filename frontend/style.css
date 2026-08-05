@@ -3787,6 +3787,11 @@ label {
   gap: 14px;
 }
 
+.settings-danger-card {
+  border-color: rgba(239, 68, 68, 0.22);
+  background: linear-gradient(145deg, rgba(255, 250, 242, 0.96), rgba(255, 242, 240, 0.92));
+}
+
 .settings-card-span-2 {
   grid-column: 1 / -1;
 }
@@ -3803,6 +3808,25 @@ label {
 
 .settings-profile-form {
   gap: 16px;
+}
+
+.settings-inline-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.btn-danger-soft {
+  border-color: rgba(239, 68, 68, 0.28);
+  background: rgba(239, 68, 68, 0.08);
+  color: #9f3b3b;
+}
+
+.btn-danger-soft:hover,
+.btn-danger-soft:focus-visible {
+  border-color: rgba(239, 68, 68, 0.42);
+  background: rgba(239, 68, 68, 0.14);
+  color: #8f2f2f;
 }
 
 .settings-upload-grid {

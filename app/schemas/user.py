@@ -132,3 +132,12 @@ class ChangePasswordRequest(BaseModel):
 
 class ChangePasswordResponse(BaseModel):
     message: str
+
+
+class DeleteAccountRequest(BaseModel):
+    current_password: str
+    confirmation_text: str
+
+
+class DeleteAccountResponse(BaseModel):
+    message: str

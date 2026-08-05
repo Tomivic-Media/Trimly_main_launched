@@ -41,6 +41,7 @@ import {
   deactivateBarberService,
   disconnectGoogleCalendar,
   deleteNotification,
+  deleteCurrentAccount,
   updateBarberProfile,
   updateBarberService,
   getGoogleCalendarStatus,
@@ -4647,6 +4648,8 @@ function hydrateSettingsPanel() {
   const preferencesNotice = document.getElementById("settingsPreferencesNotice");
   const passwordForm = document.getElementById("settingsPasswordForm");
   const passwordNotice = document.getElementById("settingsPasswordNotice");
+  const deleteAccountForm = document.getElementById("deleteAccountForm");
+  const deleteAccountNotice = document.getElementById("deleteAccountNotice");
   const barberShortcuts = document.getElementById("barberSettingsShortcuts");
   const barberBusinessCard = document.getElementById("settingsBarberBusinessCard");
   const barberServicesCard = document.getElementById("settingsBarberServicesCard");
@@ -5225,6 +5228,60 @@ function hydrateSettingsPanel() {
       });
     }
   }
+
+  if (deleteAccountForm) {
+    deleteAccountForm.reset();
+    if (deleteAccountForm.dataset.bound !== "true") {
+      deleteAccountForm.dataset.bound = "true";
+      deleteAccountForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const submitBtn = deleteAccountForm.querySelector("button[type='submit']");
+        const currentPassword = String(deleteAccountForm.elements.current_password.value || "");
+        const confirmationText = String(deleteAccountForm.elements.confirmation_text.value || "").trim();
+
+        deleteAccountNotice.textContent = "";
+        deleteAccountNotice.className = "notice";
+
+        if (!currentPassword) {
+          deleteAccountNotice.textContent = "Enter your current password to continue.";
+          deleteAccountNotice.className = "notice error";
+          return;
+        }
+
+        if (confirmationText.toUpperCase() !== "DELETE") {
+          deleteAccountNotice.textContent = "Type DELETE exactly to confirm account removal.";
+          deleteAccountNotice.className = "notice error";
+          return;
+        }
+
+        if (!window.confirm("Delete this Trimly account permanently? This cannot be undone.")) {
+          return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Deleting...";
+
+        try {
+          const response = await deleteCurrentAccount({
+            current_password: currentPassword,
+            confirmation_text: confirmationText,
+          });
+          deleteAccountNotice.textContent = response?.message || "Your account has been deleted.";
+          deleteAccountNotice.className = "notice success";
+          clearAuthSession();
+          window.setTimeout(() => {
+            window.location.href = "/static/login.html?deleted=1";
+          }, 300);
+        } catch (error) {
+          deleteAccountNotice.textContent = error.message;
+          deleteAccountNotice.className = "notice error";
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Permanently Delete Account";
+        }
+      });
+    }
+  }
 }
 
 function hydrateBarberNotificationPreferences(soundToggle, highlightToggle) {
@@ -5283,6 +5340,9 @@ function hydrateBarberProfileEditor(
   }
 
   const profile = state.barberProfile;
+  const removeProfileBtn = document.getElementById("removeBarberProfileImageBtn");
+  const removeCoverBtn = document.getElementById("removeBarberCoverImageBtn");
+  const clearAllImagesBtn = document.getElementById("clearAllBarberImagesBtn");
   state.barberPortfolioDraft = Array.isArray(profile.portfolio_image_urls)
     ? [...profile.portfolio_image_urls]
     : [];
@@ -5318,6 +5378,46 @@ function hydrateBarberProfileEditor(
       );
   renderBarberPortfolioDraft(portfolioList, form.elements.cover_image_url?.value || "");
 
+  const refreshBarberStudioDraft = () => {
+    renderBarberProfileImagePreview(
+      profileImagePreview,
+      form.elements.profile_image_url.value,
+      "No profile photo uploaded yet. Add a clear face photo so customers can recognize the account owner.",
+      "This profile photo is ready. Upload another one anytime if you want to change it.",
+      "This profile photo entry is not usable yet. Please upload it again."
+    );
+    renderBarberProfileImagePreview(
+      coverImagePreview,
+      form.elements.cover_image_url?.value || "",
+      "No barber card photo uploaded yet. Add a separate haircut or shop image for your public card.",
+      "This barber card photo is ready. Upload another one anytime if you want to change it.",
+      "This barber card photo entry is not usable yet. Please upload it again."
+    );
+    renderBarberPortfolioDraft(portfolioList, form.elements.cover_image_url?.value || "");
+  };
+
+  const publishBarberImageCountNotice = (mode = "soft") => {
+    const uniqueCount = countUniqueBarberProfileImages(
+      form.elements.profile_image_url.value,
+      form.elements.cover_image_url?.value || "",
+      state.barberPortfolioDraft
+    );
+    if (uniqueCount >= 2) {
+      return true;
+    }
+    if (mode === "hard") {
+      notice.textContent = "Keep at least 2 different pictures on your Trimly profile before saving changes.";
+      notice.className = "notice error";
+      return false;
+    }
+    const hasAnyImage = uniqueCount > 0;
+    notice.textContent = hasAnyImage
+      ? "Add at least one more picture before saving so your profile still has 2 images."
+      : "All current pictures are cleared. Upload at least 2 images before saving your profile.";
+    notice.className = "notice";
+    return false;
+  };
+
   const profileUploadInputs = [profileImageCameraInput, profileImageFileInput].filter(Boolean);
   profileUploadInputs.forEach((input) => {
     if (!input || input.dataset.bound === "true") return;
@@ -5337,13 +5437,7 @@ function hydrateBarberProfileEditor(
         const imageUrl = String(response?.url || "").trim();
         if (!imageUrl) throw new Error("Image upload failed");
         form.elements.profile_image_url.value = imageUrl;
-        renderBarberProfileImagePreview(
-          profileImagePreview,
-          imageUrl,
-          "No profile photo uploaded yet. Add a clear face photo so customers can recognize the account owner.",
-          "This profile photo is ready and will show the barber's face on the public profile.",
-          "This profile photo entry is not usable yet. Please upload it again."
-        );
+        refreshBarberStudioDraft();
         notice.textContent = "Profile photo uploaded. Save your profile to publish it.";
         notice.className = "notice success";
       } catch (error) {
@@ -5377,14 +5471,7 @@ function hydrateBarberProfileEditor(
         const imageUrl = String(response?.url || "").trim();
         if (!imageUrl) throw new Error("Barber card photo upload failed");
         form.elements.cover_image_url.value = imageUrl;
-        renderBarberProfileImagePreview(
-          coverImagePreview,
-          imageUrl,
-          "No barber card photo uploaded yet. Add a separate haircut or shop image for your public card.",
-          "This barber card photo is ready for customers to see first when browsing barbers.",
-          "This barber card photo entry is not usable yet. Please upload it again."
-        );
-        renderBarberPortfolioDraft(portfolioList, imageUrl);
+        refreshBarberStudioDraft();
         notice.textContent = "Barber card photo uploaded. Save your profile to publish it.";
         notice.className = "notice success";
       } catch (error) {
@@ -5435,7 +5522,7 @@ function hydrateBarberProfileEditor(
           .filter(Boolean)
           .filter((url) => !state.barberPortfolioDraft.includes(url));
         state.barberPortfolioDraft.push(...urls);
-        renderBarberPortfolioDraft(portfolioList, form.elements.cover_image_url?.value || "");
+        refreshBarberStudioDraft();
         notice.textContent = "Portfolio photos uploaded. Save your profile to publish them.";
         notice.className = "notice success";
       } catch (error) {
@@ -5461,15 +5548,9 @@ function hydrateBarberProfileEditor(
         const removedUrl = state.barberPortfolioDraft.splice(index, 1)[0];
         if (form.elements.cover_image_url?.value === removedUrl) {
           form.elements.cover_image_url.value = state.barberPortfolioDraft[0] || "";
-          renderBarberProfileImagePreview(
-            coverImagePreview,
-            form.elements.cover_image_url.value,
-            "No barber card photo uploaded yet. Add a separate haircut or shop image for your public card.",
-            "This barber card photo is ready. Upload another one anytime if you want to change it.",
-            "This barber card photo entry is not usable yet. Please upload it again."
-          );
         }
-        renderBarberPortfolioDraft(portfolioList, form.elements.cover_image_url?.value || "");
+        refreshBarberStudioDraft();
+        publishBarberImageCountNotice();
         return;
       }
       if (moveTarget) {
@@ -5481,7 +5562,7 @@ function hydrateBarberProfileEditor(
           state.barberPortfolioDraft[targetIndex],
           state.barberPortfolioDraft[index],
         ];
-        renderBarberPortfolioDraft(portfolioList, form.elements.cover_image_url?.value || "");
+        refreshBarberStudioDraft();
         return;
       }
       if (coverTarget) {
@@ -5489,9 +5570,42 @@ function hydrateBarberProfileEditor(
         const coverUrl = state.barberPortfolioDraft[index];
         if (!coverUrl) return;
         form.elements.cover_image_url.value = coverUrl;
-        renderBarberProfileImagePreview(coverImagePreview, coverUrl);
-        renderBarberPortfolioDraft(portfolioList, coverUrl);
+        refreshBarberStudioDraft();
       }
+    });
+  }
+
+  if (removeProfileBtn && removeProfileBtn.dataset.bound !== "true") {
+    removeProfileBtn.dataset.bound = "true";
+    removeProfileBtn.addEventListener("click", () => {
+      form.elements.profile_image_url.value = "";
+      refreshBarberStudioDraft();
+      publishBarberImageCountNotice();
+    });
+  }
+
+  if (removeCoverBtn && removeCoverBtn.dataset.bound !== "true") {
+    removeCoverBtn.dataset.bound = "true";
+    removeCoverBtn.addEventListener("click", () => {
+      form.elements.cover_image_url.value = "";
+      refreshBarberStudioDraft();
+      publishBarberImageCountNotice();
+    });
+  }
+
+  if (clearAllImagesBtn && clearAllImagesBtn.dataset.bound !== "true") {
+    clearAllImagesBtn.dataset.bound = "true";
+    clearAllImagesBtn.addEventListener("click", () => {
+      if (!window.confirm("Clear all current profile photos? You will need to upload at least 2 images again before you can save.")) {
+        return;
+      }
+      form.elements.profile_image_url.value = "";
+      if (form.elements.cover_image_url) {
+        form.elements.cover_image_url.value = "";
+      }
+      state.barberPortfolioDraft = [];
+      refreshBarberStudioDraft();
+      publishBarberImageCountNotice();
     });
   }
 
@@ -5526,6 +5640,9 @@ function hydrateBarberProfileEditor(
         if (!payload.cover_image_url) {
           throw new Error("Barber card photo is required. Upload a haircut or shop photo before saving.");
         }
+        if (!publishBarberImageCountNotice("hard")) {
+          throw new Error("Keep at least 2 different pictures on your Trimly profile before saving changes.");
+        }
 
         if (!payload.shop_name || !payload.location || !payload.haircut_price) {
           throw new Error("Shop name, location, haircut price, profile photo, and barber card photo are required");
@@ -5535,21 +5652,7 @@ function hydrateBarberProfileEditor(
         state.barberPortfolioDraft = Array.isArray(state.barberProfile.portfolio_image_urls)
           ? [...state.barberProfile.portfolio_image_urls]
           : [];
-        renderBarberProfileImagePreview(
-          profileImagePreview,
-          state.barberProfile.profile_image_url,
-          "No profile photo uploaded yet. Add a clear face photo so customers can recognize the account owner.",
-          "This profile photo is ready. Upload another one anytime if you want to change it.",
-          "This profile photo entry is not usable yet. Please upload it again."
-        );
-        renderBarberProfileImagePreview(
-          coverImagePreview,
-          state.barberProfile.cover_image_url,
-          "No barber card photo uploaded yet. Add a separate haircut or shop image for your public card.",
-          "This barber card photo is ready. Upload another one anytime if you want to change it.",
-          "This barber card photo entry is not usable yet. Please upload it again."
-        );
-        renderBarberPortfolioDraft(portfolioList, state.barberProfile.cover_image_url);
+        refreshBarberStudioDraft();
         notice.textContent = "Barber profile updated successfully.";
         notice.className = "notice success";
         toast("Profile updated");
@@ -5562,6 +5665,14 @@ function hydrateBarberProfileEditor(
       }
     });
   }
+}
+
+function countUniqueBarberProfileImages(profileImageUrl = "", coverImageUrl = "", portfolioUrls = []) {
+  return new Set(
+    [profileImageUrl, coverImageUrl, ...(Array.isArray(portfolioUrls) ? portfolioUrls : [])]
+      .map((item) => String(item || "").trim())
+      .filter(Boolean)
+  ).size;
 }
 
 function hydrateBarberSharePanel(panel, profileInput, bookingInput) {

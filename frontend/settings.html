@@ -221,6 +221,33 @@
             <p id="settingsSessionsNotice" class="notice"></p>
           </article>
 
+          <article class="settings-card settings-danger-card" data-settings-group="security">
+            <div class="panel-head-row">
+              <div>
+                <h4>Delete Account</h4>
+                <p class="muted">Permanently remove your Trimly account, profile, sessions, and related bookings. This action cannot be undone.</p>
+              </div>
+              <span class="pill pill-danger">Danger zone</span>
+            </div>
+            <form id="deleteAccountForm" class="form-grid">
+              <div>
+                <label for="delete_account_password">Current Password</label>
+                <div class="input-with-action">
+                  <input id="delete_account_password" name="current_password" class="input" type="password" required />
+                  <button class="password-toggle" type="button" data-password-toggle="delete_account_password">Show</button>
+                </div>
+              </div>
+              <div>
+                <label for="delete_account_confirmation">Type DELETE to confirm</label>
+                <input id="delete_account_confirmation" name="confirmation_text" class="input" type="text" placeholder="DELETE" required />
+              </div>
+              <div class="settings-action-row">
+                <button class="btn btn-ghost btn-danger-soft" type="submit">Permanently Delete Account</button>
+              </div>
+            </form>
+            <p id="deleteAccountNotice" class="notice"></p>
+          </article>
+
           <article class="settings-card" data-settings-group="account">
             <h4>Account Insights</h4>
             <div class="kpi-grid kpi-grid-2">
@@ -425,6 +452,9 @@
                     </div>
                   </div>
                   <div id="barberProfileImagePreview" class="profile-image-preview-card"></div>
+                  <div class="settings-inline-button-row">
+                    <button class="btn btn-ghost btn-sm" id="removeBarberProfileImageBtn" type="button">Remove profile photo</button>
+                  </div>
                 </div>
 
                 <div class="portfolio-manager">
@@ -441,6 +471,9 @@
                     </div>
                   </div>
                   <div id="barberCoverImagePreview" class="profile-image-preview-card"></div>
+                  <div class="settings-inline-button-row">
+                    <button class="btn btn-ghost btn-sm" id="removeBarberCoverImageBtn" type="button">Remove barber card photo</button>
+                  </div>
                 </div>
 
               <div class="portfolio-manager">
@@ -489,6 +522,7 @@
               <div class="settings-action-row">
                 <button class="btn btn-primary" type="submit">Save Profile Changes</button>
                 <a class="btn btn-ghost" href="/static/setup-barber.html" id="settingsProfilePreviewLink">Complete Profile Setup</a>
+                <button class="btn btn-ghost" id="clearAllBarberImagesBtn" type="button">Clear all current images</button>
               </div>
             </form>
 

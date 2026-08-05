@@ -2,6 +2,7 @@ import hashlib
 import logging
 import secrets
 from datetime import datetime, timedelta
+from pathlib import Path
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
@@ -38,8 +39,19 @@ from app.core.security import (
     verify_and_update_password,
 )
 from app.db.session import get_db
+from app.models.barber import Barber
+from app.models.barber_image import BarberImage
+from app.models.barber_kyc import BarberKYC
+from app.models.barber_service import BarberService
+from app.models.booking import Booking
+from app.models.booking_service import BookingService
+from app.models.chat import ChatMessage
+from app.models.dispute import Dispute
+from app.models.notification import Notification
+from app.models.review import Review
 from app.models.user_session import UserSession
 from app.models.user import User, UserRole
+from app.models.wallet import BarberWallet
 from app.schemas.user import (
     AdminAccountCreate,
     AdminApprovalUpdate,
@@ -47,6 +59,8 @@ from app.schemas.user import (
     ChangePasswordRequest,
     ChangePasswordResponse,
     CurrentUserResponse,
+    DeleteAccountRequest,
+    DeleteAccountResponse,
     ForgotPasswordRequest,
     ForgotPasswordResponse,
     LoginResponse,
@@ -70,6 +84,7 @@ logger = logging.getLogger(__name__)
 RESET_TOKEN_EXPIRY_MINUTES = 30
 GENERIC_RESET_MESSAGE = "If an account exists for that email, a reset link has been sent."
 GENERIC_VERIFICATION_MESSAGE = "If an account exists for that email, a verification email has been sent."
+BARBER_UPLOADS_DIR = Path(__file__).resolve().parent.parent.parent / "frontend" / "uploads" / "barbers"
 
 
 def _hash_reset_token(token: str) -> str:
@@ -156,6 +171,78 @@ def _set_auth_cookie(response: Response, token: str) -> None:
         path="/",
         max_age=USER_SESSION_COOKIE_MAX_AGE,
     )
+
+
+def _delete_barber_upload_directory(user_id: int) -> None:
+    upload_dir = BARBER_UPLOADS_DIR / str(int(user_id))
+    if not upload_dir.exists():
+        return
+    for path in upload_dir.iterdir():
+        if path.is_file():
+            path.unlink(missing_ok=True)
+    upload_dir.rmdir()
+
+
+def _delete_current_user_account(db: Session, user: User) -> None:
+    role_value = user.role.value if hasattr(user.role, "value") else str(user.role)
+    role_value = role_value.split(".")[-1].lower()
+    if role_value not in {"customer", "barber"}:
+        raise HTTPException(status_code=403, detail="Only barber and customer accounts can be deleted here")
+
+    barber = db.query(Barber).filter(Barber.user_id == user.id).first() if role_value == "barber" else None
+    barber_id = int(barber.id) if barber else None
+    booking_query = db.query(Booking.id).filter(Booking.customer_id == user.id)
+    if barber_id:
+        booking_query = booking_query.union(db.query(Booking.id).filter(Booking.barber_id == barber_id))
+    booking_ids = [int(booking_id) for (booking_id,) in booking_query.all()]
+
+    db.query(User).filter(User.referred_by_user_id == user.id).update(
+        {"referred_by_user_id": None},
+        synchronize_session=False,
+    )
+    db.query(User).filter(User.approved_by_user_id == user.id).update(
+        {"approved_by_user_id": None, "admin_approved": False, "admin_approved_at": None},
+        synchronize_session=False,
+    )
+
+    db.query(Notification).filter(Notification.user_id == user.id).delete(synchronize_session=False)
+    if booking_ids:
+        db.query(Notification).filter(Notification.booking_id.in_(booking_ids)).delete(synchronize_session=False)
+
+    db.query(ChatMessage).filter(
+        (ChatMessage.sender_id == user.id) | (ChatMessage.receiver_id == user.id)
+    ).delete(synchronize_session=False)
+    if booking_ids:
+        db.query(ChatMessage).filter(ChatMessage.booking_id.in_(booking_ids)).delete(synchronize_session=False)
+
+    db.query(Review).filter(Review.customer_id == user.id).delete(synchronize_session=False)
+    db.query(Dispute).filter(Dispute.customer_id == user.id).delete(synchronize_session=False)
+
+    if barber_id:
+        db.query(Review).filter(Review.barber_id == barber_id).delete(synchronize_session=False)
+        db.query(Dispute).filter(Dispute.barber_id == barber_id).delete(synchronize_session=False)
+        db.query(BarberWallet).filter(BarberWallet.barber_id == barber_id).delete(synchronize_session=False)
+        db.query(BarberKYC).filter(BarberKYC.barber_id == barber_id).delete(synchronize_session=False)
+        db.query(BarberService).filter(BarberService.barber_id == barber_id).delete(synchronize_session=False)
+
+    if booking_ids:
+        db.query(BookingService).filter(BookingService.booking_id.in_(booking_ids)).delete(synchronize_session=False)
+        db.query(Booking).filter(Booking.id.in_(booking_ids)).delete(synchronize_session=False)
+
+    db.query(BarberImage).filter(BarberImage.user_id == user.id).delete(synchronize_session=False)
+    db.query(UserSession).filter(UserSession.user_id == user.id).delete(synchronize_session=False)
+
+    if barber_id:
+        db.query(Barber).filter(Barber.id == barber_id).delete(synchronize_session=False)
+
+    db.delete(user)
+    db.flush()
+
+    if barber_id:
+        try:
+            _delete_barber_upload_directory(user.id)
+        except OSError:
+            logger.warning("Could not fully remove barber upload directory for user_id=%s", user.id)
 
 
 async def _issue_email_verification(user: User, db: Session, *, commit: bool = True) -> None:
@@ -384,6 +471,40 @@ def change_current_user_password(
     db.commit()
 
     return ChangePasswordResponse(message="Password updated successfully")
+
+
+@router.post("/me/delete-account", response_model=DeleteAccountResponse)
+def delete_current_user_account(
+    payload: DeleteAccountRequest,
+    response: Response,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    ensure_user_auth_schema(db)
+    user = db.query(User).filter(User.id == current_user.id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not _password_matches(payload.current_password, user.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    if str(payload.confirmation_text or "").strip().upper() != "DELETE":
+        raise HTTPException(status_code=400, detail='Type DELETE to permanently remove this account')
+
+    try:
+        _delete_current_user_account(db, user)
+        db.commit()
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as exc:
+        db.rollback()
+        logger.error("Account deletion failed for user_id=%s: %s", current_user.id, type(exc).__name__)
+        raise HTTPException(status_code=500, detail="We could not delete this account right now. Please try again shortly.") from exc
+
+    response.delete_cookie(USER_SESSION_COOKIE_NAME, path="/")
+    response.delete_cookie(ADMIN_SESSION_COOKIE_NAME, path="/")
+    return DeleteAccountResponse(message="Your Trimly account has been permanently deleted")
 
 
 @router.get("/admin-only")
