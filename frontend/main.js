@@ -1364,15 +1364,20 @@ async function prepareBarberImageForUpload(file) {
   if (!(file instanceof File)) return file;
 
   const mimeType = String(file.type || "").toLowerCase();
-  if (!mimeType.startsWith("image/")) {
-    throw new Error("Only image uploads are supported.");
-  }
-
   const extension = fileExtension(file.name);
   const extensionSupported = BARBER_SUPPORTED_UPLOAD_EXTENSIONS.has(extension);
+  const mimeLooksLikeImage =
+    !mimeType ||
+    mimeType.startsWith("image/") ||
+    mimeType === "application/octet-stream";
+
+  if (!mimeLooksLikeImage && !extensionSupported) {
+    throw new Error("Only image uploads are supported.");
+  }
   const shouldNormalize =
     !extensionSupported ||
     file.size > BARBER_UPLOAD_COMPRESS_THRESHOLD_BYTES ||
+    !mimeType.startsWith("image/") ||
     mimeType === "image/heic" ||
     mimeType === "image/heif";
 

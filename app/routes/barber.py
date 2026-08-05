@@ -60,6 +60,13 @@ ALLOWED_IMAGE_SIGNATURES = {
     },
 }
 
+IMAGE_CONTENT_TYPE_ALIASES = {
+    "image/jpg": "image/jpeg",
+    "image/pjpeg": "image/jpeg",
+    "image/x-png": "image/png",
+    "application/octet-stream": "",
+}
+
 DAY_ORDER = [
     "monday",
     "tuesday",
@@ -156,6 +163,13 @@ def _detect_image_format(contents: bytes) -> Optional[str]:
     if len(contents) >= 6 and contents[:6] in {b"GIF87a", b"GIF89a"}:
         return "gif"
     return None
+
+
+def _normalize_uploaded_image_content_type(content_type: str | None) -> str:
+    normalized = str(content_type or "").strip().lower()
+    if not normalized:
+        return ""
+    return IMAGE_CONTENT_TYPE_ALIASES.get(normalized, normalized)
 
 
 def _parse_days(raw_days: Optional[str]) -> list[str]:
@@ -611,9 +625,8 @@ async def upload_barber_profile_image(
     if _normalize_role(current_user.role) != UserRole.barber.value:
         raise HTTPException(status_code=403, detail="Only barbers can upload images")
 
-    content_type = str(file.content_type or "").lower()
-    if not content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Only image uploads are supported")
+    raw_content_type = str(file.content_type or "").lower()
+    content_type = _normalize_uploaded_image_content_type(raw_content_type)
 
     original_name = Path(file.filename or "upload").name
     extension = Path(original_name).suffix.lower() or ".jpg"
@@ -633,14 +646,17 @@ async def upload_barber_profile_image(
     format_policy = ALLOWED_IMAGE_SIGNATURES[detected_format]
     if extension not in format_policy["extensions"]:
         raise HTTPException(status_code=400, detail="Image extension does not match the uploaded file")
-    if content_type not in format_policy["content_types"]:
+    if content_type and content_type not in format_policy["content_types"]:
         logger.warning(
             "Rejected barber image upload with mismatched content type for user_id=%s format=%s content_type=%s",
             current_user.id,
             detected_format,
-            content_type,
+            raw_content_type,
         )
         raise HTTPException(status_code=400, detail="Image content type does not match the uploaded file")
+
+    if not content_type:
+        content_type = sorted(format_policy["content_types"])[0]
 
     stored_image = BarberImage(
         user_id=int(current_user.id),
