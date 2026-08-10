@@ -71,7 +71,7 @@ import {
   updateBookingStatus,
   verifyPayment,
   startGoogleCalendarConnect,
-} from "./api.js?v=20260724barberfix2";
+} from "./api.js?v=20260810barberimagefix1";
 import {
   enterDemoMode,
   getDemoSessionInfo,
@@ -8778,34 +8778,3 @@ async function refreshChatMessages(bookingId, list, context = {}) {
   list.innerHTML = messages.map(renderChatBubble).join("");
   list.scrollTop = list.scrollHeight;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

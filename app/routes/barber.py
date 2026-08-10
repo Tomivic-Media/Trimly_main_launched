@@ -354,7 +354,6 @@ def _store_barber_image_upload(
         )
         raise HTTPException(status_code=400, detail="Unsupported image format")
 
-    contents = file.file.read()
     if not contents:
         raise HTTPException(status_code=400, detail="Uploaded image is empty")
     if len(contents) > MAX_BARBER_IMAGE_BYTES:
