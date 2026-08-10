@@ -6,7 +6,7 @@ from typing import List, Optional
 from urllib.parse import urlencode
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session, joinedload
 
@@ -336,6 +336,62 @@ def _persistent_barber_image_url(image_id: int) -> str:
     return f"/barber/images/{int(image_id)}"
 
 
+def _store_barber_image_upload(
+    *,
+    current_user_id: int,
+    original_name: str,
+    raw_content_type: str,
+    contents: bytes,
+    db: Session,
+) -> str:
+    content_type = _normalize_uploaded_image_content_type(raw_content_type)
+    extension = Path(original_name).suffix.lower() or ".jpg"
+    if extension not in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
+        logger.warning(
+            "Rejected barber image upload with unsupported extension user_id=%s filename=%s",
+            current_user_id,
+            original_name,
+        )
+        raise HTTPException(status_code=400, detail="Unsupported image format")
+
+    contents = file.file.read()
+    if not contents:
+        raise HTTPException(status_code=400, detail="Uploaded image is empty")
+    if len(contents) > MAX_BARBER_IMAGE_BYTES:
+        raise HTTPException(status_code=400, detail="Image is too large. Keep uploads under 8MB.")
+
+    detected_format = _detect_image_format(contents)
+    if not detected_format:
+        logger.warning("Rejected barber image upload with invalid signature user_id=%s", current_user_id)
+        raise HTTPException(status_code=400, detail="Uploaded file is not a supported image")
+
+    format_policy = ALLOWED_IMAGE_SIGNATURES[detected_format]
+    if extension not in format_policy["extensions"]:
+        raise HTTPException(status_code=400, detail="Image extension does not match the uploaded file")
+    if content_type and content_type not in format_policy["content_types"]:
+        logger.warning(
+            "Rejected barber image upload with mismatched content type for user_id=%s format=%s content_type=%s",
+            current_user_id,
+            detected_format,
+            raw_content_type,
+        )
+        raise HTTPException(status_code=400, detail="Image content type does not match the uploaded file")
+
+    if not content_type:
+        content_type = sorted(format_policy["content_types"])[0]
+
+    stored_image = BarberImage(
+        user_id=int(current_user_id),
+        original_filename=original_name,
+        content_type=content_type,
+        file_size=len(contents),
+        image_bytes=contents,
+    )
+    db.add(stored_image)
+    db.flush()
+    return _persistent_barber_image_url(stored_image.id)
+
+
 def _latest_stored_barber_image(user_id: int, db: Session) -> Optional[BarberImage]:
     return (
         db.query(BarberImage)
@@ -625,50 +681,74 @@ async def upload_barber_profile_image(
     if _normalize_role(current_user.role) != UserRole.barber.value:
         raise HTTPException(status_code=403, detail="Only barbers can upload images")
 
-    raw_content_type = str(file.content_type or "").lower()
-    content_type = _normalize_uploaded_image_content_type(raw_content_type)
+    original_name = Path(file.filename or "upload").name
+    contents = await file.read()
+    try:
+        image_url = _store_barber_image_upload(
+            current_user_id=int(current_user.id),
+            original_name=original_name,
+            raw_content_type=str(file.content_type or "").lower(),
+            contents=contents,
+            db=db,
+        )
+        db.commit()
+        return {"url": image_url}
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as exc:
+        db.rollback()
+        logger.exception("Barber image upload failed for user_id=%s", current_user.id)
+        raise HTTPException(status_code=500, detail="We could not upload that image right now. Please try again shortly.") from exc
+
+
+@router.patch("/barber/profile/image", response_model=BarberResponse)
+async def update_barber_profile_image(
+    file: UploadFile = File(...),
+    slot: str = Form("profile"),
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    enforce_rate_limit(None, action="barber-image-update-user", limit=30, window_seconds=60 * 60, subject=str(current_user.id))
+    if _normalize_role(current_user.role) != UserRole.barber.value:
+        raise HTTPException(status_code=403, detail="Only barbers can update profile images")
+
+    barber = _require_barber_profile(current_user, db)
+    normalized_slot = str(slot or "profile").strip().lower()
+    if normalized_slot not in {"profile", "cover"}:
+        raise HTTPException(status_code=400, detail="Unsupported image slot")
 
     original_name = Path(file.filename or "upload").name
-    extension = Path(original_name).suffix.lower() or ".jpg"
-    if extension not in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
-        raise HTTPException(status_code=400, detail="Unsupported image format")
-
     contents = await file.read()
-    if not contents:
-        raise HTTPException(status_code=400, detail="Uploaded image is empty")
-    if len(contents) > MAX_BARBER_IMAGE_BYTES:
-        raise HTTPException(status_code=400, detail="Image is too large. Keep uploads under 8MB.")
 
-    detected_format = _detect_image_format(contents)
-    if not detected_format:
-        raise HTTPException(status_code=400, detail="Uploaded file is not a supported image")
-
-    format_policy = ALLOWED_IMAGE_SIGNATURES[detected_format]
-    if extension not in format_policy["extensions"]:
-        raise HTTPException(status_code=400, detail="Image extension does not match the uploaded file")
-    if content_type and content_type not in format_policy["content_types"]:
-        logger.warning(
-            "Rejected barber image upload with mismatched content type for user_id=%s format=%s content_type=%s",
-            current_user.id,
-            detected_format,
-            raw_content_type,
+    try:
+        image_url = _store_barber_image_upload(
+            current_user_id=int(current_user.id),
+            original_name=original_name,
+            raw_content_type=str(file.content_type or "").lower(),
+            contents=contents,
+            db=db,
         )
-        raise HTTPException(status_code=400, detail="Image content type does not match the uploaded file")
 
-    if not content_type:
-        content_type = sorted(format_policy["content_types"])[0]
+        if normalized_slot == "profile":
+            barber.profile_image_url = image_url
+        else:
+            barber.cover_image_url = image_url
 
-    stored_image = BarberImage(
-        user_id=int(current_user.id),
-        original_filename=original_name,
-        content_type=content_type,
-        file_size=len(contents),
-        image_bytes=contents,
-    )
-    db.add(stored_image)
-    db.commit()
-    db.refresh(stored_image)
-    return {"url": _persistent_barber_image_url(stored_image.id)}
+        db.commit()
+        db.refresh(barber)
+        return BarberResponse(**barber_payload(barber))
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as exc:
+        db.rollback()
+        logger.exception(
+            "Barber profile image persistence failed for user_id=%s slot=%s",
+            current_user.id,
+            normalized_slot,
+        )
+        raise HTTPException(status_code=500, detail="We could not save that image right now. Please try again shortly.") from exc
 
 
 @router.get("/barber/images/{image_id}")

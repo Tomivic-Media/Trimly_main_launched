@@ -43,6 +43,7 @@ import {
   deleteNotification,
   deleteCurrentAccount,
   updateBarberProfile,
+  updateBarberProfileImage,
   updateBarberService,
   getGoogleCalendarStatus,
   getNotifications,
@@ -1427,6 +1428,20 @@ async function prepareBarberImageForUpload(file) {
     type: "image/jpeg",
     lastModified: Date.now(),
   });
+}
+
+function renderTemporaryBarberImagePreview(
+  container,
+  file,
+  loadingMessage = "Uploading image..."
+) {
+  if (!container || !(file instanceof File) || typeof URL === "undefined") return null;
+  const objectUrl = URL.createObjectURL(file);
+  container.innerHTML = `
+    <img src="${escapeHtml(objectUrl)}" alt="Temporary upload preview" />
+    <span class="muted">${escapeHtml(loadingMessage)}</span>
+  `;
+  return objectUrl;
 }
 
 function customerAddressText(source) {
@@ -3095,7 +3110,8 @@ async function initSetupBarberPage() {
         throw new Error("Profile photo is required. Take a clear face photo or choose one from your gallery.");
       }
       if (profileImageFile && typeof profileImageFile === "object" && profileImageFile.name) {
-        const uploadedProfile = await uploadBarberImage(profileImageFile);
+        const preparedProfileImage = await prepareBarberImageForUpload(profileImageFile);
+        const uploadedProfile = await uploadBarberImage(preparedProfileImage);
         payload.profile_image_url = String(uploadedProfile?.url || "").trim() || null;
       }
 
@@ -3107,7 +3123,8 @@ async function initSetupBarberPage() {
         throw new Error("Barber card photo is required. Take one or choose one from your gallery.");
       }
       if (cardImageFile && typeof cardImageFile === "object" && cardImageFile.name) {
-        const uploadedCard = await uploadBarberImage(cardImageFile);
+        const preparedCardImage = await prepareBarberImageForUpload(cardImageFile);
+        const uploadedCard = await uploadBarberImage(preparedCardImage);
         payload.cover_image_url = String(uploadedCard?.url || "").trim() || null;
       }
 
@@ -3118,7 +3135,8 @@ async function initSetupBarberPage() {
         (file) => file && typeof file === "object" && file.name
       );
       if (portfolioFiles.length) {
-        const uploads = await Promise.all(portfolioFiles.map((file) => uploadBarberImage(file)));
+        const preparedPortfolioFiles = await Promise.all(portfolioFiles.map((file) => prepareBarberImageForUpload(file)));
+        const uploads = await Promise.all(preparedPortfolioFiles.map((file) => uploadBarberImage(file)));
         const uploadedUrls = uploads
           .map((item) => String(item?.url || "").trim())
           .filter(Boolean);
@@ -5430,6 +5448,7 @@ function hydrateBarberProfileEditor(
     input.addEventListener("change", async () => {
       const file = input.files?.[0];
       if (!file) return;
+      let temporaryPreviewUrl = null;
       profileUploadInputs.forEach((field) => {
         field.disabled = true;
       });
@@ -5437,18 +5456,29 @@ function hydrateBarberProfileEditor(
       notice.className = "notice";
       try {
         const preparedFile = await prepareBarberImageForUpload(file);
+        temporaryPreviewUrl = renderTemporaryBarberImagePreview(
+          profileImagePreview,
+          preparedFile,
+          "Uploading profile photo to Trimly..."
+        );
         notice.textContent = "Uploading profile photo...";
-        const response = await uploadBarberImage(preparedFile);
-        const imageUrl = String(response?.url || "").trim();
-        if (!imageUrl) throw new Error("Image upload failed");
-        form.elements.profile_image_url.value = imageUrl;
+        state.barberProfile = await updateBarberProfileImage(preparedFile, "profile");
+        form.elements.profile_image_url.value = String(state.barberProfile?.profile_image_url || "").trim();
+        form.elements.cover_image_url.value = String(state.barberProfile?.cover_image_url || "").trim();
+        state.barberPortfolioDraft = Array.isArray(state.barberProfile?.portfolio_image_urls)
+          ? [...state.barberProfile.portfolio_image_urls]
+          : [];
         refreshBarberStudioDraft();
-        notice.textContent = "Profile photo uploaded. Save your profile to publish it.";
+        notice.textContent = "Profile photo uploaded and saved.";
         notice.className = "notice success";
       } catch (error) {
+        refreshBarberStudioDraft();
         notice.textContent = error.message;
         notice.className = "notice error";
       } finally {
+        if (temporaryPreviewUrl && typeof URL !== "undefined") {
+          URL.revokeObjectURL(temporaryPreviewUrl);
+        }
         profileUploadInputs.forEach((field) => {
           field.disabled = false;
           field.value = "";
@@ -5464,6 +5494,7 @@ function hydrateBarberProfileEditor(
     input.addEventListener("change", async () => {
       const file = input.files?.[0];
       if (!file) return;
+      let temporaryPreviewUrl = null;
       coverUploadInputs.forEach((field) => {
         field.disabled = true;
       });
@@ -5471,18 +5502,29 @@ function hydrateBarberProfileEditor(
       notice.className = "notice";
       try {
         const preparedFile = await prepareBarberImageForUpload(file);
+        temporaryPreviewUrl = renderTemporaryBarberImagePreview(
+          coverImagePreview,
+          preparedFile,
+          "Uploading barber card photo to Trimly..."
+        );
         notice.textContent = "Uploading barber card photo...";
-        const response = await uploadBarberImage(preparedFile);
-        const imageUrl = String(response?.url || "").trim();
-        if (!imageUrl) throw new Error("Barber card photo upload failed");
-        form.elements.cover_image_url.value = imageUrl;
+        state.barberProfile = await updateBarberProfileImage(preparedFile, "cover");
+        form.elements.profile_image_url.value = String(state.barberProfile?.profile_image_url || "").trim();
+        form.elements.cover_image_url.value = String(state.barberProfile?.cover_image_url || "").trim();
+        state.barberPortfolioDraft = Array.isArray(state.barberProfile?.portfolio_image_urls)
+          ? [...state.barberProfile.portfolio_image_urls]
+          : [];
         refreshBarberStudioDraft();
-        notice.textContent = "Barber card photo uploaded. Save your profile to publish it.";
+        notice.textContent = "Barber card photo uploaded and saved.";
         notice.className = "notice success";
       } catch (error) {
+        refreshBarberStudioDraft();
         notice.textContent = error.message;
         notice.className = "notice error";
       } finally {
+        if (temporaryPreviewUrl && typeof URL !== "undefined") {
+          URL.revokeObjectURL(temporaryPreviewUrl);
+        }
         coverUploadInputs.forEach((field) => {
           field.disabled = false;
           field.value = "";

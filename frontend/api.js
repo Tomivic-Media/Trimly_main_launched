@@ -631,6 +631,21 @@ async function updateBarberStatus(isAvailable) {
   );
 }
 
+async function updateBarberProfileImage(file, slot = "profile") {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("slot", String(slot || "profile"));
+
+  return apiFetch(
+    "/barber/profile/image",
+    {
+      method: "PATCH",
+      body: formData,
+    },
+    true
+  );
+}
+
 async function deleteCurrentAccount(data) {
   return apiFetch(
     "/me/delete-account",
@@ -882,6 +897,7 @@ export {
   changeCurrentUserPassword,
   deleteCurrentAccount,
   updateBarberProfile,
+  updateBarberProfileImage,
   createBarberService,
   updateBarberService,
   deactivateBarberService,
