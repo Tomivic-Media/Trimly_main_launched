@@ -6021,6 +6021,21 @@ function hydrateBarberProfileEditor(
     renderBarberPortfolioDraft(portfolioList, form.elements.cover_image_url?.value || "");
   };
 
+  const buildBarberProfilePayloadFromEditor = () => ({
+    barber_name: String(form.elements.barber_name.value || "").trim() || null,
+    shop_name: String(form.elements.shop_name.value || "").trim(),
+    location: String(form.elements.location.value || "").trim(),
+    shop_address: String(form.elements.shop_address?.value || "").trim() || null,
+    shop_landmark: String(form.elements.shop_landmark?.value || "").trim() || null,
+    profile_image_url: String(form.elements.profile_image_url.value || "").trim() || null,
+    cover_image_url: String(form.elements.cover_image_url?.value || "").trim() || null,
+    haircut_price: Number(form.elements.haircut_price.value || 0),
+    beard_trim_price: form.elements.beard_trim_price.value === "" ? null : Number(form.elements.beard_trim_price.value),
+    other_services: String(form.elements.other_services.value || "").trim() || null,
+    bio: String(form.elements.bio.value || "").trim() || null,
+    portfolio_image_urls: [...state.barberPortfolioDraft],
+  });
+
   const publishBarberImageCountNotice = (mode = "soft") => {
     const uniqueCount = countUniqueBarberProfileImages(
       form.elements.profile_image_url.value,
@@ -6041,6 +6056,17 @@ function hydrateBarberProfileEditor(
       : "All current pictures are cleared. Upload at least 2 images before saving your profile.";
     notice.className = "notice";
     return false;
+  };
+
+  const syncEditorFromBarberProfile = () => {
+    form.elements.profile_image_url.value = String(state.barberProfile?.profile_image_url || "").trim();
+    if (form.elements.cover_image_url) {
+      form.elements.cover_image_url.value = String(state.barberProfile?.cover_image_url || "").trim();
+    }
+    state.barberPortfolioDraft = Array.isArray(state.barberProfile?.portfolio_image_urls)
+      ? [...state.barberProfile.portfolio_image_urls]
+      : [];
+    refreshBarberStudioDraft();
   };
 
   const profileUploadInputs = [profileImageCameraInput, profileImageFileInput].filter(Boolean);
@@ -6152,7 +6178,7 @@ function hydrateBarberProfileEditor(
 
   if (uploadPortfolioBtn && uploadPortfolioBtn.dataset.bound !== "true") {
     uploadPortfolioBtn.dataset.bound = "true";
-    uploadPortfolioBtn.addEventListener("click", async () => {
+    const persistPortfolioSelection = async () => {
       const files = collectSelectedFiles(portfolioCameraInput, portfolioFileInput);
       if (!files.length) {
         toast("Choose one or more photos first", true);
@@ -6171,8 +6197,9 @@ function hydrateBarberProfileEditor(
           .filter(Boolean)
           .filter((url) => !state.barberPortfolioDraft.includes(url));
         state.barberPortfolioDraft.push(...urls);
-        refreshBarberStudioDraft();
-        notice.textContent = "Portfolio photos uploaded. Save your profile to publish them.";
+        state.barberProfile = await updateBarberProfile(buildBarberProfilePayloadFromEditor());
+        syncEditorFromBarberProfile();
+        notice.textContent = "Portfolio photos uploaded and saved.";
         notice.className = "notice success";
       } catch (error) {
         notice.textContent = error.message;
@@ -6182,6 +6209,19 @@ function hydrateBarberProfileEditor(
         if (portfolioCameraInput) portfolioCameraInput.value = "";
         if (portfolioFileInput) portfolioFileInput.value = "";
       }
+    };
+
+    uploadPortfolioBtn.addEventListener("click", async () => {
+      await persistPortfolioSelection();
+    });
+
+    [portfolioCameraInput, portfolioFileInput].filter(Boolean).forEach((input) => {
+      if (input.dataset.uploadBound === "true") return;
+      input.dataset.uploadBound = "true";
+      input.addEventListener("change", async () => {
+        if (!input.files?.length) return;
+        await persistPortfolioSelection();
+      });
     });
   }
 
@@ -6268,20 +6308,7 @@ function hydrateBarberProfileEditor(
       notice.textContent = "";
 
       try {
-        const payload = {
-          barber_name: String(form.elements.barber_name.value || "").trim() || null,
-          shop_name: String(form.elements.shop_name.value || "").trim(),
-          location: String(form.elements.location.value || "").trim(),
-          shop_address: String(form.elements.shop_address?.value || "").trim() || null,
-          shop_landmark: String(form.elements.shop_landmark?.value || "").trim() || null,
-          profile_image_url: String(form.elements.profile_image_url.value || "").trim() || null,
-          cover_image_url: String(form.elements.cover_image_url?.value || "").trim() || null,
-          haircut_price: Number(form.elements.haircut_price.value || 0),
-          beard_trim_price: form.elements.beard_trim_price.value === "" ? null : Number(form.elements.beard_trim_price.value),
-          other_services: String(form.elements.other_services.value || "").trim() || null,
-          bio: String(form.elements.bio.value || "").trim() || null,
-          portfolio_image_urls: [...state.barberPortfolioDraft],
-        };
+        const payload = buildBarberProfilePayloadFromEditor();
 
         if (!payload.profile_image_url) {
           throw new Error("Profile photo is required. Upload a clear face photo before saving.");
@@ -6298,10 +6325,7 @@ function hydrateBarberProfileEditor(
         }
 
         state.barberProfile = await updateBarberProfile(payload);
-        state.barberPortfolioDraft = Array.isArray(state.barberProfile.portfolio_image_urls)
-          ? [...state.barberProfile.portfolio_image_urls]
-          : [];
-        refreshBarberStudioDraft();
+        syncEditorFromBarberProfile();
         notice.textContent = "Barber profile updated successfully.";
         notice.className = "notice success";
         toast("Profile updated");
