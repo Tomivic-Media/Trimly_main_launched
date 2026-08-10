@@ -855,8 +855,49 @@ async function sendBookingMessage(bookingId, message, receiverId = null) {
   );
 }
 
+async function getActiveCampaignPublic() {
+  return apiFetch("/campaigns/active/public", { method: "GET" });
+}
+
+async function getActiveCampaignStatus() {
+  return apiFetch("/campaigns/active/status", { method: "GET" }, true);
+}
+
+async function applyToActiveCampaign(data) {
+  return apiFetch(
+    "/campaigns/active/apply",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    },
+    true
+  );
+}
+
+async function getAdminCampaigns() {
+  return apiFetch("/admin/campaigns", { method: "GET" }, true);
+}
+
+async function createCampaign(data) {
+  return apiFetch(
+    "/admin/campaigns",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    },
+    true
+  );
+}
+
+async function getAdminCampaignDetail(campaignId) {
+  return apiFetch(`/admin/campaigns/${Number(campaignId)}`, { method: "GET" }, true);
+}
+
 export {
   API_BASE_URL,
+  applyToActiveCampaign,
   adminSessionLogin,
   adminSessionLogout,
   sessionLogout,
@@ -866,14 +907,19 @@ export {
   createBarberProfile,
   createBooking,
   createBookingReview,
+  createCampaign,
   cancelBooking,
   forgotPassword,
   resendVerificationEmail,
   getAcceptableUsePolicy,
   getAdminUsers,
   getAdminBarbers,
+  getAdminCampaignDetail,
+  getAdminCampaigns,
   getAdminPayoutReport,
   getAdminReviews,
+  getActiveCampaignPublic,
+  getActiveCampaignStatus,
   getBarberAvailability,
   getBarberById,
   getBarberInsights,

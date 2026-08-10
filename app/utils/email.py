@@ -77,6 +77,24 @@ async def send_email_verification_email(to_email: str, token: str) -> None:
     )
 
 
+async def send_trimly_html_email(
+    *,
+    to_email: str,
+    subject: str,
+    html: str,
+    fallback_sender: str = "Trimly <hello@trimly.com.ng>",
+) -> None:
+    if not RESEND_API_KEY:
+        raise RuntimeError("RESEND_API_KEY is not configured")
+
+    await _send_with_fallback(
+        to_email=to_email,
+        subject=subject,
+        html=html,
+        fallback_sender=fallback_sender,
+    )
+
+
 async def _send_with_fallback(*, to_email: str, subject: str, html: str, fallback_sender: str) -> None:
     senders: list[str] = []
     configured_sender = str(EMAIL_FROM or "").strip()

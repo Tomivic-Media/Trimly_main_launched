@@ -179,6 +179,58 @@
             <div id="adminReviewList" class="booking-list"></div>
           </article>
 
+          <article class="panel" id="adminCampaignPanel">
+            <div class="panel-head-row">
+              <div>
+                <h3>Free Haircut Campaigns</h3>
+                <p class="muted booking-panel-subtitle">Run the 50-entry, 25-winner campaign and keep selection logs visible.</p>
+              </div>
+              <span class="pill">Campaign admin</span>
+            </div>
+            <form id="adminCampaignCreateForm" class="form-grid">
+              <div class="form-grid form-grid-2">
+                <div>
+                  <label for="campaign_title">Campaign title</label>
+                  <input id="campaign_title" name="title" class="input" type="text" value="Trimly Free Haircut Campaign" required />
+                </div>
+                <div>
+                  <label for="campaign_slug">Campaign slug</label>
+                  <input id="campaign_slug" name="slug" class="input" type="text" value="free-haircut-campaign" required />
+                </div>
+              </div>
+              <div>
+                <label for="campaign_description">Description</label>
+                <textarea id="campaign_description" name="description" class="input" rows="3">Apply for one free in-shop haircut. Once 50 valid applications are in, Trimly selects 25 customers and assigns them evenly across participating barbers.</textarea>
+              </div>
+              <div class="form-grid form-grid-3">
+                <div>
+                  <label for="campaign_max_applications">Maximum applications</label>
+                  <input id="campaign_max_applications" name="max_applications" class="input" type="number" min="1" value="50" required />
+                </div>
+                <div>
+                  <label for="campaign_max_winners">Maximum winners</label>
+                  <input id="campaign_max_winners" name="max_winners" class="input" type="number" min="1" value="25" required />
+                </div>
+                <div>
+                  <label for="campaign_ends_at">Campaign end date</label>
+                  <input id="campaign_ends_at" name="ends_at" class="input" type="datetime-local" required />
+                </div>
+              </div>
+              <fieldset class="form-grid">
+                <legend>Participating barbers</legend>
+                <div id="adminCampaignBarberOptions" class="quick-actions-grid"></div>
+              </fieldset>
+              <label class="checkbox">
+                <input id="campaign_auto_notify_non_winners" name="auto_notify_non_winners" type="checkbox" checked />
+                <span>Notify non-selected applicants when selection runs.</span>
+              </label>
+              <button class="btn btn-primary" type="submit">Create campaign</button>
+            </form>
+            <p id="adminCampaignNotice" class="notice"></p>
+            <div id="adminCampaignList" class="booking-list"></div>
+            <div id="adminCampaignDetail" class="booking-list"></div>
+          </article>
+
           <section id="superAdminManagement" class="hidden">
             <article class="panel">
               <div class="panel-head-row">

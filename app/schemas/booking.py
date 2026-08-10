@@ -12,6 +12,7 @@ class BookingCreate(BaseModel):
     scheduled_time: datetime
     service_name: Optional[str] = "Haircut"
     service_ids: list[int] = Field(default_factory=list)
+    campaign_coupon_code: Optional[str] = None
     customer_address_line: Optional[str] = None
     customer_address_area: Optional[str] = None
     customer_address_landmark: Optional[str] = None
@@ -60,6 +61,10 @@ class BookingResponse(BaseModel):
     barber_payout_amount: Optional[float] = None
     escrow_released: bool = False
     refund_requested: bool = False
+    is_campaign_booking: bool = False
+    applied_coupon_code: Optional[str] = None
+    price_before_discount: Optional[float] = None
+    discount_amount: Optional[float] = None
 
     status: BookingStatus
 

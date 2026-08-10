@@ -31,6 +31,7 @@ from app.services.google_calendar_service import clear_google_calendar_for_booki
 from app.services.referral_service import award_completion_points, maybe_award_referral_bonus
 from app.services.reminder_service import dispatch_due_booking_reminders
 from app.services.paystack_subaccount_service import ensure_barber_subaccount
+from app.services.campaign_service import redeem_campaign_reward, validate_campaign_reward_for_booking
 from app.models.barber_kyc import BarberKYC
 from app.routes.barber import (
     DEFAULT_HAIRCUT_SERVICE_NAME,
@@ -131,6 +132,18 @@ def _booking_duration_minutes(booking: Booking) -> int:
 
 def _selected_services_service_mode(services: list[BarberService]) -> str:
     return "home_service" if any(bool(getattr(service, "is_home_service", False)) for service in services) else "shop_visit"
+
+
+def _campaign_services_are_eligible(services: list[BarberService]) -> bool:
+    if len(services) != 1:
+        return False
+    service = services[0]
+    if bool(getattr(service, "is_home_service", False)):
+        return False
+    name = str(getattr(service, "name", "") or "").strip().lower()
+    if not name:
+        return False
+    return any(token in name for token in ("haircut", "cut", "fade"))
 
 
 def _booking_time_bounds(booking: Booking) -> tuple[datetime, datetime]:
@@ -277,6 +290,10 @@ def _booking_to_response(
         barber_payout_amount=booking.barber_payout_amount,
         escrow_released=bool(booking.escrow_released),
         refund_requested=bool(booking.refund_requested),
+        is_campaign_booking=bool(getattr(booking, "is_campaign_booking", False)),
+        applied_coupon_code=getattr(booking, "applied_coupon_code", None),
+        price_before_discount=getattr(booking, "price_before_discount", None),
+        discount_amount=getattr(booking, "discount_amount", None),
         status=booking.status,
         payment_status=booking.payment_status,
         payment_reference=booking.payment_reference,
@@ -746,6 +763,7 @@ def create_booking(
             raise HTTPException(status_code=400, detail="This time slot is already booked")
 
     price = round(sum(float(service.price or 0) for service in selected_services), 2)
+    price_before_discount = price
     commission, barber_earnings = calculate_split_amounts(price)
     service_name = ", ".join(str(service.name or "").strip() for service in selected_services) or (booking_data.service_name or "Haircut").strip() or "Haircut"
     service_mode = _selected_services_service_mode(selected_services)
@@ -770,6 +788,34 @@ def create_booking(
         current_user.address_landmark = customer_address_landmark
         current_user.address_note = customer_address_note
 
+    campaign_reward = validate_campaign_reward_for_booking(
+        db,
+        current_user=current_user,
+        barber_id=barber.id,
+        selected_service_mode=service_mode,
+        campaign_coupon_code=(booking_data.campaign_coupon_code or "").strip() or None,
+    )
+    if campaign_reward and not _campaign_services_are_eligible(selected_services):
+        raise HTTPException(status_code=400, detail="This free campaign reward only covers one in-shop haircut service")
+
+    is_campaign_booking = bool(campaign_reward)
+    discount_amount = 0.0
+    booking_status = BookingStatus.pending if BOOKINGS_REQUIRE_BARBER_APPROVAL else BookingStatus.approved
+    payment_status = PaymentStatus.unpaid
+    paid_at = None
+    approved_at = None
+    payment_due_at = None
+
+    if is_campaign_booking:
+        discount_amount = price
+        price = 0.0
+        commission = 0.0
+        barber_earnings = 0.0
+        booking_status = BookingStatus.paid
+        payment_status = PaymentStatus.paid
+        paid_at = datetime.utcnow()
+        approved_at = paid_at
+
     new_booking = Booking(
         customer_id=current_user.id,
         barber_id=barber.id,
@@ -783,12 +829,19 @@ def create_booking(
         barber_shop_address=barber_shop_address,
         barber_shop_landmark=barber_shop_landmark,
         price=price,
+        price_before_discount=price_before_discount,
+        discount_amount=discount_amount,
         commission_amount=commission,
         barber_earnings=barber_earnings,
-        status=BookingStatus.pending if BOOKINGS_REQUIRE_BARBER_APPROVAL else BookingStatus.approved,
-        payment_status=PaymentStatus.unpaid,
+        status=booking_status,
+        payment_status=payment_status,
+        paid_at=paid_at,
+        approved_at=approved_at,
         refund_requested=False,
         escrow_released=False,
+        is_campaign_booking=is_campaign_booking,
+        applied_coupon_code=campaign_reward.coupon_code if campaign_reward else None,
+        campaign_winner_id=campaign_reward.id if campaign_reward else None,
     )
 
     db.add(new_booking)
@@ -801,7 +854,11 @@ def create_booking(
                 price=float(service.price or 0),
             )
         )
-    if BOOKINGS_REQUIRE_BARBER_APPROVAL:
+    if is_campaign_booking:
+        redeem_campaign_reward(db, campaign_reward, new_booking)
+        _notify_payment_confirmed(db, new_booking)
+        _notify_chat_available(db, new_booking)
+    elif BOOKINGS_REQUIRE_BARBER_APPROVAL:
         _notify_booking_created(db, new_booking, current_user, barber_user)
     else:
         _set_payment_window_on_approval(new_booking)

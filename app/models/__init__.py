@@ -10,3 +10,4 @@ from .notification import Notification
 from .review import Review
 from .barber_service import BarberService
 from .user_session import UserSession
+from .campaign import Campaign, CampaignBarber, CampaignApplication, CampaignWinner, CampaignAuditLog

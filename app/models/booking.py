@@ -49,6 +49,11 @@ class Booking(Base):
     transferred_at = Column(DateTime, nullable=True)
     customer_reminder_sent_at = Column(DateTime, nullable=True)
     barber_reminder_sent_at = Column(DateTime, nullable=True)
+    is_campaign_booking = Column(Boolean, default=False, nullable=False)
+    campaign_winner_id = Column(Integer, ForeignKey("campaign_winners.id"), nullable=True)
+    applied_coupon_code = Column(String, nullable=True)
+    price_before_discount = Column(Float, nullable=True)
+    discount_amount = Column(Float, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

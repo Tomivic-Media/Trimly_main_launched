@@ -26,7 +26,7 @@ from app.db.session import Base, engine
 from app.db.session import SessionLocal
 
 # Import models so SQLAlchemy registers tables
-from app.models import barber, barber_image, barber_kyc, barber_service, booking, booking_service, chat, dispute, notification, review, user, user_session, wallet
+from app.models import barber, barber_image, barber_kyc, barber_service, booking, booking_service, campaign, chat, dispute, notification, review, user, user_session, wallet
 from app.models.user import User, UserRole
 
 # Import routers
@@ -35,6 +35,7 @@ from app.routes import account as account_routes
 from app.routes import barber as barber_routes
 from app.routes import booking as booking_routes
 from app.routes import chat as chat_routes
+from app.routes import campaign as campaign_routes
 from app.routes import dispute as dispute_routes
 from app.routes import integrations as integration_routes
 from app.routes import notification as notification_routes
@@ -154,6 +155,11 @@ def ensure_runtime_schema() -> None:
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS refund_requested BOOLEAN DEFAULT FALSE",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_reminder_sent_at TIMESTAMP",
         "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS barber_reminder_sent_at TIMESTAMP",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS is_campaign_booking BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS campaign_winner_id INTEGER",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS applied_coupon_code VARCHAR",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS price_before_discount DOUBLE PRECISION",
+        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS discount_amount DOUBLE PRECISION",
         "ALTER TABLE bookings ALTER COLUMN payment_status SET DEFAULT 'unpaid'",
         "ALTER TABLE bookings ALTER COLUMN payout_status TYPE VARCHAR(64)",
         "ALTER TABLE bookings ALTER COLUMN payout_status SET DEFAULT 'pending'",
@@ -163,6 +169,8 @@ def ensure_runtime_schema() -> None:
         "UPDATE bookings SET payout_status = 'pending' WHERE payout_status IS NULL",
         "UPDATE bookings SET escrow_released = FALSE WHERE escrow_released IS NULL",
         "UPDATE bookings SET refund_requested = FALSE WHERE refund_requested IS NULL",
+        "UPDATE bookings SET is_campaign_booking = FALSE WHERE is_campaign_booking IS NULL",
+        "UPDATE bookings SET discount_amount = 0 WHERE discount_amount IS NULL AND applied_coupon_code IS NOT NULL",
         "ALTER TABLE barbers ADD COLUMN IF NOT EXISTS beard_trim_price DOUBLE PRECISION",
         "ALTER TABLE barbers ADD COLUMN IF NOT EXISTS other_services VARCHAR",
         "ALTER TABLE barbers ADD COLUMN IF NOT EXISTS barber_name VARCHAR",
@@ -190,6 +198,81 @@ def ensure_runtime_schema() -> None:
             "content_type VARCHAR NOT NULL, "
             "file_size INTEGER NOT NULL, "
             "image_bytes BYTEA NOT NULL, "
+            "created_at TIMESTAMP DEFAULT NOW()"
+            ")"
+        ),
+        (
+            "CREATE TABLE IF NOT EXISTS campaigns ("
+            "id SERIAL PRIMARY KEY, "
+            "title VARCHAR NOT NULL, "
+            "slug VARCHAR NOT NULL UNIQUE, "
+            "description TEXT, "
+            "status VARCHAR(32) NOT NULL DEFAULT 'draft', "
+            "max_applications INTEGER NOT NULL DEFAULT 50, "
+            "max_winners INTEGER NOT NULL DEFAULT 25, "
+            "starts_at TIMESTAMP NULL, "
+            "ends_at TIMESTAMP NULL, "
+            "selection_ran_at TIMESTAMP NULL, "
+            "application_count INTEGER NOT NULL DEFAULT 0, "
+            "winner_count INTEGER NOT NULL DEFAULT 0, "
+            "auto_notify_non_winners BOOLEAN NOT NULL DEFAULT TRUE, "
+            "created_by_admin_id INTEGER NULL REFERENCES users(id), "
+            "created_at TIMESTAMP DEFAULT NOW(), "
+            "updated_at TIMESTAMP DEFAULT NOW()"
+            ")"
+        ),
+        (
+            "CREATE TABLE IF NOT EXISTS campaign_barbers ("
+            "id SERIAL PRIMARY KEY, "
+            "campaign_id INTEGER NOT NULL REFERENCES campaigns(id), "
+            "barber_id INTEGER NOT NULL REFERENCES barbers(id), "
+            "allocation_limit INTEGER NULL, "
+            "allocation_count INTEGER NOT NULL DEFAULT 0, "
+            "created_at TIMESTAMP DEFAULT NOW()"
+            ")"
+        ),
+        (
+            "CREATE TABLE IF NOT EXISTS campaign_applications ("
+            "id SERIAL PRIMARY KEY, "
+            "campaign_id INTEGER NOT NULL REFERENCES campaigns(id), "
+            "user_id INTEGER NOT NULL REFERENCES users(id), "
+            "email VARCHAR NOT NULL, "
+            "first_name VARCHAR NOT NULL, "
+            "surname VARCHAR NOT NULL, "
+            "address TEXT NOT NULL, "
+            "phone VARCHAR NULL, "
+            "social_handles TEXT NULL, "
+            "how_heard_about_us TEXT NOT NULL, "
+            "status VARCHAR(32) NOT NULL DEFAULT 'submitted', "
+            "submitted_at TIMESTAMP DEFAULT NOW(), "
+            "selected_at TIMESTAMP NULL, "
+            "notes TEXT NULL"
+            ")"
+        ),
+        "CREATE UNIQUE INDEX IF NOT EXISTS ix_campaign_applications_campaign_email ON campaign_applications (campaign_id, email)",
+        "CREATE UNIQUE INDEX IF NOT EXISTS ix_campaign_applications_campaign_user ON campaign_applications (campaign_id, user_id)",
+        (
+            "CREATE TABLE IF NOT EXISTS campaign_winners ("
+            "id SERIAL PRIMARY KEY, "
+            "campaign_id INTEGER NOT NULL REFERENCES campaigns(id), "
+            "application_id INTEGER NOT NULL UNIQUE REFERENCES campaign_applications(id), "
+            "user_id INTEGER NOT NULL REFERENCES users(id), "
+            "barber_id INTEGER NOT NULL REFERENCES barbers(id), "
+            "coupon_code VARCHAR NOT NULL UNIQUE, "
+            "reward_status VARCHAR(32) NOT NULL DEFAULT 'issued', "
+            "coupon_expires_at TIMESTAMP NULL, "
+            "redeemed_at TIMESTAMP NULL, "
+            "booking_id INTEGER NULL REFERENCES bookings(id), "
+            "created_at TIMESTAMP DEFAULT NOW()"
+            ")"
+        ),
+        (
+            "CREATE TABLE IF NOT EXISTS campaign_audit_logs ("
+            "id SERIAL PRIMARY KEY, "
+            "campaign_id INTEGER NOT NULL REFERENCES campaigns(id), "
+            "actor_user_id INTEGER NULL REFERENCES users(id), "
+            "action VARCHAR(64) NOT NULL, "
+            "payload_json TEXT NULL, "
             "created_at TIMESTAMP DEFAULT NOW()"
             ")"
         ),
@@ -359,6 +442,7 @@ app.include_router(account_routes.router)
 app.include_router(barber_routes.router)
 app.include_router(booking_routes.router)
 app.include_router(chat_routes.router)
+app.include_router(campaign_routes.router)
 app.include_router(dispute_routes.router)
 app.include_router(integration_routes.router)
 app.include_router(notification_routes.router)

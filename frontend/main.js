@@ -1,4 +1,5 @@
 import {
+  applyToActiveCampaign,
   adminSessionLogin,
   adminSessionLogout,
   adminRefundBooking,
@@ -10,13 +11,18 @@ import {
   createBarberProfile,
   createBooking,
   createBookingReview,
+  createCampaign,
   forgotPassword,
   resendVerificationEmail,
   getAcceptableUsePolicy,
   getAdminBarbers,
+  getAdminCampaignDetail,
+  getAdminCampaigns,
   getAdminPayoutReport,
   getAdminReviews,
   getAdminUsers,
+  getActiveCampaignPublic,
+  getActiveCampaignStatus,
   getBarberAvailability,
   getBarberById,
   getBarberInsights,
@@ -319,6 +325,15 @@ function routePage() {
       break;
     case "payment-status":
       initPaymentStatusPage();
+      break;
+    case "campaign-landing":
+      initCampaignLandingPage();
+      break;
+    case "campaign-apply":
+      initCampaignApplyPage();
+      break;
+    case "campaign-reward":
+      initCampaignRewardPage();
       break;
     case "demo":
       initDemoPage();
@@ -1679,6 +1694,7 @@ async function initLandingPage() {
   const featuredEl = document.getElementById("featuredBarbers");
   const heroForm = document.getElementById("heroSearchForm");
   const heroInput = document.getElementById("heroSearchInput");
+  const campaignShell = document.getElementById("campaignPromoShell");
 
   heroForm?.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -1692,6 +1708,48 @@ async function initLandingPage() {
 
   featuredEl.innerHTML = `<div class="loading">Loading featured barbers...</div>`;
   try {
+    if (campaignShell) {
+      try {
+        const campaignStatus = await getActiveCampaignPublic();
+        if (campaignStatus?.has_live_campaign && campaignStatus?.campaign) {
+          const campaign = campaignStatus.campaign;
+          campaignShell.innerHTML = `
+            <article class="panel">
+              <div class="panel-head-row">
+                <div>
+                  <h3>${escapeHtml(campaign.title)}</h3>
+                  <p class="muted">Free in-shop haircut campaign for Trimly customers.</p>
+                </div>
+                <span class="pill">${escapeHtml(String(campaign.remaining_slots))} spots left</span>
+              </div>
+              <p class="muted">${escapeHtml(campaign.description || "Apply for a chance to get selected for a free Trimly haircut.")}</p>
+              <div class="quick-actions-grid" style="margin-top:12px;">
+                ${Array.isArray(campaign.participating_barbers)
+                  ? campaign.participating_barbers
+                      .map(
+                        (item) => `
+                          <article class="customer-highlight-card">
+                            <small>Participating barber</small>
+                            <strong>${escapeHtml(item.shop_name || item.barber_name || "Trimly Barber")}</strong>
+                            <span class="muted">${escapeHtml(item.location || "Trimly")}</span>
+                          </article>
+                        `
+                      )
+                      .join("")
+                  : ""}
+              </div>
+              <div class="settings-action-row" style="margin-top:16px;">
+                <a class="btn btn-primary" href="/static/free-haircut-campaign.html">Open Campaign</a>
+                <a class="btn btn-ghost" href="/static/campaign-apply.html">Apply Now</a>
+              </div>
+            </article>
+          `;
+        }
+      } catch (_campaignError) {
+        campaignShell.innerHTML = "";
+      }
+    }
+
     const barbers = await getBarbers({});
     const featured = barbers.slice(0, 3).map((item, index) => mapBarber(item, index));
 
@@ -2009,6 +2067,7 @@ async function initBookingPage() {
   const bookingAddressTitle = document.getElementById("bookingAddressTitle");
   const bookingAddressSubtitle = document.getElementById("bookingAddressSubtitle");
   const bookingAddressPreview = document.getElementById("bookingAddressPreview");
+  const campaignRewardShell = document.getElementById("bookingCampaignReward");
 
   if (!bookingForm || !dateInput || !timeSelect || !barberSummary || !barberId) {
     return;
@@ -2244,6 +2303,7 @@ async function initBookingPage() {
       </article>
     `;
     renderBookingServiceOptions(bookingServices);
+    await hydrateBookingCampaignReward(campaignRewardShell, Number(barberId));
 
     if (!barber.available) {
       bookingNotice.textContent = "This barber is currently offline and not accepting bookings.";
@@ -2315,6 +2375,7 @@ async function initBookingPage() {
         scheduled_time: scheduledTime,
         service_name: serviceName,
         service_ids: selectedServiceIds,
+        campaign_coupon_code: String(bookingForm.elements.campaign_coupon_code?.value || "").trim() || null,
         customer_address_line: isHomeService ? String(bookingForm.elements.customer_address_line?.value || "").trim() || null : null,
         customer_address_area: isHomeService ? String(bookingForm.elements.customer_address_area?.value || "").trim() || null : null,
         customer_address_landmark: isHomeService ? String(bookingForm.elements.customer_address_landmark?.value || "").trim() || null : null,
@@ -2438,6 +2499,544 @@ async function resolvePostLoginTarget(role, next) {
     return fallbackTarget;
   } catch (_error) {
     return "/static/setup-barber.html";
+  }
+}
+
+async function initCampaignLandingPage() {
+  const shell = document.getElementById("campaignLandingShell");
+  if (!shell) return;
+  shell.innerHTML = `<div class="loading">Loading campaign...</div>`;
+  try {
+    const status = await getActiveCampaignPublic();
+    if (!status?.has_live_campaign || !status?.campaign) {
+      shell.innerHTML = `<p class="muted">There is no live campaign right now.</p>`;
+      return;
+    }
+    const campaign = status.campaign;
+    shell.innerHTML = `
+      <article class="panel">
+        <span class="dashboard-eyebrow">Free haircut campaign</span>
+        <h2>${escapeHtml(campaign.title)}</h2>
+        <p class="muted">${escapeHtml(campaign.description || "Apply for a chance to receive a free in-shop haircut on Trimly.")}</p>
+        <div class="customer-overview-highlights">
+          <article class="customer-highlight-card">
+            <small>Slots</small>
+            <strong>${escapeHtml(String(campaign.application_count))} / ${escapeHtml(String(campaign.max_applications))}</strong>
+            <span class="muted">${escapeHtml(String(campaign.remaining_slots))} slots still open</span>
+          </article>
+          <article class="customer-highlight-card">
+            <small>Winners</small>
+            <strong>${escapeHtml(String(campaign.max_winners))}</strong>
+            <span class="muted">Selected automatically when the campaign closes or fills up.</span>
+          </article>
+          <article class="customer-highlight-card">
+            <small>Validity</small>
+            <strong>30 days</strong>
+            <span class="muted">Ends when the first limit is reached: 50 applications or 30 days.</span>
+          </article>
+        </div>
+        <div class="booking-list booking-list-spacious" style="margin-top:16px;">
+          ${(campaign.participating_barbers || [])
+            .map(
+              (item) => `
+                <article class="booking-item">
+                  <div>
+                    <strong>${escapeHtml(item.shop_name || item.barber_name || "Trimly Barber")}</strong>
+                    <p class="muted">${escapeHtml(item.location || "Trimly")}</p>
+                  </div>
+                </article>
+              `
+            )
+            .join("")}
+        </div>
+        <div class="settings-action-row" style="margin-top:16px;">
+          <a class="btn btn-primary" href="/static/campaign-apply.html">Apply now</a>
+          <a class="btn btn-ghost" href="/static/login.html?next=%2Fstatic%2Fcampaign-apply.html">Login first</a>
+        </div>
+      </article>
+    `;
+  } catch (error) {
+    shell.innerHTML = `<p class="error">${escapeHtml(getFriendlyTrimlyErrorMessage(error))}</p>`;
+  }
+}
+
+async function initCampaignApplyPage() {
+  const token = getToken();
+  const form = document.getElementById("campaignApplyForm");
+  const shell = document.getElementById("campaignApplyStatus");
+  const notice = document.getElementById("campaignApplyNotice");
+  if (!form || !shell || !notice) return;
+
+  if (!token) {
+    const next = encodeURIComponent("/static/campaign-apply.html");
+    window.location.href = `/static/login.html?next=${next}`;
+    return;
+  }
+
+  try {
+    const me = await getCurrentUser();
+    const role = normalizeRole(me.role);
+    if (role !== "customer") {
+      shell.innerHTML = `<p class="error">Only customer accounts can apply for this campaign.</p>`;
+      form.classList.add("hidden");
+      return;
+    }
+    form.elements.email.value = me.logged_in_as || "";
+    if (String(form.elements.first_name.value || "").trim() === "" && me.full_name) {
+      const parts = String(me.full_name).trim().split(/\s+/);
+      form.elements.first_name.value = parts[0] || "";
+      form.elements.surname.value = parts.slice(1).join(" ");
+    }
+    const status = await getActiveCampaignStatus();
+    if (!status?.has_live_campaign || !status?.campaign) {
+      shell.innerHTML = `<p class="muted">There is no live campaign to apply for right now.</p>`;
+      form.classList.add("hidden");
+      return;
+    }
+    const campaign = status.campaign;
+    shell.innerHTML = `
+      <article class="customer-highlight-card">
+        <small>Campaign status</small>
+        <strong>${escapeHtml(campaign.title)}</strong>
+        <span class="muted">${escapeHtml(String(campaign.application_count))} / ${escapeHtml(String(campaign.max_applications))} applications received</span>
+      </article>
+    `;
+    if (status.already_applied) {
+      notice.textContent = "You have already applied for this campaign.";
+      notice.className = "notice success";
+      form.classList.add("hidden");
+      return;
+    }
+  } catch (error) {
+    shell.innerHTML = `<p class="error">${escapeHtml(getFriendlyTrimlyErrorMessage(error))}</p>`;
+    form.classList.add("hidden");
+    return;
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    notice.textContent = "";
+    const submitBtn = form.querySelector("button[type='submit']");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Submitting...";
+    try {
+      await applyToActiveCampaign({
+        first_name: String(form.elements.first_name.value || "").trim(),
+        surname: String(form.elements.surname.value || "").trim(),
+        address: String(form.elements.address.value || "").trim(),
+        email: String(form.elements.email.value || "").trim(),
+        phone: String(form.elements.phone.value || "").trim(),
+        social_handles: String(form.elements.social_handles.value || "").trim(),
+        how_heard_about_us: String(form.elements.how_heard_about_us.value || "").trim(),
+      });
+      notice.textContent = "Application submitted successfully.";
+      notice.className = "notice success";
+      form.classList.add("hidden");
+    } catch (error) {
+      notice.textContent = getFriendlyTrimlyErrorMessage(error);
+      notice.className = "notice error";
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Submit application";
+    }
+  });
+}
+
+async function initCampaignRewardPage() {
+  const token = getToken();
+  const shell = document.getElementById("campaignRewardShell");
+  if (!shell) return;
+
+  if (!token) {
+    const next = encodeURIComponent("/static/campaign-reward.html");
+    window.location.href = `/static/login.html?next=${next}`;
+    return;
+  }
+
+  shell.innerHTML = `<div class="loading">Checking campaign reward...</div>`;
+  try {
+    const status = await getActiveCampaignStatus();
+    if (!status?.has_live_campaign || !status?.campaign) {
+      shell.innerHTML = `<p class="muted">There is no live campaign on your account right now.</p>`;
+      return;
+    }
+    if (status.selected) {
+      shell.innerHTML = `
+        <article class="panel">
+          <span class="dashboard-eyebrow">Selected</span>
+          <h2>You were selected for a free haircut</h2>
+          <p class="muted">Your reward is already attached to your account. You can also use the coupon code below as a backup.</p>
+          <div class="customer-overview-highlights">
+            <article class="customer-highlight-card">
+              <small>Assigned barber</small>
+              <strong>${escapeHtml(status.assigned_barber_shop_name || status.assigned_barber_name || "Assigned barber")}</strong>
+              <span class="muted">Only this barber can redeem the campaign reward.</span>
+            </article>
+            <article class="customer-highlight-card">
+              <small>Coupon code</small>
+              <strong>${escapeHtml(status.coupon_code || "Applied automatically")}</strong>
+              <span class="muted">One-time use. Shop visit only. No add-ons.</span>
+            </article>
+            <article class="customer-highlight-card">
+              <small>Valid until</small>
+              <strong>${escapeHtml(status.coupon_expires_at ? formatDateTime(status.coupon_expires_at) : "Campaign end")}</strong>
+              <span class="muted">Your booking will be auto-approved when it qualifies.</span>
+            </article>
+          </div>
+          <div class="settings-action-row" style="margin-top:16px;">
+            <a class="btn btn-primary" href="/static/booking.html?barber=${Number(status.assigned_barber_id || 0)}">Book now</a>
+            <a class="btn btn-ghost" href="/static/dashboard.html">Back to dashboard</a>
+          </div>
+        </article>
+      `;
+      return;
+    }
+    if (status.not_selected) {
+      shell.innerHTML = `<article class="panel"><h2>Campaign update</h2><p class="muted">Thanks for applying. This round is full and you were not selected.</p></article>`;
+      return;
+    }
+    if (status.already_applied) {
+      shell.innerHTML = `<article class="panel"><h2>Application received</h2><p class="muted">Your application is on file. Winners will be selected automatically once the campaign fills up or reaches its deadline.</p></article>`;
+      return;
+    }
+    shell.innerHTML = `<article class="panel"><h2>No campaign reward yet</h2><p class="muted">Apply to the current campaign to be considered for the free haircut draw.</p><a class="btn btn-primary" href="/static/campaign-apply.html">Apply now</a></article>`;
+  } catch (error) {
+    shell.innerHTML = `<p class="error">${escapeHtml(getFriendlyTrimlyErrorMessage(error))}</p>`;
+  }
+}
+
+function formatDateTimeLocalInput(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function slugifyCampaignValue(value = "") {
+  return String(value || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+async function hydrateCustomerCampaignPanel(shell) {
+  if (!shell) return;
+  shell.innerHTML = `<div class="loading">Loading campaign reward...</div>`;
+  try {
+    const status = await getActiveCampaignStatus();
+    if (!status?.has_live_campaign || !status?.campaign) {
+      shell.innerHTML = `
+        <div class="panel-head-row">
+          <div>
+            <h3>Free haircut campaign</h3>
+            <p class="muted customer-panel-subtitle">No live campaign is running right now.</p>
+          </div>
+        </div>
+        <p class="muted">When a campaign opens, you will see the remaining slots, your application state, and your reward here.</p>
+      `;
+      return;
+    }
+
+    const campaign = status.campaign;
+    if (status.selected) {
+      shell.innerHTML = `
+        <div class="panel-head-row">
+          <div>
+            <h3>You were selected</h3>
+            <p class="muted customer-panel-subtitle">Your free haircut reward is active on this account.</p>
+          </div>
+          <span class="pill pill-success">Winner</span>
+        </div>
+        <div class="customer-overview-highlights">
+          <article class="customer-highlight-card">
+            <small>Assigned barber</small>
+            <strong>${escapeHtml(status.assigned_barber_shop_name || status.assigned_barber_name || "Assigned barber")}</strong>
+            <span class="muted">One in-shop haircut only.</span>
+          </article>
+          <article class="customer-highlight-card">
+            <small>Coupon code</small>
+            <strong>${escapeHtml(status.coupon_code || "Auto-applied reward")}</strong>
+            <span class="muted">One-time use and tied to your account.</span>
+          </article>
+          <article class="customer-highlight-card">
+            <small>Valid until</small>
+            <strong>${escapeHtml(status.coupon_expires_at ? formatDateTime(status.coupon_expires_at) : "30 days")}</strong>
+            <span class="muted">No home service and no add-ons.</span>
+          </article>
+        </div>
+        <div class="settings-action-row" style="margin-top:16px;">
+          <a class="btn btn-primary" href="/static/booking.html?barber=${Number(status.assigned_barber_id || 0)}">Book free haircut</a>
+          <a class="btn btn-ghost" href="/static/campaign-reward.html">Open reward page</a>
+        </div>
+      `;
+      return;
+    }
+
+    if (status.not_selected) {
+      shell.innerHTML = `
+        <div class="panel-head-row">
+          <div>
+            <h3>Campaign update</h3>
+            <p class="muted customer-panel-subtitle">This round is full.</p>
+          </div>
+        </div>
+        <p class="muted">Thanks for applying. This round is full and you were not selected.</p>
+      `;
+      return;
+    }
+
+    if (status.already_applied) {
+      shell.innerHTML = `
+        <div class="panel-head-row">
+          <div>
+            <h3>Application received</h3>
+            <p class="muted customer-panel-subtitle">Your entry is safely on file.</p>
+          </div>
+          <span class="pill">${escapeHtml(String(campaign.application_count || 0))} / ${escapeHtml(String(campaign.max_applications || 0))}</span>
+        </div>
+        <p class="muted">Selection runs automatically when the campaign reaches 50 valid applications or hits its end date.</p>
+        <div class="settings-action-row" style="margin-top:16px;">
+          <a class="btn btn-ghost" href="/static/free-haircut-campaign.html">View campaign details</a>
+        </div>
+      `;
+      return;
+    }
+
+    shell.innerHTML = `
+      <div class="panel-head-row">
+        <div>
+          <h3>${escapeHtml(campaign.title || "Free haircut campaign")}</h3>
+          <p class="muted customer-panel-subtitle">Apply once with your Trimly customer account.</p>
+        </div>
+        <span class="pill">${escapeHtml(String(campaign.remaining_slots || 0))} spots left</span>
+      </div>
+      <p class="muted">${escapeHtml(campaign.description || "Apply for one free in-shop haircut. Winners are picked automatically and assigned evenly across participating barbers.")}</p>
+      <div class="settings-action-row" style="margin-top:16px;">
+        <a class="btn btn-primary" href="/static/campaign-apply.html">Apply now</a>
+        <a class="btn btn-ghost" href="/static/free-haircut-campaign.html">See campaign</a>
+      </div>
+    `;
+  } catch (error) {
+    shell.innerHTML = `<p class="error">${escapeHtml(getFriendlyTrimlyErrorMessage(error))}</p>`;
+  }
+}
+
+async function hydrateBookingCampaignReward(shell, barberId) {
+  if (!shell || !barberId) return;
+  shell.innerHTML = "";
+  shell.classList.add("hidden");
+  try {
+    const status = await getActiveCampaignStatus();
+    if (!status?.selected || Number(status.assigned_barber_id || 0) !== Number(barberId)) {
+      return;
+    }
+    shell.classList.remove("hidden");
+    shell.innerHTML = `
+      <div class="panel-head-row">
+        <div>
+          <h4>Campaign reward available</h4>
+          <p class="muted booking-panel-subtitle">This booking can use your free haircut reward automatically.</p>
+        </div>
+        <span class="pill pill-success">100% off</span>
+      </div>
+      <div class="booking-service-summary">
+        <div class="booking-service-summary-head">
+          <strong>${escapeHtml(status.assigned_barber_shop_name || status.assigned_barber_name || "Assigned barber")}</strong>
+          <span class="pill">${escapeHtml(status.coupon_code || "Auto-applied")}</span>
+        </div>
+        <p class="muted">Only one in-shop haircut is covered. Add-ons and home service are excluded.</p>
+      </div>
+      <input type="hidden" name="campaign_coupon_code" value="${escapeHtml(status.coupon_code || "")}" />
+    `;
+  } catch (_error) {
+    shell.innerHTML = "";
+    shell.classList.add("hidden");
+  }
+}
+
+async function hydrateAdminCampaigns() {
+  const form = document.getElementById("adminCampaignCreateForm");
+  const notice = document.getElementById("adminCampaignNotice");
+  const list = document.getElementById("adminCampaignList");
+  const detail = document.getElementById("adminCampaignDetail");
+  const barberOptions = document.getElementById("adminCampaignBarberOptions");
+  if (!form || !notice || !list || !detail || !barberOptions) return;
+
+  const preferredBarberNames = [
+    "lakeside barbers",
+    "ellabarbera",
+    "smart barbers",
+    "jam jam in oxygen",
+  ];
+
+  const renderCampaignDetail = async (campaignId) => {
+    detail.innerHTML = `<div class="loading">Loading campaign detail...</div>`;
+    try {
+      const campaignDetail = await getAdminCampaignDetail(campaignId);
+      const winners = Array.isArray(campaignDetail?.winners) ? campaignDetail.winners : [];
+      const applications = Array.isArray(campaignDetail?.applications) ? campaignDetail.applications : [];
+      const logs = Array.isArray(campaignDetail?.audit_logs) ? campaignDetail.audit_logs : [];
+      detail.innerHTML = `
+        <article class="booking-item">
+          <div>
+            <strong>${escapeHtml(campaignDetail?.campaign?.title || "Campaign detail")}</strong>
+            <p class="muted">${escapeHtml(String(applications.length))} applications · ${escapeHtml(String(winners.length))} winners</p>
+          </div>
+          <div class="booking-tags">
+            <span class="pill">${escapeHtml(campaignDetail?.campaign?.status || "unknown")}</span>
+          </div>
+        </article>
+        <div class="quick-actions-grid">
+          <article class="customer-highlight-card">
+            <small>Winners</small>
+            <strong>${escapeHtml(String(winners.length))}</strong>
+            <span class="muted">Assigned and coupon-generated automatically.</span>
+          </article>
+          <article class="customer-highlight-card">
+            <small>Applications</small>
+            <strong>${escapeHtml(String(applications.length))}</strong>
+            <span class="muted">Duplicate emails and duplicate users blocked.</span>
+          </article>
+          <article class="customer-highlight-card">
+            <small>Audit events</small>
+            <strong>${escapeHtml(String(logs.length))}</strong>
+            <span class="muted">Every campaign action is logged.</span>
+          </article>
+        </div>
+        <div class="booking-list booking-list-spacious">
+          ${winners.slice(0, 12).map((winner) => `
+            <article class="booking-item">
+              <div>
+                <strong>${escapeHtml(winner.barber_shop_name || winner.barber_name || "Assigned barber")}</strong>
+                <p class="muted">${escapeHtml(winner.coupon_code || "No code")}</p>
+              </div>
+              <div class="booking-tags">
+                <span class="pill">${escapeHtml(winner.reward_status || "issued")}</span>
+              </div>
+            </article>
+          `).join("") || `<p class="muted">No winners assigned yet.</p>`}
+        </div>
+      `;
+    } catch (error) {
+      detail.innerHTML = `<p class="error">${escapeHtml(getFriendlyTrimlyErrorMessage(error))}</p>`;
+    }
+  };
+
+  try {
+    const [campaigns, barbers] = await Promise.all([getAdminCampaigns(), getAdminBarbers()]);
+    const adminBarbers = Array.isArray(barbers) ? barbers : [];
+    const selectableBarbers = adminBarbers.filter((barber) => !["rejected", "suspended"].includes(String(barber.status || "").toLowerCase()));
+    const initiallySelected = new Set(
+      selectableBarbers
+        .filter((barber) => preferredBarberNames.some((name) => String(barber.shop_name || barber.barber_name || "").toLowerCase().includes(name)))
+        .slice(0, 4)
+        .map((barber) => Number(barber.id))
+    );
+
+    const endsAtField = form.elements.ends_at;
+    if (endsAtField && !endsAtField.value) {
+      const endsAt = new Date();
+      endsAt.setDate(endsAt.getDate() + 30);
+      endsAt.setHours(23, 59, 0, 0);
+      endsAtField.value = formatDateTimeLocalInput(endsAt);
+    }
+
+    barberOptions.innerHTML = selectableBarbers.map((barber) => {
+      const barberId = Number(barber.id || 0);
+      const checked = initiallySelected.has(barberId);
+      return `
+        <label class="quick-action-card">
+          <input type="checkbox" name="barber_ids" value="${barberId}" ${checked ? "checked" : ""} />
+          <strong>${escapeHtml(barber.shop_name || barber.barber_name || "Trimly Barber")}</strong>
+          <span class="muted">${escapeHtml(barber.location || "Trimly")}</span>
+        </label>
+      `;
+    }).join("");
+
+    const campaignItems = Array.isArray(campaigns) ? campaigns : [];
+    list.innerHTML = campaignItems.length
+      ? campaignItems.map((campaign) => `
+          <article class="booking-item">
+            <div>
+              <strong>${escapeHtml(campaign.title)}</strong>
+              <p class="muted">${escapeHtml(String(campaign.application_count || 0))} / ${escapeHtml(String(campaign.max_applications || 0))} applications · ${escapeHtml(String(campaign.winner_count || 0))} winners</p>
+            </div>
+            <div class="booking-tags">
+              <span class="pill">${escapeHtml(campaign.status || "unknown")}</span>
+              <button class="btn btn-ghost btn-sm" type="button" data-admin-campaign-view="${Number(campaign.id)}">View detail</button>
+            </div>
+          </article>
+        `).join("")
+      : `<p class="muted">No campaign created yet.</p>`;
+
+    list.querySelectorAll("[data-admin-campaign-view]").forEach((button) => {
+      button.addEventListener("click", () => {
+        void renderCampaignDetail(Number(button.dataset.adminCampaignView || 0));
+      });
+    });
+
+    if (campaignItems[0]?.id) {
+      await renderCampaignDetail(Number(campaignItems[0].id));
+    } else {
+      detail.innerHTML = `<p class="muted">Create a campaign to view applications, winners, and audit logs.</p>`;
+    }
+  } catch (error) {
+    list.innerHTML = `<p class="error">${escapeHtml(getFriendlyTrimlyErrorMessage(error))}</p>`;
+    detail.innerHTML = "";
+  }
+
+  if (form.dataset.bound !== "true") {
+    form.dataset.bound = "true";
+    const slugField = form.elements.slug;
+    const titleField = form.elements.title;
+    titleField?.addEventListener("input", () => {
+      if (!slugField.dataset.touched) {
+        slugField.value = slugifyCampaignValue(titleField.value);
+      }
+    });
+    slugField?.addEventListener("input", () => {
+      slugField.dataset.touched = "true";
+    });
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      notice.textContent = "";
+      const submitBtn = form.querySelector("button[type='submit']");
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Creating...";
+      try {
+        const selectedBarberIds = Array.from(form.querySelectorAll('input[name="barber_ids"]:checked'))
+          .map((item) => Number(item.value || 0))
+          .filter((value) => Number.isFinite(value) && value > 0);
+        const payload = {
+          title: String(form.elements.title.value || "").trim(),
+          slug: slugifyCampaignValue(form.elements.slug.value || form.elements.title.value || "campaign"),
+          description: String(form.elements.description.value || "").trim() || null,
+          max_applications: Number(form.elements.max_applications.value || 50),
+          max_winners: Number(form.elements.max_winners.value || 25),
+          barber_ids: selectedBarberIds,
+          starts_at: new Date().toISOString(),
+          ends_at: new Date(String(form.elements.ends_at.value || "")).toISOString(),
+          auto_notify_non_winners: Boolean(form.elements.auto_notify_non_winners.checked),
+        };
+        await createCampaign(payload);
+        notice.textContent = "Campaign created successfully.";
+        notice.className = "notice success";
+        await hydrateAdminCampaigns();
+      } catch (error) {
+        notice.textContent = getFriendlyTrimlyErrorMessage(error);
+        notice.className = "notice error";
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Create campaign";
+      }
+    });
   }
 }
 
@@ -2711,6 +3310,7 @@ async function initAdminDashboardPage() {
 
     applyAdminDashboardView(role);
     await hydrateAdminDashboard();
+    await hydrateAdminCampaigns();
     if (role === "super_admin") {
       await hydrateSuperAdminUsers();
     }
@@ -2790,6 +3390,7 @@ async function initDashboardPage() {
   const adminSection = document.getElementById("adminDashboard");
   const customerDashboardSubnav = document.getElementById("customerDashboardSubnav");
   const barberDashboardSubnav = document.getElementById("barberDashboardSubnav");
+  const customerCampaignShell = document.getElementById("customerCampaignShell");
 
   if (!roleBadge || !emailEl) return;
 
@@ -2861,6 +3462,7 @@ async function initDashboardPage() {
     barberDashboardSubnav?.classList.add("hidden");
     customerDashboardSubnav?.classList.remove("hidden");
     await hydrateCustomerDashboard();
+    await hydrateCustomerCampaignPanel(customerCampaignShell);
     syncDashboardSubnav();
   }
 }
