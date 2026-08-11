@@ -26,6 +26,7 @@ DEFAULT_CAMPAIGN_DESCRIPTION = (
 DEFAULT_CAMPAIGN_MAX_APPLICATIONS = 50
 DEFAULT_CAMPAIGN_MAX_WINNERS = 25
 DEFAULT_CAMPAIGN_DURATION_DAYS = 30
+DEFAULT_CAMPAIGN_MAX_BARBERS = 4
 DEFAULT_CAMPAIGN_BARBERS = [
     "lakeside barbers",
     "ellabarbera",
@@ -38,8 +39,69 @@ def _normalize_barber_label(value: str | None) -> str:
     return " ".join(str(value or "").strip().lower().split())
 
 
+def _tokenize_barber_label(value: str | None) -> set[str]:
+    normalized = _normalize_barber_label(value)
+    return {part for part in normalized.replace("-", " ").split(" ") if part}
+
+
 def _campaign_slug_for_today() -> str:
     return f"free-haircut-campaign-{datetime.utcnow().strftime('%Y%m%d')}"
+
+
+def _eligible_campaign_barbers(db: Session) -> list[Barber]:
+    return (
+        db.query(Barber)
+        .filter(Barber.kyc_status == "verified")
+        .order_by(Barber.created_at.asc(), Barber.id.asc())
+        .all()
+    )
+
+
+def _pick_default_campaign_barbers(candidate_barbers: list[Barber]) -> list[Barber]:
+    selected_barbers: list[Barber] = []
+    seen_ids: set[int] = set()
+
+    for preferred_name in DEFAULT_CAMPAIGN_BARBERS:
+        preferred_normalized = _normalize_barber_label(preferred_name)
+        preferred_tokens = _tokenize_barber_label(preferred_name)
+        best_match: Barber | None = None
+        best_score = 0
+
+        for barber in candidate_barbers:
+            if barber.id in seen_ids:
+                continue
+            shop_label = _normalize_barber_label(barber.shop_name)
+            barber_label = _normalize_barber_label(barber.barber_name)
+            combined_tokens = _tokenize_barber_label(shop_label) | _tokenize_barber_label(barber_label)
+
+            exact_hit = preferred_normalized and (
+                preferred_normalized in shop_label or preferred_normalized in barber_label
+            )
+            overlap_score = len(preferred_tokens & combined_tokens)
+
+            if exact_hit:
+                best_match = barber
+                best_score = 10_000 + overlap_score
+                break
+
+            if overlap_score > best_score:
+                best_match = barber
+                best_score = overlap_score
+
+        if best_match and best_score > 0:
+            selected_barbers.append(best_match)
+            seen_ids.add(best_match.id)
+
+    if len(selected_barbers) < min(DEFAULT_CAMPAIGN_MAX_BARBERS, len(candidate_barbers)):
+        for barber in candidate_barbers:
+            if barber.id in seen_ids:
+                continue
+            selected_barbers.append(barber)
+            seen_ids.add(barber.id)
+            if len(selected_barbers) >= min(DEFAULT_CAMPAIGN_MAX_BARBERS, len(candidate_barbers)):
+                break
+
+    return selected_barbers
 
 
 def ensure_default_live_campaign(db: Session) -> Campaign | None:
@@ -53,27 +115,8 @@ def ensure_default_live_campaign(db: Session) -> Campaign | None:
         return existing_live
 
     now = datetime.utcnow()
-    candidate_barbers = db.query(Barber).order_by(Barber.created_at.asc()).all()
-    selected_barbers: list[Barber] = []
-    seen_ids: set[int] = set()
-
-    for preferred_name in DEFAULT_CAMPAIGN_BARBERS:
-        preferred_normalized = _normalize_barber_label(preferred_name)
-        match = next(
-            (
-                barber
-                for barber in candidate_barbers
-                if barber.id not in seen_ids
-                and (
-                    preferred_normalized in _normalize_barber_label(barber.shop_name)
-                    or preferred_normalized in _normalize_barber_label(barber.barber_name)
-                )
-            ),
-            None,
-        )
-        if match:
-            selected_barbers.append(match)
-            seen_ids.add(match.id)
+    candidate_barbers = _eligible_campaign_barbers(db)
+    selected_barbers = _pick_default_campaign_barbers(candidate_barbers)
 
     if not selected_barbers:
         return None
