@@ -18,6 +18,102 @@ CAMPAIGN_CLOSED_STATUSES = {"closed", "completed"}
 CAMPAIGN_REWARD_VALIDITY_DAYS = 30
 CAMPAIGN_ELIGIBLE_SERVICE_MODE = "shop_visit"
 CAMPAIGN_ELIGIBLE_SERVICE_LABEL = "Haircut"
+DEFAULT_CAMPAIGN_TITLE = "Trimly Free Haircut Campaign"
+DEFAULT_CAMPAIGN_DESCRIPTION = (
+    "Apply for one free in-shop haircut. Once 50 valid applications are in, "
+    "Trimly automatically selects 25 customers and assigns them to participating barbers."
+)
+DEFAULT_CAMPAIGN_MAX_APPLICATIONS = 50
+DEFAULT_CAMPAIGN_MAX_WINNERS = 25
+DEFAULT_CAMPAIGN_DURATION_DAYS = 30
+DEFAULT_CAMPAIGN_BARBERS = [
+    "lakeside barbers",
+    "ellabarbera",
+    "smart barbers",
+    "jam jam in oxygen",
+]
+
+
+def _normalize_barber_label(value: str | None) -> str:
+    return " ".join(str(value or "").strip().lower().split())
+
+
+def _campaign_slug_for_today() -> str:
+    return f"free-haircut-campaign-{datetime.utcnow().strftime('%Y%m%d')}"
+
+
+def ensure_default_live_campaign(db: Session) -> Campaign | None:
+    existing_live = (
+        db.query(Campaign)
+        .filter(Campaign.status == "live")
+        .order_by(Campaign.created_at.desc())
+        .first()
+    )
+    if existing_live:
+        return existing_live
+
+    now = datetime.utcnow()
+    candidate_barbers = db.query(Barber).order_by(Barber.created_at.asc()).all()
+    selected_barbers: list[Barber] = []
+    seen_ids: set[int] = set()
+
+    for preferred_name in DEFAULT_CAMPAIGN_BARBERS:
+        preferred_normalized = _normalize_barber_label(preferred_name)
+        match = next(
+            (
+                barber
+                for barber in candidate_barbers
+                if barber.id not in seen_ids
+                and (
+                    preferred_normalized in _normalize_barber_label(barber.shop_name)
+                    or preferred_normalized in _normalize_barber_label(barber.barber_name)
+                )
+            ),
+            None,
+        )
+        if match:
+            selected_barbers.append(match)
+            seen_ids.add(match.id)
+
+    if not selected_barbers:
+        return None
+
+    slug = _campaign_slug_for_today()
+    while db.query(Campaign).filter(Campaign.slug == slug).first():
+        slug = f"{slug}-{secrets.token_hex(2)}"
+
+    campaign = Campaign(
+        title=DEFAULT_CAMPAIGN_TITLE,
+        slug=slug,
+        description=DEFAULT_CAMPAIGN_DESCRIPTION,
+        status="live",
+        max_applications=DEFAULT_CAMPAIGN_MAX_APPLICATIONS,
+        max_winners=DEFAULT_CAMPAIGN_MAX_WINNERS,
+        starts_at=now,
+        ends_at=now + timedelta(days=DEFAULT_CAMPAIGN_DURATION_DAYS),
+        auto_notify_non_winners=True,
+        application_count=0,
+        winner_count=0,
+    )
+    db.add(campaign)
+    db.flush()
+
+    for barber in selected_barbers:
+        db.add(CampaignBarber(campaign_id=campaign.id, barber_id=barber.id, allocation_count=0))
+
+    log_campaign_event(
+        db,
+        campaign_id=campaign.id,
+        action="campaign_auto_bootstrapped",
+        payload={
+            "slug": slug,
+            "barber_ids": [barber.id for barber in selected_barbers],
+            "barber_count": len(selected_barbers),
+        },
+    )
+    db.commit()
+    db.refresh(campaign)
+    return campaign
 
 
 def get_live_campaign(db: Session) -> Campaign | None:
@@ -27,6 +123,8 @@ def get_live_campaign(db: Session) -> Campaign | None:
         .order_by(Campaign.created_at.desc())
         .first()
     )
+    if not campaign:
+        campaign = ensure_default_live_campaign(db)
     if campaign:
         ensure_campaign_selection_if_due(db, campaign)
     return campaign
@@ -195,7 +293,7 @@ def notify_campaign_results(db: Session, campaign_id: int) -> None:
             notification_type="campaign_winner",
             title="You were selected for a free haircut",
             message=f"You were selected for {campaign.title}. Your assigned barber is {barber_name}.",
-            link="/static/campaign-reward.html",
+            link="/free-haircut-campaign/reward",
         )
         try:
             send_trimly_html_email(
@@ -231,7 +329,7 @@ def notify_campaign_results(db: Session, campaign_id: int) -> None:
                 notification_type="campaign_not_selected",
                 title="Campaign update",
                 message="Thanks for applying. This round is full and you were not selected.",
-                link="/static/free-haircut-campaign.html",
+                link="/free-haircut-campaign",
             )
             try:
                 send_trimly_html_email(

@@ -461,6 +461,21 @@ def serve_home():
     return FileResponse(FRONTEND_DIR / "index.html")
 
 
+@app.get("/free-haircut-campaign")
+def serve_free_haircut_campaign():
+    return FileResponse(FRONTEND_DIR / "free-haircut-campaign.html")
+
+
+@app.get("/free-haircut-campaign/apply")
+def serve_free_haircut_campaign_apply():
+    return FileResponse(FRONTEND_DIR / "campaign-apply.html")
+
+
+@app.get("/free-haircut-campaign/reward")
+def serve_free_haircut_campaign_reward():
+    return FileResponse(FRONTEND_DIR / "campaign-reward.html")
+
+
 @app.get("/payment-success")
 def serve_payment_success():
     return FileResponse(FRONTEND_DIR / "payment-status.html")

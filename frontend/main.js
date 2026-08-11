@@ -1739,8 +1739,8 @@ async function initLandingPage() {
                   : ""}
               </div>
               <div class="settings-action-row" style="margin-top:16px;">
-                <a class="btn btn-primary" href="/static/free-haircut-campaign.html">Open Campaign</a>
-                <a class="btn btn-ghost" href="/static/campaign-apply.html">Apply Now</a>
+                <a class="btn btn-primary" href="/free-haircut-campaign">Open Campaign</a>
+                <a class="btn btn-ghost" href="/free-haircut-campaign/apply">Apply Now</a>
               </div>
             </article>
           `;
@@ -2550,8 +2550,8 @@ async function initCampaignLandingPage() {
             .join("")}
         </div>
         <div class="settings-action-row" style="margin-top:16px;">
-          <a class="btn btn-primary" href="/static/campaign-apply.html">Apply now</a>
-          <a class="btn btn-ghost" href="/static/login.html?next=%2Fstatic%2Fcampaign-apply.html">Login first</a>
+          <a class="btn btn-primary" href="/free-haircut-campaign/apply">Apply now</a>
+          <a class="btn btn-ghost" href="/static/login.html?next=%2Ffree-haircut-campaign%2Fapply">Login first</a>
         </div>
       </article>
     `;
@@ -2568,7 +2568,7 @@ async function initCampaignApplyPage() {
   if (!form || !shell || !notice) return;
 
   if (!token) {
-    const next = encodeURIComponent("/static/campaign-apply.html");
+    const next = encodeURIComponent("/free-haircut-campaign/apply");
     window.location.href = `/static/login.html?next=${next}`;
     return;
   }
@@ -2648,7 +2648,7 @@ async function initCampaignRewardPage() {
   if (!shell) return;
 
   if (!token) {
-    const next = encodeURIComponent("/static/campaign-reward.html");
+    const next = encodeURIComponent("/free-haircut-campaign/reward");
     window.location.href = `/static/login.html?next=${next}`;
     return;
   }
@@ -2699,7 +2699,7 @@ async function initCampaignRewardPage() {
       shell.innerHTML = `<article class="panel"><h2>Application received</h2><p class="muted">Your application is on file. Winners will be selected automatically once the campaign fills up or reaches its deadline.</p></article>`;
       return;
     }
-    shell.innerHTML = `<article class="panel"><h2>No campaign reward yet</h2><p class="muted">Apply to the current campaign to be considered for the free haircut draw.</p><a class="btn btn-primary" href="/static/campaign-apply.html">Apply now</a></article>`;
+    shell.innerHTML = `<article class="panel"><h2>No campaign reward yet</h2><p class="muted">Apply to the current campaign to be considered for the free haircut draw.</p><a class="btn btn-primary" href="/free-haircut-campaign/apply">Apply now</a></article>`;
   } catch (error) {
     shell.innerHTML = `<p class="error">${escapeHtml(getFriendlyTrimlyErrorMessage(error))}</p>`;
   }
@@ -2772,7 +2772,7 @@ async function hydrateCustomerCampaignPanel(shell) {
         </div>
         <div class="settings-action-row" style="margin-top:16px;">
           <a class="btn btn-primary" href="/static/booking.html?barber=${Number(status.assigned_barber_id || 0)}">Book free haircut</a>
-          <a class="btn btn-ghost" href="/static/campaign-reward.html">Open reward page</a>
+          <a class="btn btn-ghost" href="/free-haircut-campaign/reward">Open reward page</a>
         </div>
       `;
       return;
@@ -2802,7 +2802,7 @@ async function hydrateCustomerCampaignPanel(shell) {
         </div>
         <p class="muted">Selection runs automatically when the campaign reaches 50 valid applications or hits its end date.</p>
         <div class="settings-action-row" style="margin-top:16px;">
-          <a class="btn btn-ghost" href="/static/free-haircut-campaign.html">View campaign details</a>
+          <a class="btn btn-ghost" href="/free-haircut-campaign">View campaign details</a>
         </div>
       `;
       return;
@@ -2818,8 +2818,8 @@ async function hydrateCustomerCampaignPanel(shell) {
       </div>
       <p class="muted">${escapeHtml(campaign.description || "Apply for one free in-shop haircut. Winners are picked automatically and assigned evenly across participating barbers.")}</p>
       <div class="settings-action-row" style="margin-top:16px;">
-        <a class="btn btn-primary" href="/static/campaign-apply.html">Apply now</a>
-        <a class="btn btn-ghost" href="/static/free-haircut-campaign.html">See campaign</a>
+        <a class="btn btn-primary" href="/free-haircut-campaign/apply">Apply now</a>
+        <a class="btn btn-ghost" href="/free-haircut-campaign">See campaign</a>
       </div>
     `;
   } catch (error) {
