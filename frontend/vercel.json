@@ -20,6 +20,18 @@
     {
       "source": "/payment-success",
       "destination": "/payment-status.html"
+    },
+    {
+      "source": "/free-haircut-campaign",
+      "destination": "/free-haircut-campaign.html"
+    },
+    {
+      "source": "/free-haircut-campaign/apply",
+      "destination": "/campaign-apply.html"
+    },
+    {
+      "source": "/free-haircut-campaign/reward",
+      "destination": "/campaign-reward.html"
     }
   ]
 }

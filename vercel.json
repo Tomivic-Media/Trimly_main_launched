@@ -40,6 +40,18 @@
       "destination": "/frontend/payment-status.html"
     },
     {
+      "source": "/free-haircut-campaign",
+      "destination": "/frontend/free-haircut-campaign.html"
+    },
+    {
+      "source": "/free-haircut-campaign/apply",
+      "destination": "/frontend/campaign-apply.html"
+    },
+    {
+      "source": "/free-haircut-campaign/reward",
+      "destination": "/frontend/campaign-reward.html"
+    },
+    {
       "source": "/static/(.*)",
       "destination": "/frontend/$1"
     },
