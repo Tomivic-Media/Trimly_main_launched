@@ -5331,6 +5331,85 @@ label {
   word-break: break-word;
 }
 
+.campaign-applicant-register-section {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid rgba(46, 106, 79, 0.16);
+  border-radius: 20px;
+  background: rgba(255, 250, 242, 0.62);
+}
+
+.campaign-applicant-register-section h4 {
+  margin: 0 0 4px;
+}
+
+.campaign-applicant-search {
+  display: block;
+}
+
+.campaign-applicant-register {
+  display: grid;
+  gap: 12px;
+  max-height: 880px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.campaign-applicant-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.campaign-applicant-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.campaign-applicant-card-head p {
+  margin: 5px 0 0;
+}
+
+.campaign-applicant-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.campaign-applicant-details p {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  min-width: 0;
+}
+
+.campaign-applicant-details small {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.campaign-applicant-details span {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 560px) {
+  .campaign-applicant-register-section,
+  .campaign-applicant-card {
+    padding: 14px;
+  }
+
+  .campaign-applicant-card-head {
+    display: grid;
+  }
+}
+
 .contact-response-band {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);

@@ -2882,6 +2882,73 @@ async function hydrateAdminCampaigns() {
       const winners = Array.isArray(campaignDetail?.winners) ? campaignDetail.winners : [];
       const applications = Array.isArray(campaignDetail?.applications) ? campaignDetail.applications : [];
       const logs = Array.isArray(campaignDetail?.audit_logs) ? campaignDetail.audit_logs : [];
+      const winnerByApplicationId = new Map(winners.map((winner) => [Number(winner.application_id), winner]));
+
+      const renderApplicantRegister = (query = "") => {
+        const normalizedQuery = String(query || "").trim().toLowerCase();
+        const visibleApplications = applications.filter((application) => {
+          if (!normalizedQuery) return true;
+          const winner = winnerByApplicationId.get(Number(application.id));
+          return [
+            application.first_name,
+            application.surname,
+            application.email,
+            application.phone,
+            application.address,
+            application.social_handles,
+            application.how_heard_about_us,
+            application.status,
+            winner?.barber_name,
+            winner?.barber_shop_name,
+            winner?.coupon_code,
+            winner?.reward_status,
+          ].some((value) => String(value || "").toLowerCase().includes(normalizedQuery));
+        });
+
+        const register = detail.querySelector("[data-campaign-applicant-register]");
+        const count = detail.querySelector("[data-campaign-applicant-count]");
+        if (count) {
+          count.textContent = `${visibleApplications.length} of ${applications.length} applicants`;
+        }
+        if (!register) return;
+
+        register.innerHTML = visibleApplications.length
+          ? visibleApplications.map((application) => {
+              const winner = winnerByApplicationId.get(Number(application.id));
+              const fullName = `${application.first_name || ""} ${application.surname || ""}`.trim() || "Applicant";
+              const resultLabel = winner ? "Selected" : application.status === "not_selected" ? "Not selected" : "Awaiting selection";
+              const assignment = winner
+                ? winner.barber_shop_name || winner.barber_name || "Assigned barber"
+                : "No barber assigned";
+              return `
+                <article class="campaign-applicant-card">
+                  <div class="campaign-applicant-card-head">
+                    <div>
+                      <strong>${escapeHtml(fullName)}</strong>
+                      <p class="muted">Applied ${escapeHtml(formatDateTime(application.submitted_at))}</p>
+                    </div>
+                    <div class="booking-tags">
+                      <span class="pill ${winner ? "pill-success" : ""}">${escapeHtml(resultLabel)}</span>
+                      ${winner ? `<span class="pill">${escapeHtml(winner.reward_status || "issued")}</span>` : ""}
+                    </div>
+                  </div>
+                  <div class="campaign-applicant-details">
+                    <p><small>Email</small><span>${escapeHtml(application.email || "Not provided")}</span></p>
+                    <p><small>Phone</small><span>${escapeHtml(application.phone || "Not provided")}</span></p>
+                    <p><small>Address</small><span>${escapeHtml(application.address || "Not provided")}</span></p>
+                    <p><small>Social handles</small><span>${escapeHtml(application.social_handles || "Not provided")}</span></p>
+                    <p><small>How they heard about Trimly</small><span>${escapeHtml(application.how_heard_about_us || "Not provided")}</span></p>
+                    <p><small>Assigned barber</small><span>${escapeHtml(assignment)}</span></p>
+                    ${winner ? `<p><small>Coupon</small><span>${escapeHtml(winner.coupon_code || "Not issued")}</span></p>` : ""}
+                    ${winner?.coupon_expires_at ? `<p><small>Expires</small><span>${escapeHtml(formatDateTime(winner.coupon_expires_at))}</span></p>` : ""}
+                    ${winner?.redeemed_at ? `<p><small>Redeemed</small><span>${escapeHtml(formatDateTime(winner.redeemed_at))}</span></p>` : ""}
+                  </div>
+                </article>
+              `;
+            }).join("")
+          : `<p class="muted">No applicants match this search.</p>`;
+      };
+
       detail.innerHTML = `
         <article class="booking-item">
           <div>
@@ -2922,7 +2989,26 @@ async function hydrateAdminCampaigns() {
             </article>
           `).join("") || `<p class="muted">No winners assigned yet.</p>`}
         </div>
+        <section class="campaign-applicant-register-section" aria-labelledby="campaignApplicantRegisterTitle">
+          <div class="panel-head-row">
+            <div>
+              <h4 id="campaignApplicantRegisterTitle">Applicant register</h4>
+              <p class="muted">Full campaign application details. Visible only to Trimly administrators.</p>
+            </div>
+            <span class="pill" data-campaign-applicant-count>${escapeHtml(String(applications.length))} applicants</span>
+          </div>
+          <label class="campaign-applicant-search" for="campaignApplicantSearch">
+            <span class="sr-only">Search campaign applicants</span>
+            <input id="campaignApplicantSearch" class="input" type="search" placeholder="Search name, email, phone, status, barber or coupon" autocomplete="off" />
+          </label>
+          <div class="campaign-applicant-register" data-campaign-applicant-register></div>
+        </section>
       `;
+
+      renderApplicantRegister();
+      detail.querySelector("#campaignApplicantSearch")?.addEventListener("input", (event) => {
+        renderApplicantRegister(event.target.value);
+      });
     } catch (error) {
       detail.innerHTML = `<p class="error">${escapeHtml(getFriendlyTrimlyErrorMessage(error))}</p>`;
     }
