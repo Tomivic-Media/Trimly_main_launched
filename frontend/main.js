@@ -18,6 +18,7 @@ import {
   getAdminBarbers,
   getAdminCampaignDetail,
   getAdminCampaigns,
+  removeAdminCampaignApplication,
   getAdminPayoutReport,
   getAdminReviews,
   getAdminUsers,
@@ -2943,6 +2944,11 @@ async function hydrateAdminCampaigns() {
                     ${winner?.coupon_expires_at ? `<p><small>Expires</small><span>${escapeHtml(formatDateTime(winner.coupon_expires_at))}</span></p>` : ""}
                     ${winner?.redeemed_at ? `<p><small>Redeemed</small><span>${escapeHtml(formatDateTime(winner.redeemed_at))}</span></p>` : ""}
                   </div>
+                  <div class="campaign-applicant-actions">
+                    <button class="btn btn-ghost btn-sm" type="button" data-remove-campaign-application="${Number(application.id)}" data-applicant-name="${escapeHtml(fullName)}" ${winner?.booking_id || winner?.redeemed_at ? "disabled title=\"This reward has already been used\"" : ""}>
+                      ${winner ? "Remove & void reward" : "Remove application"}
+                    </button>
+                  </div>
                 </article>
               `;
             }).join("")
@@ -3008,6 +3014,31 @@ async function hydrateAdminCampaigns() {
       renderApplicantRegister();
       detail.querySelector("#campaignApplicantSearch")?.addEventListener("input", (event) => {
         renderApplicantRegister(event.target.value);
+      });
+      detail.querySelectorAll("[data-remove-campaign-application]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const applicationId = Number(button.dataset.removeCampaignApplication || 0);
+          const applicantName = String(button.dataset.applicantName || "this applicant");
+          if (!applicationId) return;
+          const confirmed = window.confirm(
+            `Remove ${applicantName} from this campaign? This cannot be undone. Any unused campaign reward will be voided.`
+          );
+          if (!confirmed) return;
+
+          button.disabled = true;
+          button.textContent = "Removing...";
+          try {
+            await removeAdminCampaignApplication(campaignId, applicationId);
+            notice.textContent = `${applicantName} was removed from the campaign.`;
+            notice.className = "notice success";
+            await hydrateAdminCampaigns();
+          } catch (error) {
+            notice.textContent = getFriendlyTrimlyErrorMessage(error);
+            notice.className = "notice error";
+            button.disabled = false;
+            button.textContent = "Remove application";
+          }
+        });
       });
     } catch (error) {
       detail.innerHTML = `<p class="error">${escapeHtml(getFriendlyTrimlyErrorMessage(error))}</p>`;

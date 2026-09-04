@@ -895,6 +895,14 @@ async function getAdminCampaignDetail(campaignId) {
   return apiFetch(`/admin/campaigns/${Number(campaignId)}`, { method: "GET" }, true);
 }
 
+async function removeAdminCampaignApplication(campaignId, applicationId) {
+  return apiFetch(
+    `/admin/campaigns/${Number(campaignId)}/applications/${Number(applicationId)}`,
+    { method: "DELETE" },
+    true
+  );
+}
+
 export {
   API_BASE_URL,
   applyToActiveCampaign,
@@ -916,6 +924,7 @@ export {
   getAdminBarbers,
   getAdminCampaignDetail,
   getAdminCampaigns,
+  removeAdminCampaignApplication,
   getAdminPayoutReport,
   getAdminReviews,
   getActiveCampaignPublic,

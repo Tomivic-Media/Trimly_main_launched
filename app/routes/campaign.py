@@ -335,3 +335,57 @@ def get_campaign_detail(
             for log in logs
         ],
     )
+
+
+@router.delete("/admin/campaigns/{campaign_id}/applications/{application_id}")
+def remove_campaign_application(
+    campaign_id: int,
+    application_id: int,
+    current_user: User = Depends(require_any_role("admin", "super_admin")),
+    db: Session = Depends(get_db),
+):
+    campaign = db.query(Campaign).filter(Campaign.id == campaign_id).first()
+    if not campaign:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+
+    application = (
+        db.query(CampaignApplication)
+        .filter(CampaignApplication.id == application_id, CampaignApplication.campaign_id == campaign.id)
+        .first()
+    )
+    if not application:
+        raise HTTPException(status_code=404, detail="Campaign application not found")
+
+    winner = db.query(CampaignWinner).filter(CampaignWinner.application_id == application.id).first()
+    if winner and (winner.booking_id or winner.redeemed_at):
+        raise HTTPException(
+            status_code=409,
+            detail="This selected applicant already has a campaign booking or redeemed reward and cannot be removed.",
+        )
+
+    applicant_email = application.email
+    selected = bool(winner)
+    if winner:
+        db.delete(winner)
+    db.delete(application)
+    db.flush()
+
+    campaign.application_count = (
+        db.query(CampaignApplication)
+        .filter(CampaignApplication.campaign_id == campaign.id)
+        .count()
+    )
+    campaign.winner_count = db.query(CampaignWinner).filter(CampaignWinner.campaign_id == campaign.id).count()
+    log_campaign_event(
+        db,
+        campaign_id=campaign.id,
+        actor_user_id=current_user.id,
+        action="application_removed_by_admin",
+        payload={
+            "application_id": application_id,
+            "email": applicant_email,
+            "selected": selected,
+        },
+    )
+    db.commit()
+    return {"message": "Campaign application removed successfully."}

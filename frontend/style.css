@@ -5399,6 +5399,12 @@ label {
   overflow-wrap: anywhere;
 }
 
+.campaign-applicant-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 2px;
+}
+
 @media (max-width: 560px) {
   .campaign-applicant-register-section,
   .campaign-applicant-card {
