@@ -19,6 +19,7 @@ from app.core.config import (
     EMAIL_VERIFICATION_REQUIRED,
     EMAIL_VERIFICATION_SUCCESS_URL,
     EMAIL_VERIFICATION_TOKEN_EXPIRY_HOURS,
+    FRONTEND_URL,
     PASSWORD_RESET_URL,
     SESSION_COOKIE_SAMESITE,
     SESSION_COOKIE_SECURE,
@@ -171,6 +172,18 @@ def _set_auth_cookie(response: Response, token: str) -> None:
         path="/",
         max_age=USER_SESSION_COOKIE_MAX_AGE,
     )
+
+
+def _verification_completion_url() -> str:
+    """Return the frontend page that finalizes a verified user's onboarding."""
+    configured_url = str(EMAIL_VERIFICATION_SUCCESS_URL or "").strip()
+    if "verify-email.html" in configured_url:
+        return configured_url
+
+    frontend_base = str(FRONTEND_URL or "https://trimly.com.ng").rstrip("/")
+    if frontend_base.endswith("/static"):
+        return f"{frontend_base}/verify-email.html?verified=1"
+    return f"{frontend_base}/static/verify-email.html?verified=1"
 
 
 def _delete_barber_upload_directory(user_id: int) -> None:
@@ -647,7 +660,7 @@ def debug_reset_email_preview(token: str = "debug-reset-token"):
 
 
 @router.get("/auth/verify-email")
-def verify_email(token: str, db: Session = Depends(get_db)):
+def verify_email(token: str, request: Request, db: Session = Depends(get_db)):
     token_hash = _hash_one_time_token(token)
     user = db.query(User).filter(User.email_verification_token_hash == token_hash).first()
     if not user or not user.email_verification_expires_at or datetime.utcnow() > user.email_verification_expires_at:
@@ -657,8 +670,23 @@ def verify_email(token: str, db: Session = Depends(get_db)):
     user.is_active = True
     user.email_verification_token_hash = None
     user.email_verification_expires_at = None
+    session_id = create_session_id()
+    expires_at = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    user_agent, ip_address = get_request_metadata(request)
+    create_user_session(
+        db=db,
+        user_id=user.id,
+        session_id=session_id,
+        session_type="email_verification",
+        user_agent=user_agent,
+        ip_address=ip_address,
+        expires_at=expires_at,
+    )
     db.commit()
-    return RedirectResponse(url=EMAIL_VERIFICATION_SUCCESS_URL, status_code=303)
+    access_token = create_access_token(data={"sub": user.email}, session_id=session_id)
+    response = RedirectResponse(url=_verification_completion_url(), status_code=303)
+    _set_auth_cookie(response, access_token)
+    return response
 
 
 @router.post("/auth/resend-verification")

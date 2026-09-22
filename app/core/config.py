@@ -142,7 +142,7 @@ DEBUG_SECURITY_ENDPOINTS_ENABLED = _env_bool(
 ENFORCE_STRONG_JWT_SECRET = _env_bool("ENFORCE_STRONG_JWT_SECRET", IS_PRODUCTION)
 EMAIL_VERIFICATION_SUCCESS_URL = os.getenv(
     "EMAIL_VERIFICATION_SUCCESS_URL",
-    "https://trimly.com.ng/static/login.html?verified=1",
+    "https://trimly.com.ng/static/verify-email.html?verified=1",
 ).strip()
 EMAIL_VERIFICATION_FAILURE_URL = os.getenv(
     "EMAIL_VERIFICATION_FAILURE_URL",

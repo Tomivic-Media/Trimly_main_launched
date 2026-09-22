@@ -1,5 +1,6 @@
 import hashlib
 import secrets
+import threading
 from datetime import datetime, timedelta
 
 from fastapi import Cookie, Depends, HTTPException, Request, status
@@ -25,29 +26,49 @@ APP_SESSION_EPOCH = int(datetime.utcnow().timestamp())
 # PBKDF2 and bcrypt hashes already stored in production.
 pwd_context = CryptContext(schemes=["argon2", "pbkdf2_sha256", "bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login", auto_error=False)
+_USER_AUTH_SCHEMA_READY = False
+_USER_AUTH_SCHEMA_LOCK = threading.Lock()
 
 
 def ensure_user_auth_schema(db) -> None:
-    statements = [
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp VARCHAR",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp_expires_at TIMESTAMP",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_token_hash VARCHAR",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_expires_at TIMESTAMP",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT TRUE",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_token_hash VARCHAR",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_expires_at TIMESTAMP",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS accepted_terms BOOLEAN DEFAULT FALSE",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_approved BOOLEAN DEFAULT FALSE",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_approved_at TIMESTAMP",
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_by_user_id INTEGER",
-    ]
+    """Run legacy auth schema patches once per worker, never on every login request."""
+    global _USER_AUTH_SCHEMA_READY
+    if _USER_AUTH_SCHEMA_READY:
+        return
 
-    for statement in statements:
+    with _USER_AUTH_SCHEMA_LOCK:
+        if _USER_AUTH_SCHEMA_READY:
+            return
+
+        statements = [
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp VARCHAR",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp_expires_at TIMESTAMP",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_token_hash VARCHAR",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_expires_at TIMESTAMP",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT TRUE",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_token_hash VARCHAR",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_expires_at TIMESTAMP",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS accepted_terms BOOLEAN DEFAULT FALSE",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_approved BOOLEAN DEFAULT FALSE",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_approved_at TIMESTAMP",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_by_user_id INTEGER",
+        ]
+
         try:
-            db.execute(text(statement))
+            for statement in statements:
+                db.execute(text(statement))
             db.commit()
         except Exception:
             db.rollback()
+            raise
+
+        _USER_AUTH_SCHEMA_READY = True
+
+
+def mark_user_auth_schema_ready() -> None:
+    """Mark auth schema patches complete after the application's startup migration."""
+    global _USER_AUTH_SCHEMA_READY
+    _USER_AUTH_SCHEMA_READY = True
 
 
 def get_password_hash(password: str):

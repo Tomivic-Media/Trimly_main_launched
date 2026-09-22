@@ -308,6 +308,9 @@ function routePage() {
     case "register":
       initRegisterPage();
       break;
+    case "verify-email":
+      initEmailVerificationCompletePage();
+      break;
     case "dashboard":
       initDashboardPage();
       break;
@@ -3240,6 +3243,35 @@ function initLoginPage() {
     event.preventDefault();
     void handleLogin();
   });
+}
+
+async function initEmailVerificationCompletePage() {
+  const title = document.getElementById("verificationCompleteTitle");
+  const copy = document.getElementById("verificationCompleteCopy");
+  const retryButton = document.getElementById("verificationCompleteRetry");
+  if (!title || !copy) return;
+
+  const finishVerification = async () => {
+    retryButton?.classList.add("hidden");
+    title.textContent = "Email verified. Finishing your setup...";
+    copy.textContent = "We are taking you to your Trimly account.";
+    try {
+      const currentUser = await getCurrentUser();
+      const role = normalizeRole(currentUser.role || "customer");
+      setAuthSession("", role, currentUser.logged_in_as || "");
+      const destination = await resolvePostLoginTarget(role, "");
+      window.location.replace(destination);
+    } catch (_error) {
+      title.textContent = "Your email is verified";
+      copy.textContent = "We could not finish signing you in automatically. Please use your new account details to log in.";
+      retryButton?.classList.remove("hidden");
+    }
+  };
+
+  retryButton?.addEventListener("click", () => {
+    void finishVerification();
+  });
+  await finishVerification();
 }
 
 function initDemoPage() {

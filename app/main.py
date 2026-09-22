@@ -21,7 +21,7 @@ from app.core.config import (
     SECURITY_CONFIGURATION_WARNINGS,
     TRUSTED_HOSTS,
 )
-from app.core.security import get_admin_user_from_cookie, hash_password
+from app.core.security import get_admin_user_from_cookie, hash_password, mark_user_auth_schema_ready
 from app.db.session import Base, engine
 from app.db.session import SessionLocal
 
@@ -429,6 +429,7 @@ def migrate_legacy_barber_image_urls() -> None:
 
 Base.metadata.create_all(bind=engine)
 ensure_runtime_schema()
+mark_user_auth_schema_ready()
 ensure_bootstrap_super_admin()
 migrate_legacy_pending_bookings()
 backfill_legacy_barber_card_images()

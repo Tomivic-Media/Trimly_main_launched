@@ -5405,6 +5405,22 @@ label {
   padding-top: 2px;
 }
 
+.verification-complete-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+}
+
+.verification-complete-card {
+  text-align: center;
+  justify-items: center;
+}
+
+.verification-complete-card .brand-badge {
+  width: 62px;
+  height: 62px;
+}
+
 @media (max-width: 560px) {
   .campaign-applicant-register-section,
   .campaign-applicant-card {
