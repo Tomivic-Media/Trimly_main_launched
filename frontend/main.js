@@ -732,7 +732,7 @@ function renderSharedFooter() {
           </div>
         </div>
         <div class="footer-row">
-          <span>&copy; <span data-current-year>${year}</span> Trimly</span>
+          <span>&copy; <span data-current-year>${year}</span> Trimly Digital Grooming</span>
           <div class="footer-links-inline">
             <a href="/static/contact.html">Contact</a>
             <a href="/static/acceptable-use.html">Acceptable Use</a>
